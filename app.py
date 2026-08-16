@@ -134,10 +134,74 @@ def match_line(line, m):
     return None, 'not found', is_cap
 
 
+PICKER = """<h1>Build your squad</h1>
+<p class="sub">Search a player, click to add. Tap the ⓒ on a chip to set your captain.
+Prefer typing? <a href="/paste?mode=text">Use the free-text version</a>.</p>
+<div class="card">
+<input id="q" placeholder="Search players — e.g. Haal…" autocomplete="off"
+ style="width:100%;padding:10px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit">
+<div id="res" style="margin-top:8px;display:flex;flex-direction:column;gap:4px"></div>
+<div id="chips" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px"></div>
+<div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center">
+ <span id="count" class="note" style="margin:0">0 players</span>
+ <button id="go" disabled style="opacity:.5">Analyze</button>
+</div></div>
+<script>
+const PIDX = __PIDX__;
+const nrm = s => s.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');
+const picked = [];  let cap = null;
+const q=document.getElementById('q'),res=document.getElementById('res'),
+      chips=document.getElementById('chips'),go=document.getElementById('go'),
+      count=document.getElementById('count');
+q.addEventListener('input',()=>{
+ const v=nrm(q.value.trim()); res.innerHTML='';
+ if(v.length<2)return;
+ PIDX.filter(p=>nrm(p[0]).includes(v)||nrm(p[4]).includes(v)).slice(0,8).forEach(p=>{
+  const b=document.createElement('button');
+  b.type='button';
+  b.style.cssText='text-align:left;background:none;border:1px solid var(--grid);color:var(--ink);border-radius:8px;padding:7px 11px;font:13.5px system-ui;cursor:pointer';
+  b.innerHTML=`<b>${p[0]}</b> · ${p[1]} · ${p[2]} · £${p[3].toFixed(1)}`;
+  b.onclick=()=>{ if(picked.length>=15||picked.some(x=>x[0]===p[0]&&x[1]===p[1]))return;
+   picked.push(p); q.value=''; res.innerHTML=''; render(); };
+  res.appendChild(b);
+ });
+});
+function render(){
+ chips.innerHTML='';
+ picked.forEach((p,i)=>{
+  const isCap = cap===i;
+  const c=document.createElement('span');
+  c.style.cssText='display:inline-flex;align-items:center;gap:7px;border:1px solid var(--grid);border-radius:99px;padding:5px 11px;font:600 13px system-ui;background:var(--surface)';
+  c.innerHTML=`${p[0]} <span style="color:var(--ink2);font-weight:400">${p[1]}</span>`+
+   `<button type="button" title="captain" style="border:none;background:${isCap?'var(--accent)':'none'};color:${isCap?'#fff':'var(--ink2)'};border-radius:99px;width:20px;height:20px;cursor:pointer;font:700 11px system-ui">C</button>`+
+   `<button type="button" title="remove" style="border:none;background:none;color:var(--ink2);cursor:pointer;font-size:14px">✕</button>`;
+  const [cb,xb]=c.querySelectorAll('button');
+  cb.onclick=()=>{cap=isCap?null:i;render()};
+  xb.onclick=()=>{picked.splice(i,1);cap=cap===i?null:(cap>i?cap-1:cap);render()};
+  chips.appendChild(c);
+ });
+ count.textContent=picked.length+' player'+(picked.length===1?'':'s');
+ go.disabled=!picked.length; go.style.opacity=picked.length?'1':'.5';
+}
+go.onclick=()=>{
+ const lines=picked.map((p,i)=>`${p[0]} ${p[1]}${cap===i?' (c)':''}`);
+ location='/paste?squad='+encodeURIComponent(lines.join('\\n'));
+};
+</script>"""
+
+
 @app.get('/paste', response_class=HTMLResponse)
-def paste(squad: str = ''):
+def paste(squad: str = '', mode: str = ''):
     if not squad.strip():
-        return PAGE.format(title='Paste your squad', body=PASTE_FORM)
+        if mode == 'text':
+            return PAGE.format(title='Paste your squad', body=PASTE_FORM)
+        m = model_data()
+        pos_name = {1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD'}
+        pidx = sorted(([e['web_name'], m['teams'][e['team']], pos_name[e['element_type']],
+                        e['now_cost'] / 10, f"{e['first_name']} {e['second_name']}"]
+                       for e in m['elements'].values()), key=lambda r: -r[3])
+        return PAGE.format(title='Build your squad',
+                           body=PICKER.replace('__PIDX__', json.dumps(pidx, ensure_ascii=False)))
     m = model_data()
     pos_name = {1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD'}
     rows, problems, total, seen = [], [], 0.0, set()
@@ -174,9 +238,15 @@ def paste(squad: str = ''):
 
 
 ANALYZER_BANNER = """<section class="card" style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-top:0">
-<div><b>Analyze any team</b><br><span style="font-size:13px;color:var(--ink2)">Paste an FPL team ID and see that squad scored by the model — works for friends' teams too.</span></div>
-<a href="/team" style="background:var(--accent);color:#fff;text-decoration:none;font:600 14px system-ui;padding:9px 16px;border-radius:8px;white-space:nowrap">Open analyzer →</a>
-</section>"""
+<div><b>Analyze any team</b><br><span style="font-size:13px;color:var(--ink2)">Enter an FPL team ID or build a squad by hand — scored by the model, upgrade ideas included.</span></div>
+<span style="display:flex;gap:8px;align-items:center"><span id="myteam"></span>
+<a href="/team" style="background:var(--accent);color:#fff;text-decoration:none;font:600 14px system-ui;padding:9px 16px;border-radius:8px;white-space:nowrap">Open analyzer →</a></span>
+</section>
+<script>(function(){var t=localStorage.getItem('fpl_team_id');
+if(t)document.getElementById('myteam').innerHTML='<a href="/team/'+t+'" style="font:600 14px system-ui;color:var(--accent);text-decoration:none;white-space:nowrap">My team →</a>';})()</script>"""
+
+REMEMBER_SNIPPET = """<p class="note"><button onclick="localStorage.setItem('fpl_team_id','{tid}');this.textContent='Remembered on this device ✓';this.disabled=true"
+ style="background:none;border:1px solid var(--grid);color:var(--ink2);border-radius:8px;padding:6px 12px;font:600 12.5px system-ui;cursor:pointer">Remember as my team on this device</button></p>"""
 
 
 @app.get('/', response_class=HTMLResponse)
@@ -218,7 +288,8 @@ def team(team_id: int):
         body = (f'<h1>{name}</h1><p class="sub">{manager}</p>'
                 '<div class="card"><p>Picks are private until the gameweek deadline passes — '
                 'FPL only publishes each squad once it locks. Check back after the deadline, '
-                'or <a href="/paste">paste your squad manually</a> to analyze it now.</p></div>')
+                'or <a href="/paste">build your squad manually</a> to analyze it now.</p></div>'
+                + REMEMBER_SNIPPET.format(tid=team_id))
         return PAGE.format(title=name, body=body)
 
     rows, xi_total, flagged = [], 0.0, []
@@ -259,5 +330,6 @@ def team(team_id: int):
             f'<b>{xi_total:.1f}</b> xPts (captain doubled)</p>'
             '<div class="card"><table><tr><th></th><th>Player</th><th>Team</th><th>Pos</th>'
             '<th class="num">£m</th><th class="num">xPts</th></tr>'
-            + ''.join(rows) + '</table></div>' + sugg)
+            + ''.join(rows) + '</table></div>' + sugg
+            + REMEMBER_SNIPPET.format(tid=team_id))
     return PAGE.format(title=name, body=body)

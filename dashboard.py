@@ -94,13 +94,12 @@ footer{margin-top:26px;font-size:12px;color:var(--muted);max-width:70ch}
  <div class="eyebrow">Fleamarket Bargains · 2026/27 · Phase 1 model</div>
  <h1>Fleamarket Analytics</h1>
  <p class="sub">Every player scored from last season's Opta rates (xG, xA, clean sheets,
- defensive contributions), adjusted for opening fixtures. Squad v4 marked with rings.
- Deadline: Fri 21 Aug, 18:30 UK.</p>
+ defensive contributions), adjusted for opening fixtures. __SUBNOTE__Deadline: Fri 21 Aug, 18:30 UK.</p>
 </header>
 
 <section class="card">
  <h2>Value map — price vs expected points</h2>
- <p class="note">xPts per match from prior-season rates, GW1–4 fixture-adjusted. Ringed dots = our squad. Hover or tap any dot. Goalkeepers drawn as gray squares.</p>
+ <p class="note">xPts per match from prior-season rates, GW1–4 fixture-adjusted. __RINGNOTE__Hover or tap any dot. Goalkeepers drawn as gray squares.</p>
  <div class="chips" id="chips"></div>
  <svg id="scat" viewBox="0 0 940 520" role="img" aria-label="Scatter plot of player price against expected points per match"></svg>
 </section>
@@ -111,14 +110,7 @@ footer{margin-top:26px;font-size:12px;color:var(--muted);max-width:70ch}
  <div class="scroll hm"><table id="heatmap"></table></div>
 </section>
 
-<section class="card">
- <h2>Squad v4 — £100.0m</h2>
- <p class="note">Starting XI then bench, with each player's model score.</p>
- <div class="scroll"><table id="squad"><thead><tr>
- <th>Player</th><th>Team</th><th>Pos</th><th class="num">£m</th><th class="num">xPts/match</th><th>Role</th>
- </tr></thead><tbody></tbody></table></div>
-</section>
-
+__SQUADSEC__
 <footer>Phase 1 model: prior-season rates only — it can't yet see role changes,
 transfers between clubs, or minutes risk, so treat scores as a value lens, not an
 oracle. Regenerate with <code>python dashboard.py</code> after each data pull.</footer>
@@ -177,13 +169,34 @@ const chips=document.getElementById('chips');
 const ht=document.getElementById('heatmap');
 ht.innerHTML='<tr><th></th>'+[1,2,3,4,5,6].map(g=>`<th class="num" style="text-align:center">GW${g}</th>`).join('')+'</tr>'+
  HEAT.map(r=>'<tr><td class="teamlab">'+r.team+'</td>'+r.gws.map(g=>g?`<td><div class="cell d${g.d}">${g.h?g.o.toUpperCase():g.o.toLowerCase()}</div></td>`:'<td></td>').join('')+'</tr>').join('');
-document.querySelector('#squad tbody').innerHTML=SQUAD.map(r=>
+const sqEl=document.querySelector('#squad tbody');
+if(sqEl)sqEl.innerHTML=SQUAD.map(r=>
  `<tr class="${r.xi?'xi':''}"><td><b>${esc(r.n)}</b></td><td>${r.t}</td><td>${r.p}</td><td class="num">${r.c.toFixed(1)}</td><td class="num"><b>${r.x.toFixed(2)}</b></td><td><span class="pill">${r.xi?'XI':'Bench'}</span></td></tr>`).join('');
 draw();
 </script>
 """
-html = (html.replace('__DATA__', json.dumps(data, ensure_ascii=False))
-            .replace('__HEAT__', json.dumps(heat, ensure_ascii=False))
-            .replace('__SQUAD__', json.dumps(squad_rows, ensure_ascii=False)))
-open('dashboard.html', 'w', encoding='utf-8').write(html)
-print(f'dashboard.html written: {len(data)} players, {len(heat)} teams')
+SQUAD_SEC = """<section class="card">
+ <h2>Squad v4 — £100.0m</h2>
+ <p class="note">Starting XI then bench, with each player's model score.</p>
+ <div class="scroll"><table id="squad"><thead><tr>
+ <th>Player</th><th>Team</th><th>Pos</th><th class="num">£m</th><th class="num">xPts/match</th><th>Role</th>
+ </tr></thead><tbody></tbody></table></div>
+</section>"""
+
+
+def emit(path, personal):
+    # public copy strips squad markers entirely (no rings, labels, table, or
+    # flags in the embedded JSON) so nothing about our team leaks pre-deadline
+    dat = data if personal else [{**r, 'v4': False, 'xi': False} for r in data]
+    page = (html.replace('__SQUADSEC__', SQUAD_SEC if personal else '')
+                .replace('__SUBNOTE__', 'Squad v4 marked with rings. ' if personal else '')
+                .replace('__RINGNOTE__', 'Ringed dots = our squad. ' if personal else '')
+                .replace('__DATA__', json.dumps(dat, ensure_ascii=False))
+                .replace('__HEAT__', json.dumps(heat, ensure_ascii=False))
+                .replace('__SQUAD__', json.dumps(squad_rows if personal else [], ensure_ascii=False)))
+    open(path, 'w', encoding='utf-8').write(page)
+
+
+emit('dashboard.html', False)      # public: general analysis only (served by app.py)
+emit('my_dashboard.html', True)    # personal: includes squad v4 (artifact / local viewing)
+print(f'dashboard.html (public) + my_dashboard.html (personal): {len(data)} players, {len(heat)} teams')

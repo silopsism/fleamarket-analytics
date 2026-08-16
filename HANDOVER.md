@@ -20,7 +20,8 @@ database — two JSON files are the entire state.
 | `app.py` | **The server.** FastAPI: `/` serves the dashboard (with an injected link banner), `/team/{id}` analyzes any FPL team, `/team` is the ID-entry form, `/paste` is a manual squad-paste analyzer (works pre-deadline while API picks are still private; fuzzy name matching, no login). |
 | `model.py` | Scoring model. `app.py` and `dashboard.py` exec it up to the `# --- SCORES-END ---` marker; run directly it also prints rankings + runs an optimizer (needs `pulp`). |
 | `dashboard.py` | Regenerates `dashboard.html` from the data files. Run after every data refresh. |
-| `dashboard.html` | The static dashboard (value scatter, fixture heatmap, squad table). Fully self-contained. |
+| `dashboard.html` | The **public** dashboard (value scatter + fixture heatmap only). Fully self-contained. |
+| `my_dashboard.html` | David's **personal** dashboard (adds his squad table + squad markers). Deliberately not routed by `app.py` — do NOT add a static-file mount that would expose it; it stays private for local/artifact viewing. |
 | `bootstrap.json`, `fixtures.json` | FPL API data snapshots — the app's only state. |
 | `optimizer.py`, `validate_squad.py`, `analyze.py` | CLI tools used interactively from the project session; not needed by the server but harmless to copy. |
 
