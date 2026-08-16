@@ -38,19 +38,12 @@ uvicorn app:app --host 0.0.0.0 --port 8000
 Wrap in whatever this server uses for services (systemd unit / container /
 supervisor — your call). Single worker is plenty.
 
-## Data refresh (cron)
+## Data refresh — now automatic (no cron needed)
 
-Prices/injuries change daily during the season; the dashboard bakes data in at
-generation time. Schedule this daily (e.g. 07:00), from the app directory:
-
-```bash
-curl -s "https://fantasy.premierleague.com/api/bootstrap-static/" -o bootstrap.json \
- && curl -s "https://fantasy.premierleague.com/api/fixtures/" -o fixtures.json \
- && python dashboard.py
-```
-
-`app.py` auto-reloads its model cache when `bootstrap.json`'s mtime changes; no
-restart needed.
+As of 2026-08-16 the app refreshes itself: on startup and every 6 hours it pulls
+fresh FPL API data and regenerates the dashboard in-process. If a cron job was
+set up from an earlier version of this doc, it can be removed (harmless if kept).
+Deployment is git-based: push to `main` on GitHub → Coolify redeploys.
 
 ## Access requirements (your discretion how)
 

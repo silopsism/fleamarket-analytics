@@ -250,11 +250,17 @@ trapped = sorted((p for p in players if p['sel'] >= 15 and p['xpts'] < 3.2
                  key=lambda p: -p['sel'])[:8]
 
 # best players per price band per position (value-for-money tables)
+# exact 0.5m price points; only the sparse premium tail is grouped
 BANDS = {
-    1: [(4.0, 4.5, 2), (5.0, 6.5, 2)],
-    2: [(4.0, 4.5, 3), (5.0, 5.5, 3), (6.0, 8.5, 3)],
-    3: [(4.5, 5.5, 3), (6.0, 6.5, 3), (7.0, 7.5, 3), (8.0, 9.5, 2), (10.0, 16.0, 2)],
-    4: [(4.5, 5.5, 3), (6.0, 6.5, 3), (7.0, 8.0, 3), (8.5, 16.0, 2)],
+    1: [(4.0, 4.0, 2), (4.5, 4.5, 2), (5.0, 5.0, 2), (5.5, 6.5, 2)],
+    2: [(4.0, 4.0, 2), (4.5, 4.5, 2), (5.0, 5.0, 2), (5.5, 5.5, 2),
+        (6.0, 6.0, 2), (6.5, 8.5, 3)],
+    3: [(4.5, 4.5, 2), (5.0, 5.0, 2), (5.5, 5.5, 2), (6.0, 6.0, 2),
+        (6.5, 6.5, 2), (7.0, 7.0, 2), (7.5, 7.5, 2), (8.0, 8.0, 2),
+        (8.5, 9.5, 2), (10.0, 16.0, 2)],
+    4: [(4.5, 4.5, 2), (5.0, 5.0, 2), (5.5, 5.5, 2), (6.0, 6.0, 2),
+        (6.5, 6.5, 2), (7.0, 7.0, 2), (7.5, 7.5, 2), (8.0, 8.0, 2),
+        (8.5, 16.0, 3)],
 }
 
 
@@ -269,7 +275,12 @@ def band_tables(personal):
                           key=lambda p: -p['xpts'])[:n]
             if not cand:
                 continue
-            label = f'£{lo:.1f}–{hi:.1f}' if hi < 15.9 else f'£{lo:.1f}+'
+            if lo == hi:
+                label = f'£{lo:.1f}'
+            elif hi >= 15.9:
+                label = f'£{lo:.1f}+'
+            else:
+                label = f'£{lo:.1f}–{hi:.1f}'
             rows += (f"<tr><th colspan='4' style='padding-top:10px'>{label}</th></tr>"
                      + ''.join(
                 f"<tr><td>{'● ' if personal and pkey(p) in v4set else ''}<b>{p['name']}</b> "

@@ -8,6 +8,9 @@ import difflib
 import json
 import os
 import re
+import subprocess
+import sys
+import threading
 import time
 import unicodedata
 import urllib.request
@@ -18,6 +21,37 @@ from fastapi.responses import HTMLResponse
 app = FastAPI(title='Fleamarket Analytics')
 UA = {'User-Agent': 'Mozilla/5.0 (fleamarket-analytics; personal FPL tool)'}
 _cache = {'ts': 0.0, 'players': None, 'teams': None, 'events': None}
+
+REFRESH_HOURS = 6
+
+
+def refresh_data():
+    """Pull fresh FPL data and regenerate the dashboard. Failures leave the
+    previous files in place, so the app degrades to slightly-stale data."""
+    try:
+        for url, fn in [('https://fantasy.premierleague.com/api/bootstrap-static/', 'bootstrap.json'),
+                        ('https://fantasy.premierleague.com/api/fixtures/', 'fixtures.json')]:
+            req = urllib.request.Request(url, headers=UA)
+            data = urllib.request.urlopen(req, timeout=25).read()
+            json.loads(data)  # only overwrite with valid JSON
+            with open(fn, 'wb') as f:
+                f.write(data)
+        subprocess.run([sys.executable, 'dashboard.py'], check=True, timeout=180)
+        print('data refresh ok')
+    except Exception as exc:  # noqa: BLE001 - keep serving on any failure
+        print(f'data refresh failed (serving previous data): {exc}')
+
+
+def _refresh_forever():
+    refresh_data()
+    while True:
+        time.sleep(REFRESH_HOURS * 3600)
+        refresh_data()
+
+
+@app.on_event('startup')
+def _start_refresh():
+    threading.Thread(target=_refresh_forever, daemon=True).start()
 
 
 def fpl_get(url):
