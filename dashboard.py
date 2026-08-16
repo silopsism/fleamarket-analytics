@@ -13,15 +13,23 @@ exec(compile(src, 'model.py', 'exec'), ns)
 players, teams = ns['players'], ns['teams']
 pos_name = ns['pos_name']
 
-V4_XI = ['Kinsky', 'Guéhi', 'Mosquera', 'Maguire', 'B.Fernandes',
-         'Szoboszlai', 'Mbeumo', 'E.Le Fée', 'Haaland', 'João Pedro', 'Brobbey']
-V4_BENCH = ['Verbruggen', 'Davis', 'van Ewijk', 'Hughes']
+V4_XI = [('Kinsky', 'TOT'), ('Guéhi', 'MCI'), ('Mosquera', 'ARS'),
+         ('Maguire', 'MUN'), ('B.Fernandes', 'MUN'), ('Szoboszlai', 'LIV'),
+         ('Mbeumo', 'MUN'), ('E.Le Fée', 'SUN'), ('Haaland', 'MCI'),
+         ('João Pedro', 'CHE'), ('Calvert-Lewin', 'LEE')]
+V4_BENCH = [('Verbruggen', 'BHA'), ('Davis', 'IPS'), ('van Ewijk', 'COV'),
+            ('Hughes', 'CRY')]
 V4 = set(V4_XI) | set(V4_BENCH)
 
-pts = [p for p in players if p['xpts'] >= 1.8 or p['name'] in V4]
+
+def pkey(p):
+    return (p['name'], teams[p['team']])
+
+
+pts = [p for p in players if p['xpts'] >= 1.8 or pkey(p) in V4]
 data = [{'n': p['name'], 't': teams[p['team']], 'p': pos_name[p['pos']],
          'c': p['price'], 'x': round(p['xpts'], 2), 's': p['sel'],
-         'v4': p['name'] in V4, 'xi': p['name'] in V4_XI} for p in pts]
+         'v4': pkey(p) in V4, 'xi': pkey(p) in set(V4_XI)} for p in pts]
 
 fx = json.load(open('fixtures.json', encoding='utf-8'))
 runs = defaultdict(dict)
@@ -33,11 +41,11 @@ order = sorted(runs, key=lambda t: sum(g['d'] for g in runs[t].values()))
 heat = [{'team': t, 'gws': [runs[t].get(gw) for gw in range(1, 7)]} for t in order]
 
 squad_rows = []
-for name in V4_XI + V4_BENCH:
-    p = next(q for q in players if q['name'] == name)
-    squad_rows.append({'n': name, 't': teams[p['team']], 'p': pos_name[p['pos']],
+for name, club in V4_XI + V4_BENCH:
+    p = next(q for q in players if q['name'] == name and teams[q['team']] == club)
+    squad_rows.append({'n': name, 't': club, 'p': pos_name[p['pos']],
                        'c': p['price'], 'x': round(p['xpts'], 2),
-                       'xi': name in V4_XI})
+                       'xi': (name, club) in set(V4_XI)})
 
 html = """<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -88,6 +96,11 @@ td.num,th.num{text-align:right}
 .pill{display:inline-block;font:700 10px system-ui;letter-spacing:.06em;border:1px solid var(--ring);border-radius:99px;padding:2px 8px;color:var(--ink2)}
 .xi .pill{color:var(--accent);border-color:var(--accent)}
 footer{margin-top:26px;font-size:12px;color:var(--muted);max-width:70ch}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px}
+@media(max-width:700px){.cols{grid-template-columns:1fr}}
+h3{font-size:13.5px;margin-bottom:8px}
+.mut{font-size:11px;color:var(--muted);font-weight:400;letter-spacing:.04em;text-transform:uppercase}
+#diff{width:100%;height:auto;display:block}
 </style>
 <div class="wrap">
 <header>
@@ -103,6 +116,21 @@ footer{margin-top:26px;font-size:12px;color:var(--muted);max-width:70ch}
  <div class="chips" id="chips"></div>
  <svg id="scat" viewBox="0 0 940 520" role="img" aria-label="Scatter plot of player price against expected points per match"></svg>
 </section>
+
+<section class="card">
+ <h2>Differentials &amp; traps — the model vs the crowd</h2>
+ <p class="note">Ownership against model score. Top-left: gems the crowd hasn't found. Bottom-right: popular picks the model doubts. Ownership axis is stretched at the low end.</p>
+ <svg id="diff" viewBox="0 0 940 440" role="img" aria-label="Scatter of ownership against expected points per match"></svg>
+ <div class="cols">
+  <div><h3>Top differentials <span class="mut">under 10% owned</span></h3>
+  <div class="scroll"><table><tr><th>Player</th><th>Team</th><th class="num">£m</th><th class="num">Own%</th><th class="num">xPts</th></tr>__DIFFROWS__</table></div></div>
+  <div><h3>Crowd traps <span class="mut">15%+ owned, model skeptical</span></h3>
+  <div class="scroll"><table><tr><th>Player</th><th>Team</th><th class="num">£m</th><th class="num">Own%</th><th class="num">xPts</th></tr>__TRAPROWS__</table></div>
+  <p class="note" style="margin:8px 0 0">Model uses last season's rates — players in new, bigger roles this season may be unfairly flagged.</p></div>
+ </div>
+</section>
+
+__VALUEBANDS__
 
 <section class="card">
  <h2>Opening fixtures — GW1–6</h2>
@@ -148,16 +176,44 @@ function draw(){
  });
  svg.innerHTML=g;
 }
-svg.addEventListener('pointermove',e=>{
- const t=e.target.closest('.dot');
- if(!t){tip.style.opacity=0;return}
- const d=DATA[+t.dataset.i];
- tip.innerHTML=`<b>${esc(d.n)}</b> <span class="r">${d.t} · ${d.p}</span><br>£${d.c.toFixed(1)}m · <b>${d.x}</b> xPts/match<br><span class="r">${d.s}% owned${d.v4?' · in squad v4':''}</span>`;
- tip.style.opacity=1;
- tip.style.left=Math.min(e.clientX+14,innerWidth-250)+'px';
- tip.style.top=(e.clientY+14)+'px';
-});
-svg.addEventListener('pointerleave',()=>tip.style.opacity=0);
+function bindTips(el){
+ el.addEventListener('pointermove',e=>{
+  const t=e.target.closest('.dot');
+  if(!t){tip.style.opacity=0;return}
+  const d=DATA[+t.dataset.i];
+  tip.innerHTML=`<b>${esc(d.n)}</b> <span class="r">${d.t} · ${d.p}</span><br>£${d.c.toFixed(1)}m · <b>${d.x}</b> xPts/match<br><span class="r">${d.s}% owned${d.v4?' · in squad v4':''}</span>`;
+  tip.style.opacity=1;
+  tip.style.left=Math.min(e.clientX+14,innerWidth-250)+'px';
+  tip.style.top=(e.clientY+14)+'px';
+ });
+ el.addEventListener('pointerleave',()=>tip.style.opacity=0);
+}
+bindTips(svg);
+
+// differentials quadrant: x = ownership (sqrt-stretched), y = xPts
+const dsvg=document.getElementById('diff');
+(function(){
+ const W=940,H=440,L=52,R=16,T=20,B=44,SMAX=80;
+ const SX=v=>L+Math.sqrt(v/SMAX)*(W-L-R), SY=v=>H-B-(v-0)/(ymax-0)*(H-T-B);
+ let g='';
+ [1,5,15,40,75].forEach(v=>{g+=`<line x1="${SX(v)}" x2="${SX(v)}" y1="${T}" y2="${H-B}" stroke="var(--grid)"/>`+
+  `<text x="${SX(v)}" y="${H-B+18}" text-anchor="middle" font-size="11" fill="var(--muted)">${v}%</text>`});
+ for(let p=1;p<=ymax;p++) g+=`<text x="${L-8}" y="${SY(p)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${p}</text>`;
+ g+=`<line x1="${L}" x2="${W-R}" y1="${SY(0)}" y2="${SY(0)}" stroke="var(--axis)"/>`;
+ g+=`<line x1="${SX(15)}" x2="${SX(15)}" y1="${T}" y2="${H-B}" stroke="var(--axis)" stroke-dasharray="4 4"/>`;
+ g+=`<line x1="${L}" x2="${W-R}" y1="${SY(3.2)}" y2="${SY(3.2)}" stroke="var(--axis)" stroke-dasharray="4 4"/>`;
+ g+=`<text x="${L+8}" y="${T+14}" font-size="11" fill="var(--muted)" font-weight="700" letter-spacing=".08em">DIFFERENTIALS</text>`;
+ g+=`<text x="${W-R-8}" y="${T+14}" text-anchor="end" font-size="11" fill="var(--muted)" font-weight="700" letter-spacing=".08em">ESSENTIALS</text>`;
+ g+=`<text x="${W-R-8}" y="${H-B-10}" text-anchor="end" font-size="11" fill="var(--muted)" font-weight="700" letter-spacing=".08em">TRAPS</text>`;
+ g+=`<text x="${(L+W-R)/2}" y="${H-8}" text-anchor="middle" font-size="11.5" fill="var(--ink2)">Ownership (%)</text>`;
+ DATA.forEach((d,i)=>{
+  const cx=SX(Math.min(d.s,SMAX)),cy=SY(d.x),c=COL[d.p];
+  const mark=d.p==='GKP'?`<rect x="${cx-4}" y="${cy-4}" width="8" height="8" fill="${c}"/>`:`<circle cx="${cx}" cy="${cy}" r="4.5" fill="${c}"/>`;
+  g+=`<g class="dot" data-i="${i}">${d.v4?`<circle cx="${cx}" cy="${cy}" r="8.5" fill="none" stroke="var(--ink)" stroke-width="1.6"/>`:''}${mark}<circle cx="${cx}" cy="${cy}" r="12" fill="transparent"/></g>`;
+ });
+ dsvg.innerHTML=g;
+})();
+bindTips(dsvg);
 const chips=document.getElementById('chips');
 ['DEF','MID','FWD','GKP'].forEach(p=>{
  const b=document.createElement('button');
@@ -175,6 +231,63 @@ if(sqEl)sqEl.innerHTML=SQUAD.map(r=>
 draw();
 </script>
 """
+POS = {1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD'}
+mins_by_id = {e['id']: e['minutes'] for e in ns['d']['elements']}
+
+
+def table_rows(rows):
+    return ''.join(f"<tr><td><b>{p['name']}</b></td><td>{teams[p['team']]}</td>"
+                   f"<td class='num'>{p['price']:.1f}</td><td class='num'>{p['sel']:.1f}</td>"
+                   f"<td class='num'><b>{p['xpts']:.2f}</b></td></tr>" for p in rows)
+
+
+diffs = sorted((p for p in players if p['sel'] < 10 and p['price'] >= 4.5),
+               key=lambda p: -p['xpts'])[:8]
+# traps: only players the model has real data on (900+ prior-season minutes),
+# so cold-start price priors don't get mislabeled as traps
+trapped = sorted((p for p in players if p['sel'] >= 15 and p['xpts'] < 3.2
+                  and mins_by_id.get(p['id'], 0) >= 900),
+                 key=lambda p: -p['sel'])[:8]
+
+# best players per price band per position (value-for-money tables)
+BANDS = {
+    1: [(4.0, 4.5, 2), (5.0, 6.5, 2)],
+    2: [(4.0, 4.5, 3), (5.0, 5.5, 3), (6.0, 8.5, 3)],
+    3: [(4.5, 5.5, 3), (6.0, 6.5, 3), (7.0, 7.5, 3), (8.0, 9.5, 2), (10.0, 16.0, 2)],
+    4: [(4.5, 5.5, 3), (6.0, 6.5, 3), (7.0, 8.0, 3), (8.5, 16.0, 2)],
+}
+
+
+def band_tables(personal):
+    v4set = set(V4_XI) | set(V4_BENCH)
+    cols = []
+    for pos_id in [2, 3, 4, 1]:
+        rows = ''
+        for lo, hi, n in BANDS[pos_id]:
+            cand = sorted((p for p in players if p['pos'] == pos_id
+                           and lo <= p['price'] <= hi and p['xmins'] >= 45),
+                          key=lambda p: -p['xpts'])[:n]
+            if not cand:
+                continue
+            label = f'£{lo:.1f}–{hi:.1f}' if hi < 15.9 else f'£{lo:.1f}+'
+            rows += (f"<tr><th colspan='4' style='padding-top:10px'>{label}</th></tr>"
+                     + ''.join(
+                f"<tr><td>{'● ' if personal and pkey(p) in v4set else ''}<b>{p['name']}</b> "
+                f"<span style='color:var(--muted)'>{teams[p['team']]}</span></td>"
+                f"<td class='num'>{p['price']:.1f}</td><td class='num'>{p['sel']:.0f}%</td>"
+                f"<td class='num'><b>{p['xpts']:.2f}</b></td></tr>" for p in cand))
+        cols.append(f"<div><h3>{pos_name[pos_id]}</h3><div class='scroll'><table>"
+                    f"<tr><th>Player</th><th class='num'>£m</th><th class='num'>Own</th>"
+                    f"<th class='num'>xPts</th></tr>{rows}</table></div></div>")
+    note = ('<p class="note" style="margin:8px 0 0">● = our squad. ' if personal else
+            '<p class="note" style="margin:8px 0 0">')
+    return ('<section class="card"><h2>Best at every price point</h2>'
+            '<p class="note">Top model scores per price band — only players expected to start '
+            '(45+ expected minutes). The cheapest name that matches an expensive one is the value pick.</p>'
+            f"<div class='cols'>{cols[0]}{cols[1]}</div><div class='cols' style='margin-top:20px'>{cols[2]}{cols[3]}</div>"
+            + note + 'Scores are per team gameweek and price in availability.</p></section>')
+
+
 SQUAD_SEC = """<section class="card">
  <h2>Squad v4 — £100.0m</h2>
  <p class="note">Starting XI then bench, with each player's model score.</p>
@@ -188,9 +301,12 @@ def emit(path, personal):
     # public copy strips squad markers entirely (no rings, labels, table, or
     # flags in the embedded JSON) so nothing about our team leaks pre-deadline
     dat = data if personal else [{**r, 'v4': False, 'xi': False} for r in data]
-    page = (html.replace('__SQUADSEC__', SQUAD_SEC if personal else '')
+    page = (html.replace('__VALUEBANDS__', band_tables(personal))
+                .replace('__SQUADSEC__', SQUAD_SEC if personal else '')
                 .replace('__SUBNOTE__', 'Squad v4 marked with rings. ' if personal else '')
                 .replace('__RINGNOTE__', 'Ringed dots = our squad. ' if personal else '')
+                .replace('__DIFFROWS__', table_rows(diffs))
+                .replace('__TRAPROWS__', table_rows(trapped))
                 .replace('__DATA__', json.dumps(dat, ensure_ascii=False))
                 .replace('__HEAT__', json.dumps(heat, ensure_ascii=False))
                 .replace('__SQUAD__', json.dumps(squad_rows if personal else [], ensure_ascii=False)))

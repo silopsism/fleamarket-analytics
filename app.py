@@ -94,6 +94,51 @@ Joao Pedro (c)
 </form></div>"""
 
 
+def best_transfers(owned, bank, m, top=3):
+    """Best single transfers for a squad: same position, affordable with the
+    bank, 3-per-club respected. owned = list of element dicts. Returns rows of
+    (gain, out_el, out_xp, in_player)."""
+    owned_ids = {e['id'] for e in owned}
+    clubs = {}
+    for e in owned:
+        clubs[e['team']] = clubs.get(e['team'], 0) + 1
+    out = []
+    for el in owned:
+        xp_out = m['players'].get(el['id'], {}).get('xpts', 0.0)
+        budget = el['now_cost'] / 10 + bank
+        best = None
+        for cand in m['players'].values():
+            if (cand['pos'] != el['element_type'] or cand['id'] in owned_ids
+                    or cand['price'] > budget):
+                continue
+            incoming_club = clubs.get(cand['team'], 0) - (1 if cand['team'] == el['team'] else 0)
+            if incoming_club >= 3:
+                continue
+            if best is None or cand['xpts'] > best['xpts']:
+                best = cand
+        if best and best['xpts'] - xp_out > 0.4:
+            out.append((best['xpts'] - xp_out, el, xp_out, best))
+    out.sort(key=lambda r: -r[0])
+    return out[:top]
+
+
+def transfers_html(owned, bank, m, bank_known=True):
+    rows = best_transfers(owned, bank, m)
+    if not rows:
+        return ''
+    items = ''.join(
+        f"<li><b>{el['web_name']}</b> ({xp_out:.2f}) → <b>{cand['name']}</b> "
+        f"({m['teams'][cand['team']]}, £{cand['price']:.1f}, {cand['xpts']:.2f}) "
+        f"<span style='color:var(--accent);font-weight:700'>+{gain:.2f} xPts</span></li>"
+        for gain, el, xp_out, cand in rows)
+    note = '' if bank_known else ' Assumes £0.0 in the bank.'
+    return ('<div class="card"><h2 style="font-size:16px">Best transfers by model</h2>'
+            f'<p class="note" style="margin:2px 0 10px">Single swaps, same position, budget and '
+            f'3-per-club respected.{note} Caveat: the model runs on last season’s rates — '
+            'players in new bigger roles may be underrated.</p>'
+            f"<ul style='padding-left:20px'>{items}</ul></div>")
+
+
 def norm(s):
     s = unicodedata.normalize('NFKD', s.lower())
     return ''.join(ch for ch in s if not unicodedata.combining(ch))
@@ -204,7 +249,7 @@ def paste(squad: str = '', mode: str = ''):
                            body=PICKER.replace('__PIDX__', json.dumps(pidx, ensure_ascii=False)))
     m = model_data()
     pos_name = {1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD'}
-    rows, problems, total, seen = [], [], 0.0, set()
+    rows, problems, total, seen, owned = [], [], 0.0, set(), []
     lines = [ln for chunk in squad.splitlines() for ln in chunk.split(',')]
     for ln in lines:
         el, note, is_cap = match_line(ln, m)
@@ -215,6 +260,7 @@ def paste(squad: str = '', mode: str = ''):
         if el['id'] in seen:
             continue
         seen.add(el['id'])
+        owned.append(el)
         mp = m['players'].get(el['id'])
         xp = mp['xpts'] if mp else 0.0
         total += xp * (2 if is_cap else 1)
@@ -233,7 +279,8 @@ def paste(squad: str = '', mode: str = ''):
             f' Red = weak by model. <a href="/paste">Edit / start over</a></p>'
             '<div class="card"><table><tr><th>Player</th><th>Team</th><th>Pos</th>'
             '<th class="num">£m</th><th class="num">xPts</th></tr>'
-            + ''.join(r[1] for r in rows) + '</table></div>' + prob_html)
+            + ''.join(r[1] for r in rows) + '</table></div>' + prob_html
+            + transfers_html(owned, 0.0, m, bank_known=False))
     return PAGE.format(title='Pasted squad', body=body)
 
 
@@ -292,39 +339,26 @@ def team(team_id: int):
                 + REMEMBER_SNIPPET.format(tid=team_id))
         return PAGE.format(title=name, body=body)
 
-    rows, xi_total, flagged = [], 0.0, []
+    rows, xi_total, owned = [], 0.0, []
     pos_name = {1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD'}
     for pk in picks['picks']:
         el = m['elements'].get(pk['element'])
         mp = m['players'].get(pk['element'])
         xp = mp['xpts'] if mp else 0.0
+        owned.append(el)
         is_xi = pk['position'] <= 11
         if is_xi:
             xi_total += xp * pk['multiplier'] if pk['multiplier'] else xp
         cap = ' (C)' if pk['is_captain'] else (' (V)' if pk['is_vice_captain'] else '')
         low = is_xi and xp < 2.4
-        if low and el:
-            flagged.append((el, xp))
         rows.append(f"<tr><td>{'XI' if is_xi else 'bench'}</td><td><b>{el['web_name']}{cap}</b></td>"
                     f"<td>{m['teams'][el['team']]}</td><td>{pos_name[el['element_type']]}</td>"
                     f"<td class='num'>{el['now_cost']/10:.1f}</td>"
                     f"<td class='num {'low' if low else ''}'>{xp:.2f}</td></tr>")
 
-    sugg = ''
-    if flagged:
-        items = []
-        for el, xp in flagged[:3]:
-            price = el['now_cost'] / 10
-            alts = sorted((p for p in m['players'].values()
-                           if p['pos'] == el['element_type'] and p['price'] <= price + 0.5
-                           and p['xpts'] > xp + 0.8), key=lambda p: -p['xpts'])[:3]
-            if alts:
-                names = ', '.join(f"{a['name']} (£{a['price']:.1f}, {a['xpts']:.2f})" for a in alts)
-                items.append(f"<li><b>{el['web_name']}</b> ({xp:.2f}) → {names}</li>")
-        if items:
-            sugg = ('<div class="card"><h2 style="font-size:16px">Upgrade ideas</h2>'
-                    '<p class="note" style="margin:2px 0 10px">Same position, within £0.5m, ranked by model score.</p>'
-                    f"<ul style='padding-left:20px'>{''.join(items)}</ul></div>")
+    bank = (picks.get('entry_history') or {}).get('bank')
+    sugg = transfers_html(owned, (bank / 10) if bank is not None else 0.0, m,
+                          bank_known=bank is not None)
 
     body = (f'<h1>{name}</h1><p class="sub">{manager} · GW{gw} squad · XI model score '
             f'<b>{xi_total:.1f}</b> xPts (captain doubled)</p>'

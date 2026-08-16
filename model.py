@@ -12,15 +12,12 @@ import math
 from collections import defaultdict
 import pulp
 
+from minutes import expected_minutes
+
 HORIZON = 4          # gameweeks for fixture adjustment
 GOAL_VAL = {1: 10, 2: 6, 3: 5, 4: 4}
 CS_VAL = {1: 4, 2: 4, 3: 1, 4: 0}
 DEFCON_THRESH = {2: 10, 3: 12, 4: 12}
-# verified role changes: expected minutes per match (team news, predicted XIs)
-XMINS_OVERRIDE = {
-    ('Kinsky', 'TOT'): 88, ('Lammens', 'MUN'): 88, ('Dubravka', 'TOT'): 0,
-    ('Roefs', 'SUN'): 88, ('Woltemade', 'NEW'): 70,
-}
 
 d = json.load(open('bootstrap.json', encoding='utf-8'))
 fx = json.load(open('fixtures.json', encoding='utf-8'))
@@ -46,55 +43,103 @@ team_xgc90 = {t: (v[0] / v[1] if v[1] else 1.4) for t, v in tw.items()}
 for t in teams:
     team_xgc90.setdefault(t, 1.7)  # promoted sides with no data: weak prior
 
+XMINS = expected_minutes(d)
+
+# team attack strength: minutes-weighted xGI/90 of the CURRENT squad (>=900
+# prior-season minutes), for transfer-context adjustment of movers' rates
+ta = defaultdict(lambda: [0.0, 0.0])
+for e in d['elements']:
+    if e['minutes'] >= 900 and e['element_type'] >= 3:
+        ta[e['team']][0] += float(e['expected_goal_involvements_per_90']) * e['minutes']
+        ta[e['team']][1] += e['minutes']
+team_att = {t: (v[0] / v[1] if v[1] else 0) for t, v in ta.items()}
+med_att = sorted(x for x in team_att.values() if x)[len(team_att) // 2]
+for t in teams:
+    if not team_att.get(t):
+        team_att[t] = med_att * 0.7   # promoted sides: weak attack prior
+team_att['RELEGATED'] = med_att * 0.85
+
+import os
+CTX = {}
+if os.path.exists('context_adjustments.json'):
+    CTX = {k: v for k, v in json.load(open('context_adjustments.json', encoding='utf-8')).items()
+           if not k.startswith('_')}
+short2id = {v: k for k, v in teams.items()}
+
 players = []
 for e in d['elements']:
-    if e['status'] in ('i', 'u', 'n', 's'):
-        continue
-    chance = e['chance_of_playing_next_round']
-    avail = (chance / 100) if chance is not None else 1.0
     price = e['now_cost'] / 10
     pos = e['element_type']
-    key = (e['web_name'], teams[e['team']])
     mins, starts = e['minutes'], e['starts']
 
     att_adj = 1 + 0.08 * (3 - avg_fdr[e['team']])
     xgc = team_xgc90[e['team']] * (1 + 0.15 * (avg_fdr[e['team']] - 3))
     p_cs = math.exp(-xgc)
 
-    if key in XMINS_OVERRIDE:
-        xmins = XMINS_OVERRIDE[key]
-    elif mins >= 400:
-        xmins = mins / 38
+    xmins = XMINS[e['id']]['xmins']   # availability already applied inside
+    xmins_src = XMINS[e['id']]['src']
+    if mins < 400 and xmins > 0:
+        xmins_mode = 'prior'          # no PL rate data -> price prior
+    elif xmins > 0:
+        xmins_mode = 'rates'
     else:
-        xmins = None  # new to PL / fringe -> price prior
+        xmins_mode = 'out'
 
-    if xmins is not None and xmins > 0:
+    if xmins_mode == 'rates':
         frac = min(xmins / 90, 1.0)
         xg90 = float(e['expected_goals_per_90'])
         xa90 = float(e['expected_assists_per_90'])
-        if key in XMINS_OVERRIDE and mins < 1500:
-            # thin sample for promoted-role players: shrink rates toward 0
+        okey = f"{e['web_name']}|{teams[e['team']]}"
+        if okey in CTX:
+            # transfer-context factor: rates were earned at the origin club
+            frm = CTX[okey]['from']
+            origin = team_att.get(short2id.get(frm), team_att.get(frm, med_att))
+            factor = (team_att[e['team']] / origin) ** 0.5 if origin else 1.0
+            factor = min(max(factor, 0.85), 1.15)
+            xg90, xa90 = xg90 * factor, xa90 * factor
+        if mins < 1500 and xmins > mins / 38 * 1.5 and not XMINS[e['id']]['trust']:
+            # promoted role on a thin sample: shrink attack rates toward 0
+            # (trust_rates overrides skip this - e.g. injury-shortened stars)
             shrink = max(mins / 1500, 0.3)
             xg90, xa90 = xg90 * shrink, xa90 * shrink
         appearance = 2 * frac
         goals = xg90 * frac * GOAL_VAL[pos] * att_adj
         assists = xa90 * frac * 3 * att_adj
         cs = p_cs * CS_VAL[pos] * frac if pos <= 3 else 0
-        saves = (e['saves'] / 38) / 3 * frac if pos == 1 else 0
-        dc_rate = e['defensive_contribution'] / 38 if mins else 0
+        # per-90 rates scaled by expected minutes (identical to season/38 for
+        # regular starters, but respects xmins overrides for role changers)
+        saves = (e['saves'] / (mins / 90) if mins else 0) / 3 * frac if pos == 1 else 0
+        dc_mean = e['defensive_contribution'] / (mins / 90) * frac if mins else 0
         thresh = DEFCON_THRESH.get(pos)
-        defcon = 2 * frac * min(1, max(0, (dc_rate / thresh - 0.4) / 0.6)) if thresh else 0
+        # P(hitting the defcon threshold) via Poisson tail, not certainty
+        defcon = 2 * (1 - sum(math.exp(-dc_mean) * dc_mean ** k / math.factorial(k)
+                              for k in range(thresh))) if thresh and dc_mean > 0 else 0
         bonus = e['bonus'] / 38 * frac
-        xpts = appearance + goals + assists + cs + saves + defcon + bonus
-    elif xmins == 0:
+        # designated #1 penalty taker: half-credit bonus (incumbents' rates
+        # already contain some of their past pens; new takers gain most)
+        pen = 0.04 * GOAL_VAL[pos] * frac if e['penalties_order'] == 1 else 0
+        # the expenses: goals-conceded deduction (GK/DEF) and yellow cards
+        gc_pen = (xgc / 2) * frac if pos <= 2 else 0
+        yc_pen = e['yellow_cards'] / (mins / 90) * frac if mins else 0
+        xpts = appearance + goals + assists + cs + saves + defcon + bonus + pen - gc_pen - yc_pen
+    elif xmins_mode == 'out':
         xpts = 0.0
     else:
-        xpts = 0.42 * price * 0.8  # price prior with regression haircut
+        # no PL rate data: build from what we DO know — appearance points from
+        # expected minutes, team-level clean sheets (fixture-adjusted), a modest
+        # defcon prior for DEF/MID — plus a price-based guess only for attack
+        frac = min(xmins / 90, 1.0)
+        appearance = 2 * frac
+        cs = p_cs * CS_VAL[pos] * frac if pos <= 3 else 0
+        attack_prior = 0.10 * price * frac * att_adj
+        dc_prior = 0.4 * frac if pos in (2, 3) else 0
+        pen = 0.04 * GOAL_VAL[pos] * frac if e['penalties_order'] == 1 else 0
+        xpts = appearance + cs + attack_prior + dc_prior + pen
 
     players.append({
         'id': e['id'], 'name': e['web_name'], 'team': e['team'], 'pos': pos,
         'price': price, 'sel': float(e['selected_by_percent']),
-        'xpts': xpts * avail,
+        'xpts': xpts, 'xmins': round(xmins), 'src': xmins_src,
     })
 
 # --- SCORES-END --- (dashboard.py exec's the file up to this marker)

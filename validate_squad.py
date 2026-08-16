@@ -13,7 +13,7 @@ SQUAD = [
     ('Davis', 'IPS'), ('van Ewijk', 'COV'),
     ('B.Fernandes', 'MUN'), ('Szoboszlai', 'LIV'), ('Mbeumo', 'MUN'),
     ('E.Le Fée', 'SUN'), ('Hughes', 'CRY'),
-    ('Haaland', 'MCI'), ('João Pedro', 'CHE'), ('Brobbey', 'SUN'),
+    ('Haaland', 'MCI'), ('João Pedro', 'CHE'), ('Calvert-Lewin', 'LEE'),
 ]
 
 picked = []

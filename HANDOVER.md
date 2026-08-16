@@ -17,8 +17,11 @@ database — two JSON files are the entire state.
 
 | File | Role |
 |---|---|
-| `app.py` | **The server.** FastAPI: `/` serves the dashboard (with an injected link banner), `/team/{id}` analyzes any FPL team, `/team` is the ID-entry form, `/paste` is a manual squad-paste analyzer (works pre-deadline while API picks are still private; fuzzy name matching, no login). |
-| `model.py` | Scoring model. `app.py` and `dashboard.py` exec it up to the `# --- SCORES-END ---` marker; run directly it also prints rankings + runs an optimizer (needs `pulp`). |
+| `app.py` | **The server.** FastAPI: `/` serves the dashboard (with an injected link banner), `/team/{id}` analyzes any FPL team **with a model-based transfer suggester** (budget/bank/3-per-club respected), `/team` is the ID-entry form, `/paste` is a manual squad builder (dropdown picker; `?mode=text` for free text; works pre-deadline while API picks are private). |
+| `model.py` | Scoring model. `app.py` and `dashboard.py` exec it up to the `# --- SCORES-END ---` marker; run directly it also prints rankings + runs an optimizer (needs `pulp`). Imports `minutes.py`. |
+| `minutes.py` | Expected-minutes subsystem (availability, depth rules, crowd signal, curated overrides). Run directly for the weekly crowd-vs-model discrepancy report. |
+| `xmins_overrides.json` | Curated minutes facts with reasons/review triggers — edited from the project session, deploy alongside. |
+| `context_adjustments.json` | Summer-2026 movers whose attack rates get a destination-club adjustment — deploy alongside; entries retire when current-season data takes over. |
 | `dashboard.py` | Regenerates `dashboard.html` from the data files. Run after every data refresh. |
 | `dashboard.html` | The **public** dashboard (value scatter + fixture heatmap only). Fully self-contained. |
 | `my_dashboard.html` | David's **personal** dashboard (adds his squad table + squad markers). Deliberately not routed by `app.py` — do NOT add a static-file mount that would expose it; it stays private for local/artifact viewing. |
@@ -69,6 +72,26 @@ restart needed.
   (documented Phase 1 limitation); a Phase 2 model will replace `model.py`
   in-place later in the season — the exec-marker interface will stay stable, so
   deployment shouldn't need changes beyond pulling the new file.
+
+## Updating an existing deployment (2026-08-16 update)
+
+Already deployed once? This update ships new analytics and model fixes. Steps:
+
+1. Copy these files from the source folder over the deployed copies:
+   `app.py`, `dashboard.py`, `model.py`, `minutes.py` (NEW), `xmins_overrides.json` (NEW), `context_adjustments.json` (NEW).
+   (`bootstrap.json`/`fixtures.json` can be refreshed with the cron command instead of copied.)
+2. Run `python dashboard.py` in the app directory — this regenerates `dashboard.html`
+   (now the **public** general-analytics page) and `my_dashboard.html` (personal — do NOT route/expose it).
+3. Restart the app service.
+4. Verify: homepage shows "Differentials & traps" and "Best at every price point" sections
+   and NO "Squad v4/v5" section; `/paste` shows a search-and-click player picker;
+   `/team/437580` page has a "Remember as my team on this device" button.
+
+What changed since first deploy: public/personal dashboard split (privacy), differentials +
+traps + price-band value tables, transfer suggester on team/paste pages, dropdown squad
+picker, expected-minutes subsystem with curated overrides, transfer-context adjustments,
+penalty-taker bonuses, and model calibration fixes (defcon probability, goals-conceded and
+card deductions, injury regression).
 
 ## Verification checklist
 

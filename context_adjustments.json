@@ -1,0 +1,12 @@
+{
+  "_comment": "Summer-2026 movers whose prior-season attack rates were earned at a different club. Factor = sqrt(att_new/att_old), clamped 0.85-1.15, applied to xG90/xA90. Remove entries once current-season data takes over (Phase 2). Players who moved in 2025 (Mbeumo, Isak, Wirtz, Gyokeres) already carry current-club rates - do NOT list them.",
+  "Semenyo|MCI": {"from": "BOU"},
+  "Anderson|MCI": {"from": "NFO"},
+  "Guéhi|MCI": {"from": "CRY"},
+  "Rogers|CHE": {"from": "AVL"},
+  "Welbeck|CHE": {"from": "BHA"},
+  "Calvert-Lewin|LEE": {"from": "EVE"},
+  "Senesi|TOT": {"from": "BOU"},
+  "Nørgaard|EVE": {"from": "ARS"},
+  "Strand Larsen|CRY": {"from": "RELEGATED"}
+}
