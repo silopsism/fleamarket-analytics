@@ -17,7 +17,7 @@ database — two JSON files are the entire state.
 
 | File | Role |
 |---|---|
-| `app.py` | **The server.** FastAPI: `/` serves the dashboard, `/team/{id}` analyzes any FPL team, `/team` is the ID-entry form. |
+| `app.py` | **The server.** FastAPI: `/` serves the dashboard (with an injected link banner), `/team/{id}` analyzes any FPL team, `/team` is the ID-entry form, `/paste` is a manual squad-paste analyzer (works pre-deadline while API picks are still private; fuzzy name matching, no login). |
 | `model.py` | Scoring model. `app.py` and `dashboard.py` exec it up to the `# --- SCORES-END ---` marker; run directly it also prints rankings + runs an optimizer (needs `pulp`). |
 | `dashboard.py` | Regenerates `dashboard.html` from the data files. Run after every data refresh. |
 | `dashboard.html` | The static dashboard (value scatter, fixture heatmap, squad table). Fully self-contained. |

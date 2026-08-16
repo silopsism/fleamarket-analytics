@@ -4,13 +4,16 @@ Serves the static dashboard plus /team/{id}: paste any FPL team ID and get
 that squad analyzed against the xPts model. Run:  uvicorn app:app --host
 0.0.0.0 --port 8000
 """
+import difflib
 import json
 import os
+import re
 import time
+import unicodedata
 import urllib.request
 
 from fastapi import FastAPI
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import HTMLResponse
 
 app = FastAPI(title='Fleamarket Analytics')
 UA = {'User-Agent': 'Mozilla/5.0 (fleamarket-analytics; personal FPL tool)'}
@@ -73,13 +76,116 @@ FORM = """<h1>Analyze any team</h1>
 <p class="sub">Paste an FPL team ID (from the Points page URL: fantasy.premierleague.com/entry/<b>ID</b>/…).</p>
 <div class="card"><form action="/team" method="get" onsubmit="location='/team/'+document.getElementById('tid').value;return false">
 <input id="tid" inputmode="numeric" pattern="[0-9]*" placeholder="e.g. 437580" required>
-<button>Analyze</button></form></div>"""
+<button>Analyze</button></form>
+<p class="note">Deadline not passed yet, so squads are still private? <a href="/paste">Paste your squad manually →</a></p></div>"""
+
+PASTE_FORM = """<h1>Paste your squad</h1>
+<p class="sub">One player per line (or comma-separated). Accents optional — <i>Guehi</i>,
+<i>Le Fee</i> and <i>Joao Pedro</i> all work. Mark your captain with <b>(c)</b>.
+If two players share a name, add the club: <i>Sangare NFO</i>.</p>
+<div class="card"><form action="/paste" method="get">
+<textarea name="squad" rows="16" required placeholder="Kinsky
+Guehi
+Maguire
+Bruno Fernandes
+Joao Pedro (c)
+…" style="width:100%;padding:10px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;resize:vertical"></textarea>
+<div style="margin-top:10px;display:flex;justify-content:flex-end"><button>Analyze</button></div>
+</form></div>"""
+
+
+def norm(s):
+    s = unicodedata.normalize('NFKD', s.lower())
+    return ''.join(ch for ch in s if not unicodedata.combining(ch))
+
+
+def match_line(line, m):
+    """Resolve one pasted line to an element. Returns (element|None, note)."""
+    raw = line.strip().strip(',').strip()
+    is_cap = bool(re.search(r'\(\s*c\s*\)', raw, re.I))
+    raw = re.sub(r'\(\s*c\s*\)', '', raw, flags=re.I).strip()
+    if not raw:
+        return None, None, False
+    team_filter = None
+    words = raw.split()
+    team_by_short = {norm(v): k for k, v in m['teams'].items()}
+    if len(words) > 1 and norm(words[-1]) in team_by_short:
+        team_filter = team_by_short[norm(words[-1])]
+        raw = ' '.join(words[:-1])
+    q = norm(raw)
+    els = [e for e in m['elements'].values()
+           if team_filter is None or e['team'] == team_filter]
+    exact = [e for e in els if norm(e['web_name']) == q]
+    if len(exact) == 1:
+        return exact[0], None, is_cap
+    qtok = set(q.split())
+    sub = [e for e in els if q in norm(e['web_name'])
+           or q in norm(f"{e['first_name']} {e['second_name']}")
+           or qtok <= set(norm(f"{e['first_name']} {e['second_name']}").split())]
+    if len(exact) > 1 or len(sub) > 1:
+        opts = ', '.join(f"{e['web_name']} {m['teams'][e['team']]}" for e in (exact or sub)[:4])
+        return None, f'ambiguous — did you mean: {opts}? (add the club, e.g. “{raw} {m["teams"][(exact or sub)[0]["team"]]}”)', is_cap
+    if len(sub) == 1:
+        return sub[0], None, is_cap
+    close = difflib.get_close_matches(q, [norm(e['web_name']) for e in els], n=3, cutoff=0.7)
+    if close:
+        names = ', '.join(sorted({e['web_name'] for e in els if norm(e['web_name']) in close}))
+        return None, f'not found — closest: {names}', is_cap
+    return None, 'not found', is_cap
+
+
+@app.get('/paste', response_class=HTMLResponse)
+def paste(squad: str = ''):
+    if not squad.strip():
+        return PAGE.format(title='Paste your squad', body=PASTE_FORM)
+    m = model_data()
+    pos_name = {1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD'}
+    rows, problems, total, seen = [], [], 0.0, set()
+    lines = [ln for chunk in squad.splitlines() for ln in chunk.split(',')]
+    for ln in lines:
+        el, note, is_cap = match_line(ln, m)
+        if el is None:
+            if note:
+                problems.append(f'<li><b>{ln.strip()}</b>: {note}</li>')
+            continue
+        if el['id'] in seen:
+            continue
+        seen.add(el['id'])
+        mp = m['players'].get(el['id'])
+        xp = mp['xpts'] if mp else 0.0
+        total += xp * (2 if is_cap else 1)
+        low = xp < 2.4
+        flag = ' ⚠ ' + el['news'][:36] if el['status'] not in ('a',) else ''
+        rows.append((el['element_type'], f"<tr><td><b>{el['web_name']}{' (C)' if is_cap else ''}</b>{flag}</td>"
+                     f"<td>{m['teams'][el['team']]}</td><td>{pos_name[el['element_type']]}</td>"
+                     f"<td class='num'>{el['now_cost']/10:.1f}</td>"
+                     f"<td class='num {'low' if low else ''}'>{xp:.2f}</td></tr>"))
+    rows.sort(key=lambda r: r[0])
+    prob_html = (f"<div class='card'><b>Couldn’t match {len(problems)} line(s)</b>"
+                 f"<ul style='padding-left:20px;margin-top:6px'>{''.join(problems)}</ul></div>") if problems else ''
+    body = (f'<h1>Pasted squad — {len(rows)} matched</h1>'
+            f'<p class="sub">Combined model score <b>{total:.1f}</b> xPts/match'
+            f'{" (captain doubled)" if "(C)" in "".join(r[1] for r in rows) else ""}.'
+            f' Red = weak by model. <a href="/paste">Edit / start over</a></p>'
+            '<div class="card"><table><tr><th>Player</th><th>Team</th><th>Pos</th>'
+            '<th class="num">£m</th><th class="num">xPts</th></tr>'
+            + ''.join(r[1] for r in rows) + '</table></div>' + prob_html)
+    return PAGE.format(title='Pasted squad', body=body)
+
+
+ANALYZER_BANNER = """<section class="card" style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-top:0">
+<div><b>Analyze any team</b><br><span style="font-size:13px;color:var(--ink2)">Paste an FPL team ID and see that squad scored by the model — works for friends' teams too.</span></div>
+<a href="/team" style="background:var(--accent);color:#fff;text-decoration:none;font:600 14px system-ui;padding:9px 16px;border-radius:8px;white-space:nowrap">Open analyzer →</a>
+</section>"""
 
 
 @app.get('/', response_class=HTMLResponse)
 def home():
     if os.path.exists('dashboard.html'):
-        return FileResponse('dashboard.html')
+        html = open('dashboard.html', encoding='utf-8').read()
+        # inject the analyzer banner right after the page header (server-only:
+        # the static/artifact copy of dashboard.html stays unchanged)
+        return HTMLResponse(html.replace('</header>', '</header>' + ANALYZER_BANNER, 1))
     return PAGE.format(title='Fleamarket Analytics', body=FORM)
 
 
@@ -111,7 +217,8 @@ def team(team_id: int):
     if not picks or 'picks' not in picks:
         body = (f'<h1>{name}</h1><p class="sub">{manager}</p>'
                 '<div class="card"><p>Picks are private until the gameweek deadline passes — '
-                'FPL only publishes each squad once it locks. Check back after the deadline.</p></div>')
+                'FPL only publishes each squad once it locks. Check back after the deadline, '
+                'or <a href="/paste">paste your squad manually</a> to analyze it now.</p></div>')
         return PAGE.format(title=name, body=body)
 
     rows, xi_total, flagged = [], 0.0, []
