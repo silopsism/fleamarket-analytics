@@ -102,8 +102,8 @@ a{{color:var(--accent)}}
 <div class="wrap">
 <div class="eyebrow">Fleamarket Analytics</div>
 {body}
-<p class="note"><a href="/">← Dashboard</a> · Scores are model xPts/match from prior-season
-Opta rates — a value lens, not an oracle.</p>
+<p class="note"><a href="/">← Dashboard</a> · Scores are model xPts per match, averaged over the
+next 4 gameweeks' fixtures, from prior-season Opta rates — a value lens, not an oracle.</p>
 </div>"""
 
 FORM = """<h1>Analyze any team</h1>

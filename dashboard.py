@@ -28,8 +28,8 @@ def pkey(p):
 
 pts = [p for p in players if p['xpts'] >= 1.8 or pkey(p) in V4]
 data = [{'n': p['name'], 't': teams[p['team']], 'p': pos_name[p['pos']],
-         'c': p['price'], 'x': round(p['xpts'], 2), 's': p['sel'],
-         'v4': pkey(p) in V4, 'xi': pkey(p) in set(V4_XI)} for p in pts]
+         'c': p['price'], 'x': round(p['xpts'], 2), 'xn': round(p['xnext'], 2),
+         's': p['sel'], 'v4': pkey(p) in V4, 'xi': pkey(p) in set(V4_XI)} for p in pts]
 
 fx = json.load(open('fixtures.json', encoding='utf-8'))
 runs = defaultdict(dict)
@@ -45,6 +45,7 @@ for name, club in V4_XI + V4_BENCH:
     p = next(q for q in players if q['name'] == name and teams[q['team']] == club)
     squad_rows.append({'n': name, 't': club, 'p': pos_name[p['pos']],
                        'c': p['price'], 'x': round(p['xpts'], 2),
+                       'xn': round(p['xnext'], 2),
                        'xi': (name, club) in set(V4_XI)})
 
 html = """<meta charset="utf-8">
@@ -112,7 +113,7 @@ h3{font-size:13.5px;margin-bottom:8px}
 
 <section class="card">
  <h2>Value map — price vs expected points</h2>
- <p class="note">xPts per match from prior-season rates, GW1–4 fixture-adjusted. __RINGNOTE__Hover or tap any dot. Goalkeepers drawn as gray squares.</p>
+ <p class="note">xPts = expected points per match averaged over the next 4 gameweeks' fixtures, from prior-season rates. Tooltips also show the single-fixture GW1 projection. __RINGNOTE__Hover or tap any dot. Goalkeepers drawn as gray squares.</p>
  <div class="chips" id="chips"></div>
  <svg id="scat" viewBox="0 0 940 520" role="img" aria-label="Scatter plot of player price against expected points per match"></svg>
 </section>
@@ -181,7 +182,7 @@ function bindTips(el){
   const t=e.target.closest('.dot');
   if(!t){tip.style.opacity=0;return}
   const d=DATA[+t.dataset.i];
-  tip.innerHTML=`<b>${esc(d.n)}</b> <span class="r">${d.t} · ${d.p}</span><br>£${d.c.toFixed(1)}m · <b>${d.x}</b> xPts/match<br><span class="r">${d.s}% owned${d.v4?' · in squad v4':''}</span>`;
+  tip.innerHTML=`<b>${esc(d.n)}</b> <span class="r">${d.t} · ${d.p}</span><br>£${d.c.toFixed(1)}m · <b>${d.x}</b> xPts (next 4 GWs) · GW1: <b>${d.xn}</b><br><span class="r">${d.s}% owned${d.v4?' · in squad v5':''}</span>`;
   tip.style.opacity=1;
   tip.style.left=Math.min(e.clientX+14,innerWidth-250)+'px';
   tip.style.top=(e.clientY+14)+'px';
@@ -227,7 +228,7 @@ ht.innerHTML='<tr><th></th>'+[1,2,3,4,5,6].map(g=>`<th class="num" style="text-a
  HEAT.map(r=>'<tr><td class="teamlab">'+r.team+'</td>'+r.gws.map(g=>g?`<td><div class="cell d${g.d}">${g.h?g.o.toUpperCase():g.o.toLowerCase()}</div></td>`:'<td></td>').join('')+'</tr>').join('');
 const sqEl=document.querySelector('#squad tbody');
 if(sqEl)sqEl.innerHTML=SQUAD.map(r=>
- `<tr class="${r.xi?'xi':''}"><td><b>${esc(r.n)}</b></td><td>${r.t}</td><td>${r.p}</td><td class="num">${r.c.toFixed(1)}</td><td class="num"><b>${r.x.toFixed(2)}</b></td><td><span class="pill">${r.xi?'XI':'Bench'}</span></td></tr>`).join('');
+ `<tr class="${r.xi?'xi':''}"><td><b>${esc(r.n)}</b></td><td>${r.t}</td><td>${r.p}</td><td class="num">${r.c.toFixed(1)}</td><td class="num"><b>${r.x.toFixed(2)}</b></td><td class="num">${r.xn.toFixed(2)}</td><td><span class="pill">${r.xi?'XI':'Bench'}</span></td></tr>`).join('');
 draw();
 </script>
 """
@@ -300,10 +301,10 @@ def band_tables(personal):
 
 
 SQUAD_SEC = """<section class="card">
- <h2>Squad v4 — £100.0m</h2>
- <p class="note">Starting XI then bench, with each player's model score.</p>
+ <h2>Squad v5 — £100.0m</h2>
+ <p class="note">Starting XI then bench. xPts = per-match average over the next 4 GWs; GW1 = next fixture only.</p>
  <div class="scroll"><table id="squad"><thead><tr>
- <th>Player</th><th>Team</th><th>Pos</th><th class="num">£m</th><th class="num">xPts/match</th><th>Role</th>
+ <th>Player</th><th>Team</th><th>Pos</th><th class="num">£m</th><th class="num">xPts (next 4)</th><th class="num">GW1</th><th>Role</th>
  </tr></thead><tbody></tbody></table></div>
 </section>"""
 

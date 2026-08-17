@@ -24,12 +24,17 @@ fx = json.load(open('fixtures.json', encoding='utf-8'))
 teams = {t['id']: t['short_name'] for t in d['teams']}
 pos_name = {1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD'}
 
-# fixture difficulty per team over horizon
+# fixture difficulty per team over horizon + the specific next gameweek
 fdr = defaultdict(list)
+next_event = min(e['id'] for e in d['events'] if not e['finished'])
+next_fdr = {}
 for f in fx:
     if f['event'] and f['event'] <= HORIZON:
         fdr[f['team_h']].append(f['team_h_difficulty'])
         fdr[f['team_a']].append(f['team_a_difficulty'])
+    if f['event'] == next_event:
+        next_fdr[f['team_h']] = f['team_h_difficulty']
+        next_fdr[f['team_a']] = f['team_a_difficulty']
 avg_fdr = {t: sum(v) / len(v) for t, v in fdr.items()}
 
 # team defensive context: minutes-weighted mean xGC/90 of current squad members
@@ -75,6 +80,10 @@ for e in d['elements']:
     att_adj = 1 + 0.08 * (3 - avg_fdr[e['team']])
     xgc = team_xgc90[e['team']] * (1 + 0.15 * (avg_fdr[e['team']] - 3))
     p_cs = math.exp(-xgc)
+    # the specific next fixture: stronger single-game adjustment
+    nfdr = next_fdr.get(e['team'], avg_fdr[e['team']])
+    att_next = 1 + 0.12 * (3 - nfdr)
+    xgc_next = team_xgc90[e['team']] * (1 + 0.20 * (nfdr - 3))
 
     xmins = XMINS[e['id']]['xmins']   # availability already applied inside
     xmins_src = XMINS[e['id']]['src']
@@ -103,9 +112,6 @@ for e in d['elements']:
             shrink = max(mins / 1500, 0.3)
             xg90, xa90 = xg90 * shrink, xa90 * shrink
         appearance = 2 * frac
-        goals = xg90 * frac * GOAL_VAL[pos] * att_adj
-        assists = xa90 * frac * 3 * att_adj
-        cs = p_cs * CS_VAL[pos] * frac if pos <= 3 else 0
         # per-90 rates scaled by expected minutes (identical to season/38 for
         # regular starters, but respects xmins overrides for role changers)
         saves = (e['saves'] / (mins / 90) if mins else 0) / 3 * frac if pos == 1 else 0
@@ -118,28 +124,40 @@ for e in d['elements']:
         # designated #1 penalty taker: half-credit bonus (incumbents' rates
         # already contain some of their past pens; new takers gain most)
         pen = 0.04 * GOAL_VAL[pos] * frac if e['penalties_order'] == 1 else 0
-        # the expenses: goals-conceded deduction (GK/DEF) and yellow cards
-        gc_pen = (xgc / 2) * frac if pos <= 2 else 0
         yc_pen = e['yellow_cards'] / (mins / 90) * frac if mins else 0
-        xpts = appearance + goals + assists + cs + saves + defcon + bonus + pen - gc_pen - yc_pen
+
+        def _pts(att, xgc_v):
+            goals = xg90 * frac * GOAL_VAL[pos] * att
+            assists = xa90 * frac * 3 * att
+            cs = math.exp(-xgc_v) * CS_VAL[pos] * frac if pos <= 3 else 0
+            gc = (xgc_v / 2) * frac if pos <= 2 else 0
+            return (appearance + goals + assists + cs + saves + defcon
+                    + bonus + pen - gc - yc_pen)
+
+        xpts = _pts(att_adj, xgc)
+        xpts_next = _pts(att_next, xgc_next)
     elif xmins_mode == 'out':
-        xpts = 0.0
+        xpts = xpts_next = 0.0
     else:
         # no PL rate data: build from what we DO know — appearance points from
         # expected minutes, team-level clean sheets (fixture-adjusted), a modest
         # defcon prior for DEF/MID — plus a price-based guess only for attack
         frac = min(xmins / 90, 1.0)
         appearance = 2 * frac
-        cs = p_cs * CS_VAL[pos] * frac if pos <= 3 else 0
-        attack_prior = 0.10 * price * frac * att_adj
         dc_prior = 0.4 * frac if pos in (2, 3) else 0
         pen = 0.04 * GOAL_VAL[pos] * frac if e['penalties_order'] == 1 else 0
-        xpts = appearance + cs + attack_prior + dc_prior + pen
+
+        def _prior(att, xgc_v):
+            cs = math.exp(-xgc_v) * CS_VAL[pos] * frac if pos <= 3 else 0
+            return appearance + cs + 0.10 * price * frac * att + dc_prior + pen
+
+        xpts = _prior(att_adj, xgc)
+        xpts_next = _prior(att_next, xgc_next)
 
     players.append({
         'id': e['id'], 'name': e['web_name'], 'team': e['team'], 'pos': pos,
         'price': price, 'sel': float(e['selected_by_percent']),
-        'xpts': xpts, 'xmins': round(xmins), 'src': xmins_src,
+        'xpts': xpts, 'xnext': xpts_next, 'xmins': round(xmins), 'src': xmins_src,
     })
 
 # --- SCORES-END --- (dashboard.py exec's the file up to this marker)
