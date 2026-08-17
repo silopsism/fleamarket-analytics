@@ -24,17 +24,18 @@ fx = json.load(open('fixtures.json', encoding='utf-8'))
 teams = {t['id']: t['short_name'] for t in d['teams']}
 pos_name = {1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD'}
 
-# fixture difficulty per team over horizon + the specific next gameweek
+# fixture difficulty per team: horizon average + per-event lists (handles
+# doubles as two entries and blanks as missing)
 fdr = defaultdict(list)
 next_event = min(e['id'] for e in d['events'] if not e['finished'])
-next_fdr = {}
+HORIZON_EVENTS = list(range(next_event, next_event + HORIZON))
+ev_fdr = defaultdict(lambda: defaultdict(list))
 for f in fx:
-    if f['event'] and f['event'] <= HORIZON:
+    if f['event'] and f['event'] in HORIZON_EVENTS:
         fdr[f['team_h']].append(f['team_h_difficulty'])
         fdr[f['team_a']].append(f['team_a_difficulty'])
-    if f['event'] == next_event:
-        next_fdr[f['team_h']] = f['team_h_difficulty']
-        next_fdr[f['team_a']] = f['team_a_difficulty']
+        ev_fdr[f['team_h']][f['event']].append(f['team_h_difficulty'])
+        ev_fdr[f['team_a']][f['event']].append(f['team_a_difficulty'])
 avg_fdr = {t: sum(v) / len(v) for t, v in fdr.items()}
 
 # team defensive context: minutes-weighted mean xGC/90 of current squad members
@@ -80,10 +81,10 @@ for e in d['elements']:
     att_adj = 1 + 0.08 * (3 - avg_fdr[e['team']])
     xgc = team_xgc90[e['team']] * (1 + 0.15 * (avg_fdr[e['team']] - 3))
     p_cs = math.exp(-xgc)
-    # the specific next fixture: stronger single-game adjustment
-    nfdr = next_fdr.get(e['team'], avg_fdr[e['team']])
-    att_next = 1 + 0.12 * (3 - nfdr)
-    xgc_next = team_xgc90[e['team']] * (1 + 0.20 * (nfdr - 3))
+    # per-fixture adjustments for each horizon event (stronger single-game swing)
+    ev_adjs = {ev: [(1 + 0.12 * (3 - fd), team_xgc90[e['team']] * (1 + 0.20 * (fd - 3)))
+                    for fd in ev_fdr[e['team']].get(ev, [])]
+               for ev in HORIZON_EVENTS}
 
     xmins = XMINS[e['id']]['xmins']   # availability already applied inside
     xmins_src = XMINS[e['id']]['src']
@@ -135,9 +136,10 @@ for e in d['elements']:
                     + bonus + pen - gc - yc_pen)
 
         xpts = _pts(att_adj, xgc)
-        xpts_next = _pts(att_next, xgc_next)
+        gws = [sum(_pts(a, g) for a, g in ev_adjs[ev]) for ev in HORIZON_EVENTS]
     elif xmins_mode == 'out':
-        xpts = xpts_next = 0.0
+        xpts = 0.0
+        gws = [0.0] * HORIZON
     else:
         # no PL rate data: build from what we DO know — appearance points from
         # expected minutes, team-level clean sheets (fixture-adjusted), a modest
@@ -152,12 +154,13 @@ for e in d['elements']:
             return appearance + cs + 0.10 * price * frac * att + dc_prior + pen
 
         xpts = _prior(att_adj, xgc)
-        xpts_next = _prior(att_next, xgc_next)
+        gws = [sum(_prior(a, g) for a, g in ev_adjs[ev]) for ev in HORIZON_EVENTS]
 
     players.append({
         'id': e['id'], 'name': e['web_name'], 'team': e['team'], 'pos': pos,
         'price': price, 'sel': float(e['selected_by_percent']),
-        'xpts': xpts, 'xnext': xpts_next, 'xmins': round(xmins), 'src': xmins_src,
+        'xpts': xpts, 'xnext': gws[0], 'gws': [round(g, 2) for g in gws],
+        'tot4': round(sum(gws), 2), 'xmins': round(xmins), 'src': xmins_src,
     })
 
 # --- SCORES-END --- (dashboard.py exec's the file up to this marker)

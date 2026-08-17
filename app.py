@@ -15,7 +15,7 @@ import time
 import unicodedata
 import urllib.request
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 
 app = FastAPI(title='Fleamarket Analytics')
@@ -70,8 +70,90 @@ def model_data():
         boot = json.load(open('bootstrap.json', encoding='utf-8'))
         _cache.update(ts=mtime, players={p['id']: p for p in ns['players']},
                       teams=ns['teams'], events=boot['events'],
+                      gwl=ns['HORIZON_EVENTS'],
                       elements={e['id']: e for e in boot['elements']})
     return _cache
+
+
+POS_NAME = {1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD'}
+
+
+def pick_best_xi(entries):
+    """Choose a legal best XI (by 4-week total) from up to 15 entries.
+    entries: dicts with 'pos' (1-4) and 'tt'. Returns set of indices."""
+    if len(entries) <= 11:
+        return set(range(len(entries)))
+    order = sorted(range(len(entries)), key=lambda i: -entries[i]['tt'])
+    min_req = {1: 1, 2: 3, 3: 2, 4: 1}
+    max_all = {1: 1, 2: 5, 3: 5, 4: 3}
+    xi = []
+    for pos, need in min_req.items():
+        xi += [i for i in order if entries[i]['pos'] == pos][:need]
+    for i in order:
+        if len(xi) >= 11:
+            break
+        if i in xi:
+            continue
+        if sum(1 for j in xi if entries[j]['pos'] == entries[i]['pos']) < max_all[entries[i]['pos']]:
+            xi.append(i)
+    return set(xi[:11])
+
+
+def squad_table_html(entries, gwl, interactive=False):
+    """Rich squad table: per-GW projections, totals, Starting XI footer.
+    entries: dicts with n, t, pos, price, g (per-GW list), tt, xi, cap.
+    interactive=True renders the role as an XI/C/VC/Bench selector with
+    live-updating footer totals (captain doubled)."""
+    head = ('<tr><th>Role</th><th>Player</th><th>Team</th><th>Pos</th><th class="num">£m</th>'
+            + ''.join(f'<th class="num">GW{g}</th>' for g in gwl)
+            + '<th class="num">Total</th></tr>')
+    rows = ''
+    ordered = sorted(entries, key=lambda r: (not r['xi'], r['pos']))
+    for r in ordered:
+        low = r['xi'] and r['tt'] < 10
+        if interactive:
+            role = 'C' if (r.get('cap') and r['xi']) else ('XI' if r['xi'] else 'Bench')
+            opts = ''.join(f"<option{' selected' if o == role else ''}>{o}</option>"
+                           for o in ('XI', 'C', 'VC', 'Bench'))
+            role_cell = (f"<select class='role' data-g='{json.dumps(r['g'])}' "
+                         f"style='background:var(--bg);color:var(--ink);border:1px solid var(--grid);"
+                         f"border-radius:6px;padding:3px 6px;font:600 12px system-ui'>{opts}</select>")
+        else:
+            role_cell = ('XI' if r['xi'] else 'bench') + (' (C)' if r.get('cap') else '')
+        rows += (f"<tr><td>{role_cell}</td><td><b>{r['n']}</b></td>"
+                 f"<td>{r['t']}</td><td>{POS_NAME[r['pos']]}</td><td class='num'>{r['price']:.1f}</td>"
+                 + ''.join(f"<td class='num'>{v:.1f}</td>" for v in r['g'])
+                 + f"<td class='num {'low' if low else ''}'><b>{r['tt']:.1f}</b></td></tr>")
+    xi = [r for r in entries if r['xi']]
+    sums = [sum(r['g'][k] * (2 if r.get('cap') else 1) for r in xi) for k in range(len(gwl))]
+    foot = ('<tr><th colspan="5" style="text-align:left">Starting XI (C doubled)'
+            '<span id="xiwarn" style="color:var(--warn)"></span></th>'
+            + ''.join(f"<th class='num' id='xf{k}'>{v:.1f}</th>" for k, v in enumerate(sums))
+            + f"<th class='num' id='xft' style='color:var(--accent)'>{sum(sums):.1f}</th></tr>")
+    script = ''
+    if interactive:
+        script = """<script>(function(){
+ const sel=[...document.querySelectorAll('select.role')];
+ function recompute(ev){
+  if(ev){const t=ev.target;
+   ['C','VC'].forEach(u=>{if(t.value===u)sel.forEach(s=>{if(s!==t&&s.value===u)s.value='XI'})});
+  }
+  const n=%d; const sums=Array(n).fill(0); let starters=0;
+  sel.forEach(s=>{
+   if(s.value==='Bench')return;
+   starters++;
+   const g=JSON.parse(s.dataset.g), m=s.value==='C'?2:1;
+   g.forEach((v,k)=>sums[k]+=v*m);
+  });
+  sums.forEach((v,k)=>document.getElementById('xf'+k).textContent=v.toFixed(1));
+  document.getElementById('xft').textContent=sums.reduce((a,b)=>a+b,0).toFixed(1);
+  document.getElementById('xiwarn').textContent=starters===11?'':' — '+starters+' starters (need 11)';
+ }
+ sel.forEach(s=>s.addEventListener('change',recompute));
+ recompute();
+})()</script>""" % len(gwl)
+    return (f'<div class="card"><div style="overflow-x:auto"><table>{head}{rows}{foot}</table></div>'
+            f'{script}</div>')
 
 
 PAGE = """<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -217,21 +299,31 @@ PICKER = """<h1>Build your squad</h1>
 <p class="sub">Search a player, click to add. Tap the ⓒ on a chip to set your captain.
 Prefer typing? <a href="/paste?mode=text">Use the free-text version</a>.</p>
 <div class="card">
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+ <button type="button" id="tmpl" style="background:none;border:1px solid var(--accent);color:var(--accent);border-radius:8px;padding:7px 13px;font:600 13px system-ui;cursor:pointer">⚡ Auto-fill the template</button>
+ <button type="button" id="resume" hidden style="background:none;border:1px solid var(--grid);color:var(--ink2);border-radius:8px;padding:7px 13px;font:600 13px system-ui;cursor:pointer">Load my last squad</button>
+</div>
 <input id="q" placeholder="Search players — e.g. Haal…" autocomplete="off"
  style="width:100%;padding:10px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit">
 <div id="res" style="margin-top:8px;display:flex;flex-direction:column;gap:4px"></div>
-<div id="chips" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px"></div>
+<div id="chips" style="display:flex;flex-direction:column;gap:10px;margin-top:14px"></div>
 <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center">
- <span id="count" class="note" style="margin:0">0 players</span>
+ <span id="count" class="note" style="margin:0">0 players · £0.0m used</span>
  <button id="go" disabled style="opacity:.5">Analyze</button>
 </div></div>
 <script>
 const PIDX = __PIDX__;
+const LIMITS = {GKP:2, DEF:5, MID:5, FWD:3};
 const nrm = s => s.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');
-const picked = [];  let cap = null;
+const picked = [];
 const q=document.getElementById('q'),res=document.getElementById('res'),
       chips=document.getElementById('chips'),go=document.getElementById('go'),
       count=document.getElementById('count');
+let msgTimer=null;
+function msg(t){
+ count.innerHTML=`<b style="color:var(--warn)">${t}</b>`;
+ clearTimeout(msgTimer); msgTimer=setTimeout(render,1800);
+}
 q.addEventListener('input',()=>{
  const v=nrm(q.value.trim()); res.innerHTML='';
  if(v.length<2)return;
@@ -240,30 +332,81 @@ q.addEventListener('input',()=>{
   b.type='button';
   b.style.cssText='text-align:left;background:none;border:1px solid var(--grid);color:var(--ink);border-radius:8px;padding:7px 11px;font:13.5px system-ui;cursor:pointer';
   b.innerHTML=`<b>${p[0]}</b> · ${p[1]} · ${p[2]} · £${p[3].toFixed(1)}`;
-  b.onclick=()=>{ if(picked.length>=15||picked.some(x=>x[0]===p[0]&&x[1]===p[1]))return;
+  b.onclick=()=>{
+   if(picked.some(x=>x[0]===p[0]&&x[1]===p[1]))return;
+   if(picked.length>=15){msg('Squad full (15 players)');return}
+   if(picked.filter(x=>x[2]===p[2]).length>=LIMITS[p[2]]){msg(p[2]+' full (max '+LIMITS[p[2]]+')');return}
+   if(picked.filter(x=>x[1]===p[1]).length>=3){msg('Max 3 players from '+p[1]);return}
    picked.push(p); q.value=''; res.innerHTML=''; render(); };
   res.appendChild(b);
  });
 });
 function render(){
  chips.innerHTML='';
- picked.forEach((p,i)=>{
-  const isCap = cap===i;
-  const c=document.createElement('span');
-  c.style.cssText='display:inline-flex;align-items:center;gap:7px;border:1px solid var(--grid);border-radius:99px;padding:5px 11px;font:600 13px system-ui;background:var(--surface)';
-  c.innerHTML=`${p[0]} <span style="color:var(--ink2);font-weight:400">${p[1]}</span>`+
-   `<button type="button" title="captain" style="border:none;background:${isCap?'var(--accent)':'none'};color:${isCap?'#fff':'var(--ink2)'};border-radius:99px;width:20px;height:20px;cursor:pointer;font:700 11px system-ui">C</button>`+
-   `<button type="button" title="remove" style="border:none;background:none;color:var(--ink2);cursor:pointer;font-size:14px">✕</button>`;
-  const [cb,xb]=c.querySelectorAll('button');
-  cb.onclick=()=>{cap=isCap?null:i;render()};
-  xb.onclick=()=>{picked.splice(i,1);cap=cap===i?null:(cap>i?cap-1:cap);render()};
-  chips.appendChild(c);
+ ['GKP','DEF','MID','FWD'].forEach(pos=>{
+  const grp=picked.map((p,i)=>[p,i]).filter(([p])=>p[2]===pos);
+  if(!grp.length)return;
+  const row=document.createElement('div');
+  row.style.cssText='display:flex;flex-wrap:wrap;gap:8px;align-items:center';
+  const lab=document.createElement('span');
+  lab.textContent=pos+' '+grp.length;
+  lab.style.cssText='font:700 10px system-ui;letter-spacing:.08em;color:var(--ink2);min-width:44px';
+  row.appendChild(lab);
+  grp.forEach(([p,i])=>{
+   const c=document.createElement('span');
+   c.style.cssText='display:inline-flex;align-items:center;gap:7px;border:1px solid var(--grid);border-radius:99px;padding:5px 11px;font:600 13px system-ui;background:var(--surface)';
+   c.innerHTML=`${p[0]} <span style="color:var(--ink2);font-weight:400">${p[1]} £${p[3].toFixed(1)}</span>`+
+    `<button type="button" title="remove" style="border:none;background:none;color:var(--ink2);cursor:pointer;font-size:14px">✕</button>`;
+   c.querySelector('button').onclick=()=>{picked.splice(i,1);render()};
+   row.appendChild(c);
+  });
+  chips.appendChild(row);
  });
- count.textContent=picked.length+' player'+(picked.length===1?'':'s');
- go.disabled=!picked.length; go.style.opacity=picked.length?'1':'.5';
+ const used=picked.reduce((s,p)=>s+p[3],0);
+ const over=used>100;
+ count.innerHTML=`<b>${picked.length}/15</b> players · <b style="${over?'color:var(--warn)':''}">£${used.toFixed(1)}m</b> used${over?' — over £100m!':''}`;
+ const ready=picked.length===15;
+ go.disabled=!ready; go.style.opacity=ready?'1':'.5';
+ go.textContent=ready?'Analyze':'Analyze ('+picked.length+'/15)';
+}
+
+function autoTemplate(){
+ picked.length=0;
+ const need={GKP:2,DEF:5,MID:5,FWD:3};
+ const minPos={}; PIDX.forEach(p=>{minPos[p[2]]=Math.min(minPos[p[2]]??99,p[3])});
+ const cnt={GKP:0,DEF:0,MID:0,FWD:0}, club={};
+ let used=0;
+ for(const p of [...PIDX].sort((a,b)=>b[5]-a[5])){
+  if(picked.length>=15)break;
+  if(cnt[p[2]]>=need[p[2]])continue;
+  if((club[p[1]]||0)>=3)continue;
+  let minRest=0;
+  for(const pos of ['GKP','DEF','MID','FWD'])
+   minRest+=(need[pos]-cnt[pos]-(pos===p[2]?1:0))*minPos[pos];
+  if(used+p[3]+minRest>100.0001)continue;
+  picked.push(p);cnt[p[2]]++;club[p[1]]=(club[p[1]]||0)+1;used+=p[3];
+ }
+ render();
+}
+document.getElementById('tmpl').onclick=autoTemplate;
+
+const saved=localStorage.getItem('fpl_my_squad');
+if(saved){
+ const rb=document.getElementById('resume');
+ rb.hidden=false;
+ rb.onclick=()=>{
+  picked.length=0;
+  try{JSON.parse(saved).forEach(line=>{
+   const parts=line.trim().split(' '), team=parts.pop(), name=parts.join(' ');
+   const p=PIDX.find(x=>x[0]===name&&x[1]===team);
+   if(p&&picked.length<15)picked.push(p);
+  })}catch(e){}
+  render();
+ };
 }
 go.onclick=()=>{
- const lines=picked.map((p,i)=>`${p[0]} ${p[1]}${cap===i?' (c)':''}`);
+ const lines=picked.map(p=>`${p[0]} ${p[1]}`);
+ localStorage.setItem('fpl_my_squad', JSON.stringify(lines));
  location='/paste?squad='+encodeURIComponent(lines.join('\\n'));
 };
 </script>"""
@@ -277,13 +420,14 @@ def paste(squad: str = '', mode: str = ''):
         m = model_data()
         pos_name = {1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD'}
         pidx = sorted(([e['web_name'], m['teams'][e['team']], pos_name[e['element_type']],
-                        e['now_cost'] / 10, f"{e['first_name']} {e['second_name']}"]
+                        e['now_cost'] / 10, f"{e['first_name']} {e['second_name']}",
+                        float(e['selected_by_percent'])]
                        for e in m['elements'].values()), key=lambda r: -r[3])
         return PAGE.format(title='Build your squad',
                            body=PICKER.replace('__PIDX__', json.dumps(pidx, ensure_ascii=False)))
     m = model_data()
     pos_name = {1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD'}
-    rows, problems, total, seen, owned = [], [], 0.0, set(), []
+    entries, problems, seen, owned = [], [], set(), []
     lines = [ln for chunk in squad.splitlines() for ln in chunk.split(',')]
     for ln in lines:
         el, note, is_cap = match_line(ln, m)
@@ -296,24 +440,34 @@ def paste(squad: str = '', mode: str = ''):
         seen.add(el['id'])
         owned.append(el)
         mp = m['players'].get(el['id'])
-        xp = mp['xpts'] if mp else 0.0
-        total += xp * (2 if is_cap else 1)
-        low = xp < 2.4
         flag = ' ⚠ ' + el['news'][:36] if el['status'] not in ('a',) else ''
-        rows.append((el['element_type'], f"<tr><td><b>{el['web_name']}{' (C)' if is_cap else ''}</b>{flag}</td>"
-                     f"<td>{m['teams'][el['team']]}</td><td>{pos_name[el['element_type']]}</td>"
-                     f"<td class='num'>{el['now_cost']/10:.1f}</td>"
-                     f"<td class='num {'low' if low else ''}'>{xp:.2f}</td></tr>"))
-    rows.sort(key=lambda r: r[0])
-    prob_html = (f"<div class='card'><b>Couldn’t match {len(problems)} line(s)</b>"
+        entries.append({'n': el['web_name'] + flag, 't': m['teams'][el['team']],
+                        'pos': el['element_type'], 'price': el['now_cost'] / 10,
+                        'g': mp['gws'] if mp else [0.0] * 4,
+                        'tt': mp['tot4'] if mp else 0.0, 'cap': is_cap})
+    xi_idx = pick_best_xi(entries)
+    for i, r in enumerate(entries):
+        r['xi'] = i in xi_idx
+    table = squad_table_html(entries, m['gwl'], interactive=True) if entries else ''
+    # legality check (catches the free-text path, which the picker pre-enforces)
+    limits = {1: 2, 2: 5, 3: 5, 4: 3}
+    for pos, cap_n in limits.items():
+        n = sum(1 for r in entries if r['pos'] == pos)
+        if n > cap_n:
+            problems.append(f'<li>Illegal squad: {n}× {POS_NAME[pos]} (max {cap_n})</li>')
+    clubs = {}
+    for r in entries:
+        clubs[r['t']] = clubs.get(r['t'], 0) + 1
+    for club, n in clubs.items():
+        if n > 3:
+            problems.append(f'<li>Illegal squad: {n} players from {club} (max 3)</li>')
+    prob_html = (f"<div class='card'><b>{len(problems)} issue(s)</b>"
                  f"<ul style='padding-left:20px;margin-top:6px'>{''.join(problems)}</ul></div>") if problems else ''
-    body = (f'<h1>Pasted squad — {len(rows)} matched</h1>'
-            f'<p class="sub">Combined model score <b>{total:.1f}</b> xPts/match'
-            f'{" (captain doubled)" if "(C)" in "".join(r[1] for r in rows) else ""}.'
-            f' Red = weak by model. <a href="/paste">Edit / start over</a></p>'
-            '<div class="card"><table><tr><th>Player</th><th>Team</th><th>Pos</th>'
-            '<th class="num">£m</th><th class="num">xPts</th></tr>'
-            + ''.join(r[1] for r in rows) + '</table></div>' + prob_html
+    body = (f'<h1>Pasted squad — {len(entries)} matched</h1>'
+            f'<p class="sub">The model has picked the best legal starting XI — adjust any '
+            f'Role (XI / C / VC / Bench) and the totals update live. '
+            f'<a href="/paste">Edit / start over</a></p>'
+            + table + prob_html
             + transfers_html(owned, 0.0, m, bank_known=False))
     return PAGE.format(title='Pasted squad', body=body)
 
@@ -323,8 +477,14 @@ ANALYZER_BANNER = """<section class="card" style="display:flex;justify-content:s
 <span style="display:flex;gap:8px;align-items:center"><span id="myteam"></span>
 <a href="/team" style="background:var(--accent);color:#fff;text-decoration:none;font:600 14px system-ui;padding:9px 16px;border-radius:8px;white-space:nowrap">Open analyzer →</a></span>
 </section>
-<script>(function(){var t=localStorage.getItem('fpl_team_id');
-if(t)document.getElementById('myteam').innerHTML='<a href="/team/'+t+'" style="font:600 14px system-ui;color:var(--accent);text-decoration:none;white-space:nowrap">My team →</a>';})()</script>"""
+<script>(function(){
+var h='';
+var t=localStorage.getItem('fpl_team_id');
+if(t)h+='<a href="/team/'+t+'" style="font:600 14px system-ui;color:var(--accent);text-decoration:none;white-space:nowrap">My team →</a> ';
+var s=localStorage.getItem('fpl_my_squad');
+if(s){try{var l=JSON.parse(s);
+h+='<a href="/paste?squad='+encodeURIComponent(l.join('\\n'))+'" style="font:600 14px system-ui;color:var(--accent);text-decoration:none;white-space:nowrap">My squad →</a>';}catch(e){}}
+document.getElementById('myteam').innerHTML=h;})()</script>"""
 
 REMEMBER_SNIPPET = """<p class="note"><button onclick="localStorage.setItem('fpl_team_id','{tid}');this.textContent='Remembered on this device ✓';this.disabled=true"
  style="background:none;border:1px solid var(--grid);color:var(--ink2);border-radius:8px;padding:6px 12px;font:600 12.5px system-ui;cursor:pointer">Remember as my team on this device</button></p>"""
@@ -338,6 +498,17 @@ def home():
         # the static/artifact copy of dashboard.html stays unchanged)
         return HTMLResponse(html.replace('</header>', '</header>' + ANALYZER_BANNER, 1))
     return PAGE.format(title='Fleamarket Analytics', body=FORM)
+
+
+@app.get('/me', response_class=HTMLResponse)
+def me(request: Request):
+    """Personal dashboard (includes the squad) — localhost only, by design."""
+    if request.client and request.client.host in ('127.0.0.1', '::1') \
+            and os.path.exists('my_dashboard.html'):
+        return HTMLResponse(open('my_dashboard.html', encoding='utf-8').read())
+    return PAGE.format(title='Not available',
+                       body='<h1>Not available here</h1><p class="sub">The personal '
+                            'dashboard is only served on localhost.</p>')
 
 
 @app.get('/team', response_class=HTMLResponse)
@@ -373,31 +544,25 @@ def team(team_id: int):
                 + REMEMBER_SNIPPET.format(tid=team_id))
         return PAGE.format(title=name, body=body)
 
-    rows, xi_total, owned = [], 0.0, []
-    pos_name = {1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD'}
+    entries, owned = [], []
     for pk in picks['picks']:
         el = m['elements'].get(pk['element'])
         mp = m['players'].get(pk['element'])
-        xp = mp['xpts'] if mp else 0.0
         owned.append(el)
-        is_xi = pk['position'] <= 11
-        if is_xi:
-            xi_total += xp * pk['multiplier'] if pk['multiplier'] else xp
-        cap = ' (C)' if pk['is_captain'] else (' (V)' if pk['is_vice_captain'] else '')
-        low = is_xi and xp < 2.4
-        rows.append(f"<tr><td>{'XI' if is_xi else 'bench'}</td><td><b>{el['web_name']}{cap}</b></td>"
-                    f"<td>{m['teams'][el['team']]}</td><td>{pos_name[el['element_type']]}</td>"
-                    f"<td class='num'>{el['now_cost']/10:.1f}</td>"
-                    f"<td class='num {'low' if low else ''}'>{xp:.2f}</td></tr>")
+        entries.append({'n': el['web_name'], 't': m['teams'][el['team']],
+                        'pos': el['element_type'], 'price': el['now_cost'] / 10,
+                        'g': mp['gws'] if mp else [0.0] * 4,
+                        'tt': mp['tot4'] if mp else 0.0,
+                        'xi': pk['position'] <= 11, 'cap': pk['is_captain']})
+    table = squad_table_html(entries, m['gwl'])
+    xi_total = sum(r['tt'] * (2 if r['cap'] else 1) for r in entries if r['xi'])
 
     bank = (picks.get('entry_history') or {}).get('bank')
     sugg = transfers_html(owned, (bank / 10) if bank is not None else 0.0, m,
                           bank_known=bank is not None)
 
-    body = (f'<h1>{name}</h1><p class="sub">{manager} · GW{gw} squad · XI model score '
-            f'<b>{xi_total:.1f}</b> xPts (captain doubled)</p>'
-            '<div class="card"><table><tr><th></th><th>Player</th><th>Team</th><th>Pos</th>'
-            '<th class="num">£m</th><th class="num">xPts</th></tr>'
-            + ''.join(rows) + '</table></div>' + sugg
+    body = (f'<h1>{name}</h1><p class="sub">{manager} · GW{gw} squad · projected '
+            f'<b>{xi_total:.1f}</b> XI points over the next 4 GWs (captain doubled)</p>'
+            + table + sugg
             + REMEMBER_SNIPPET.format(tid=team_id))
     return PAGE.format(title=name, body=body)
