@@ -72,17 +72,29 @@ if os.path.exists('context_adjustments.json'):
            if not k.startswith('_')}
 short2id = {v: k for k, v in teams.items()}
 
+# season-expectation sentiment: predicted vs last-season league points per club
+# (betting-market/Elo based), sqrt-dampened, applied to attack rates and
+# inversely to team xGC. Promoted clubs (no 'last') stay at 1.0.
+SENT = {t: 1.0 for t in teams}
+if os.path.exists('team_sentiment.json'):
+    for short, v in json.load(open('team_sentiment.json', encoding='utf-8')).items():
+        if short.startswith('_') or short not in short2id or 'last' not in v:
+            continue
+        SENT[short2id[short]] = min(max((v['pred'] / v['last']) ** 0.5, 0.87), 1.15)
+
 players = []
 for e in d['elements']:
     price = e['now_cost'] / 10
     pos = e['element_type']
     mins, starts = e['minutes'], e['starts']
 
+    sent = SENT[e['team']]
+    base_xgc = team_xgc90[e['team']] / sent   # improving team -> concedes less
     att_adj = 1 + 0.08 * (3 - avg_fdr[e['team']])
-    xgc = team_xgc90[e['team']] * (1 + 0.15 * (avg_fdr[e['team']] - 3))
+    xgc = base_xgc * (1 + 0.15 * (avg_fdr[e['team']] - 3))
     p_cs = math.exp(-xgc)
     # per-fixture adjustments for each horizon event (stronger single-game swing)
-    ev_adjs = {ev: [(1 + 0.12 * (3 - fd), team_xgc90[e['team']] * (1 + 0.20 * (fd - 3)))
+    ev_adjs = {ev: [(1 + 0.12 * (3 - fd), base_xgc * (1 + 0.20 * (fd - 3)))
                     for fd in ev_fdr[e['team']].get(ev, [])]
                for ev in HORIZON_EVENTS}
 
@@ -112,6 +124,7 @@ for e in d['elements']:
             # (trust_rates overrides skip this - e.g. injury-shortened stars)
             shrink = max(mins / 1500, 0.3)
             xg90, xa90 = xg90 * shrink, xa90 * shrink
+        xg90, xa90 = xg90 * sent, xa90 * sent   # season-expectation sentiment
         appearance = 2 * frac
         # per-90 rates scaled by expected minutes (identical to season/38 for
         # regular starters, but respects xmins overrides for role changers)
@@ -151,7 +164,7 @@ for e in d['elements']:
 
         def _prior(att, xgc_v):
             cs = math.exp(-xgc_v) * CS_VAL[pos] * frac if pos <= 3 else 0
-            return appearance + cs + 0.10 * price * frac * att + dc_prior + pen
+            return appearance + cs + 0.10 * price * frac * att * sent + dc_prior + pen
 
         xpts = _prior(att_adj, xgc)
         gws = [sum(_prior(a, g) for a, g in ev_adjs[ev]) for ev in HORIZON_EVENTS]

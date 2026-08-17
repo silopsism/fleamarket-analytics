@@ -1,0 +1,23 @@
+{
+  "_comment": "Season expectation shift per club: last = actual 2025/26 PL points, pred = supercomputer-predicted 2026/27 points (Sky/EADT, 10k sims from Elo + transfers + betting markets, pulled 2026-08-17). Model applies factor = sqrt(pred/last) clamped 0.87-1.15 to attack rates and inversely to team xGC. Promoted clubs have no 'last' - factor 1.0 (their weak priors already handle it). Refresh or retire once current-season data takes over (Phase 2).",
+  "ARS": {"last": 85, "pred": 86},
+  "MCI": {"last": 78, "pred": 78},
+  "MUN": {"last": 71, "pred": 68},
+  "AVL": {"last": 65, "pred": 63},
+  "LIV": {"last": 60, "pred": 75},
+  "BOU": {"last": 57, "pred": 53},
+  "SUN": {"last": 54, "pred": 40},
+  "BHA": {"last": 53, "pred": 55},
+  "BRE": {"last": 53, "pred": 49},
+  "CHE": {"last": 52, "pred": 66},
+  "FUL": {"last": 52, "pred": 43},
+  "NEW": {"last": 49, "pred": 57},
+  "EVE": {"last": 49, "pred": 47},
+  "LEE": {"last": 47, "pred": 42},
+  "CRY": {"last": 45, "pred": 41},
+  "NFO": {"last": 44, "pred": 36},
+  "TOT": {"last": 41, "pred": 63},
+  "HUL": {"pred": 33},
+  "IPS": {"pred": 27},
+  "COV": {"pred": 24}
+}
