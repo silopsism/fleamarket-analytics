@@ -316,6 +316,7 @@ const PIDX = __PIDX__;
 const LIMITS = {GKP:2, DEF:5, MID:5, FWD:3};
 const nrm = s => s.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');
 const picked = [];
+let tmplBaseline=null;
 const q=document.getElementById('q'),res=document.getElementById('res'),
       chips=document.getElementById('chips'),go=document.getElementById('go'),
       count=document.getElementById('count');
@@ -386,6 +387,7 @@ function autoTemplate(){
   if(used+p[3]+minRest>100.0001)continue;
   picked.push(p);cnt[p[2]]++;club[p[1]]=(club[p[1]]||0)+1;used+=p[3];
  }
+ tmplBaseline=picked.map(p=>`${p[0]} ${p[1]}`).join('\\n');
  render();
 }
 document.getElementById('tmpl').onclick=autoTemplate;
@@ -407,13 +409,14 @@ if(saved){
 go.onclick=()=>{
  const lines=picked.map(p=>`${p[0]} ${p[1]}`);
  localStorage.setItem('fpl_my_squad', JSON.stringify(lines));
- location='/paste?squad='+encodeURIComponent(lines.join('\\n'));
+ const src=lines.join('\\n')===tmplBaseline?'&src=template':'';
+ location='/paste?squad='+encodeURIComponent(lines.join('\\n'))+src;
 };
 </script>"""
 
 
 @app.get('/paste', response_class=HTMLResponse)
-def paste(squad: str = '', mode: str = ''):
+def paste(squad: str = '', mode: str = '', src: str = ''):
     if not squad.strip():
         if mode == 'text':
             return PAGE.format(title='Paste your squad', body=PASTE_FORM)
@@ -463,9 +466,17 @@ def paste(squad: str = '', mode: str = ''):
             problems.append(f'<li>Illegal squad: {n} players from {club} (max 3)</li>')
     prob_html = (f"<div class='card'><b>{len(problems)} issue(s)</b>"
                  f"<ul style='padding-left:20px;margin-top:6px'>{''.join(problems)}</ul></div>") if problems else ''
-    body = (f'<h1>Pasted squad — {len(entries)} matched</h1>'
-            f'<p class="sub">The model has picked the best legal starting XI — adjust any '
-            f'Role (XI / C / VC / Bench) and the totals update live. '
+    if src == 'template':
+        title = 'The template squad'
+        intro = ('Built from the most-selected players in the game (a legal £100m squad of '
+                 'the crowd’s favourites). The model then picked the best starting XI '
+                 'among them — adjust any Role (XI / C / VC / Bench) and the totals update live. ')
+    else:
+        title = f'Pasted squad — {len(entries)} matched'
+        intro = ('The model has picked the best legal starting XI — adjust any '
+                 'Role (XI / C / VC / Bench) and the totals update live. ')
+    body = (f'<h1>{title}</h1>'
+            f'<p class="sub">{intro}'
             f'<a href="/paste">Edit / start over</a></p>'
             + table + prob_html
             + transfers_html(owned, 0.0, m, bank_known=False))
