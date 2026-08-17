@@ -26,7 +26,9 @@ def pkey(p):
     return (p['name'], teams[p['team']])
 
 
-pts = [p for p in players if p['xpts'] >= 1.8 or pkey(p) in V4]
+# embed ALL players so saved squads always resolve fully; the charts filter
+# to >=1.8 xPts at draw time to stay readable
+pts = players
 data = [{'n': p['name'], 't': teams[p['team']], 'p': pos_name[p['pos']],
          'c': p['price'], 'x': round(p['xpts'], 2), 'xn': round(p['xnext'], 2),
          'g': p['gws'], 'tt': p['tot4'],
@@ -161,7 +163,8 @@ const W=940,L=52,R=16,T=14;
 const xmax=Math.max(...DATA.map(d=>d.c))+0.4, xmin=3.6;
 const ymax=Math.max(...DATA.map(d=>d.x))+0.4, ymin=0;
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;')}
-const show=(d,f)=>f==='All'||d.p===f;
+const CHART_MIN=1.8;  // charts hide sub-threshold players (unless in your squad)
+const show=(d,f)=>(f==='All'||d.p===f)&&(d.x>=CHART_MIN||d.v4);
 function mark(d,i,cx,cy,extra){
  const c=COL[d.p];
  const m = d.p==='GKP'
@@ -330,7 +333,7 @@ if(!SQUAD.length){(function(){
   if(sec){
    sec.hidden=false;
    document.getElementById('mysquadnote').textContent=
-    rows.length+' of your players appear in the dashboard data (very low scorers are excluded). '+
+    'Saved on this device from the analyzer ('+rows.length+' players). '+
     'Rings and ● across the page mark your squad; XI below is the model\\u2019s pick.';
    renderSquadTable(rows.sort((a,b)=>(a.xi?0:1)-(b.xi?0:1)||POSORD[a.p]-POSORD[b.p]),
                     document.getElementById('mysquad'));
