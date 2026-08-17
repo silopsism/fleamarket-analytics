@@ -90,11 +90,13 @@ for e in d['elements']:
 
     sent = SENT[e['team']]
     base_xgc = team_xgc90[e['team']] / sent   # improving team -> concedes less
-    att_adj = 1 + 0.08 * (3 - avg_fdr[e['team']])
-    xgc = base_xgc * (1 + 0.15 * (avg_fdr[e['team']] - 3))
+    att_adj = 1 + 0.10 * (3 - avg_fdr[e['team']])
+    xgc = base_xgc * (1 + 0.18 * (avg_fdr[e['team']] - 3))
     p_cs = math.exp(-xgc)
-    # per-fixture adjustments for each horizon event (stronger single-game swing)
-    ev_adjs = {ev: [(1 + 0.12 * (3 - fd), base_xgc * (1 + 0.20 * (fd - 3)))
+    # per-fixture adjustments for each horizon event (stronger single-game swing;
+    # ±16%/FDR-pt attack, ±26% xGC — still flatter than odds-implied spreads,
+    # pending the Phase 3 bookmaker-odds fixture model)
+    ev_adjs = {ev: [(1 + 0.16 * (3 - fd), base_xgc * (1 + 0.26 * (fd - 3)))
                     for fd in ev_fdr[e['team']].get(ev, [])]
                for ev in HORIZON_EVENTS}
 
@@ -109,8 +111,13 @@ for e in d['elements']:
 
     if xmins_mode == 'rates':
         frac = min(xmins / 90, 1.0)
-        xg90 = float(e['expected_goals_per_90'])
-        xa90 = float(e['expected_assists_per_90'])
+        # finishing-skill shrinkage: 75% chance quality (xG), 25% actual output.
+        # Single-season overperformance is mostly noise, but not entirely —
+        # persistent finishers keep a quarter of their edge.
+        g90 = e['goals_scored'] / (mins / 90)
+        a90 = e['assists'] / (mins / 90)
+        xg90 = 0.75 * float(e['expected_goals_per_90']) + 0.25 * g90
+        xa90 = 0.75 * float(e['expected_assists_per_90']) + 0.25 * a90
         okey = f"{e['web_name']}|{teams[e['team']]}"
         if okey in CTX:
             # transfer-context factor: rates were earned at the origin club
@@ -134,7 +141,9 @@ for e in d['elements']:
         # P(hitting the defcon threshold) via Poisson tail, not certainty
         defcon = 2 * (1 - sum(math.exp(-dc_mean) * dc_mean ** k / math.factorial(k)
                               for k in range(thresh))) if thresh and dc_mean > 0 else 0
-        bonus = e['bonus'] / 38 * frac
+        # per-played-90 basis: bonus/38 would double-discount players who
+        # missed games (availability is already priced into frac)
+        bonus = e['bonus'] / (mins / 90) * frac if mins else 0
         # designated #1 penalty taker: half-credit bonus (incumbents' rates
         # already contain some of their past pens; new takers gain most)
         pen = 0.04 * GOAL_VAL[pos] * frac if e['penalties_order'] == 1 else 0
