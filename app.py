@@ -78,6 +78,14 @@ def model_data():
 POS_NAME = {1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD'}
 
 
+def player_index(m):
+    """[name, team, posName, price, fullname, sel%] for client-side search."""
+    return sorted(([e['web_name'], m['teams'][e['team']], POS_NAME[e['element_type']],
+                    e['now_cost'] / 10, f"{e['first_name']} {e['second_name']}",
+                    float(e['selected_by_percent'])]
+                   for e in m['elements'].values()), key=lambda r: -r[3])
+
+
 def pick_best_xi(entries):
     """Choose a legal best XI (by 4-week total) from up to 15 entries.
     entries: dicts with 'pos' (1-4) and 'tt'. Returns set of indices."""
@@ -115,12 +123,17 @@ def squad_table_html(entries, gwl, interactive=False):
             role = 'C' if (r.get('cap') and r['xi']) else ('XI' if r['xi'] else 'Bench')
             opts = ''.join(f"<option{' selected' if o == role else ''}>{o}</option>"
                            for o in ('XI', 'C', 'VC', 'Bench'))
+            rawn = r.get('rawn', r['n'])
             role_cell = (f"<select class='role' data-g='{json.dumps(r['g'])}' "
                          f"style='background:var(--bg);color:var(--ink);border:1px solid var(--grid);"
-                         f"border-radius:6px;padding:3px 6px;font:600 12px system-ui'>{opts}</select>")
+                         f"border-radius:6px;padding:3px 6px;font:600 12px system-ui'>{opts}</select>"
+                         f" <button type='button' class='subbtn' title='substitute this player' "
+                         f"data-n=\"{rawn}\" data-t=\"{r['t']}\" data-p=\"{POS_NAME[r['pos']]}\" "
+                         f"style='border:1px solid var(--grid);background:none;color:var(--ink2);"
+                         f"border-radius:6px;padding:3px 7px;cursor:pointer;font-size:12px'>⇄</button>")
         else:
             role_cell = ('XI' if r['xi'] else 'bench') + (' (C)' if r.get('cap') else '')
-        rows += (f"<tr><td>{role_cell}</td><td><b>{r['n']}</b></td>"
+        rows += (f"<tr><td style='white-space:nowrap'>{role_cell}</td><td><b>{r['n']}</b></td>"
                  f"<td>{r['t']}</td><td>{POS_NAME[r['pos']]}</td><td class='num'>{r['price']:.1f}</td>"
                  + ''.join(f"<td class='num'>{v:.1f}</td>" for v in r['g'])
                  + f"<td class='num {'low' if low else ''}'><b>{r['tt']:.1f}</b></td></tr>")
@@ -238,14 +251,20 @@ def best_transfers(owned, bank, m, top=3):
     return out[:top]
 
 
-def transfers_html(owned, bank, m, bank_known=True):
+def transfers_html(owned, bank, m, bank_known=True, editable=False):
     rows = best_transfers(owned, bank, m)
     if not rows:
         return ''
     items = ''.join(
         f"<li><b>{el['web_name']}</b> ({xp_out:.2f}) → <b>{cand['name']}</b> "
         f"({m['teams'][cand['team']]}, £{cand['price']:.1f}, {cand['xpts']:.2f}) "
-        f"<span style='color:var(--accent);font-weight:700'>+{gain:.2f} xPts</span></li>"
+        f"<span style='color:var(--accent);font-weight:700'>+{gain:.2f} xPts</span>"
+        + (f" <button type='button' class='apply' data-on=\"{el['web_name']}\" "
+           f"data-ot=\"{m['teams'][el['team']]}\" data-inn=\"{cand['name']}\" "
+           f"data-int=\"{m['teams'][cand['team']]}\" "
+           f"style='margin-left:6px;background:var(--accent);color:#fff;border:none;"
+           f"border-radius:6px;padding:3px 10px;font:600 12px system-ui;cursor:pointer'>Apply</button>"
+           if editable else '') + '</li>'
         for gain, el, xp_out, cand in rows)
     note = '' if bank_known else ' Assumes £0.0 in the bank.'
     return ('<div class="card"><h2 style="font-size:16px">Best transfers by model</h2>'
@@ -301,6 +320,7 @@ Prefer typing? <a href="/paste?mode=text">Use the free-text version</a>.</p>
 <div class="card">
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
  <button type="button" id="tmpl" style="background:none;border:1px solid var(--accent);color:var(--accent);border-radius:8px;padding:7px 13px;font:600 13px system-ui;cursor:pointer">⚡ Auto-fill the template</button>
+ <button type="button" id="rand" style="background:none;border:1px solid var(--grid);color:var(--ink2);border-radius:8px;padding:7px 13px;font:600 13px system-ui;cursor:pointer">🎲 Random squad</button>
  <button type="button" id="resume" hidden style="background:none;border:1px solid var(--grid);color:var(--ink2);border-radius:8px;padding:7px 13px;font:600 13px system-ui;cursor:pointer">Load my last squad</button>
 </div>
 <input id="q" placeholder="Search players — e.g. Haal…" autocomplete="off"
@@ -392,6 +412,27 @@ function autoTemplate(){
 }
 document.getElementById('tmpl').onclick=autoTemplate;
 
+function randomSquad(){
+ picked.length=0; tmplBaseline=null;
+ const pool=PIDX.filter(p=>p[5]>=3);  // min 3% owned: no total blanks
+ const need={GKP:2,DEF:5,MID:5,FWD:3};
+ const minPos={}; pool.forEach(p=>{minPos[p[2]]=Math.min(minPos[p[2]]??99,p[3])});
+ const cnt={GKP:0,DEF:0,MID:0,FWD:0}, club={};
+ let used=0;
+ for(const p of [...pool].sort(()=>Math.random()-0.5)){
+  if(picked.length>=15)break;
+  if(cnt[p[2]]>=need[p[2]])continue;
+  if((club[p[1]]||0)>=3)continue;
+  let minRest=0;
+  for(const pos of ['GKP','DEF','MID','FWD'])
+   minRest+=(need[pos]-cnt[pos]-(pos===p[2]?1:0))*minPos[pos];
+  if(used+p[3]+minRest>100.0001)continue;
+  picked.push(p);cnt[p[2]]++;club[p[1]]=(club[p[1]]||0)+1;used+=p[3];
+ }
+ render();
+}
+document.getElementById('rand').onclick=randomSquad;
+
 const saved=localStorage.getItem('fpl_my_squad');
 if(saved){
  const rb=document.getElementById('resume');
@@ -422,12 +463,8 @@ def paste(squad: str = '', mode: str = '', src: str = ''):
             return PAGE.format(title='Paste your squad', body=PASTE_FORM)
         m = model_data()
         pos_name = {1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD'}
-        pidx = sorted(([e['web_name'], m['teams'][e['team']], pos_name[e['element_type']],
-                        e['now_cost'] / 10, f"{e['first_name']} {e['second_name']}",
-                        float(e['selected_by_percent'])]
-                       for e in m['elements'].values()), key=lambda r: -r[3])
         return PAGE.format(title='Build your squad',
-                           body=PICKER.replace('__PIDX__', json.dumps(pidx, ensure_ascii=False)))
+                           body=PICKER.replace('__PIDX__', json.dumps(player_index(m), ensure_ascii=False)))
     m = model_data()
     pos_name = {1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD'}
     entries, problems, seen, owned = [], [], set(), []
@@ -444,7 +481,8 @@ def paste(squad: str = '', mode: str = '', src: str = ''):
         owned.append(el)
         mp = m['players'].get(el['id'])
         flag = ' ⚠ ' + el['news'][:36] if el['status'] not in ('a',) else ''
-        entries.append({'n': el['web_name'] + flag, 't': m['teams'][el['team']],
+        entries.append({'n': el['web_name'] + flag, 'rawn': el['web_name'],
+                        't': m['teams'][el['team']],
                         'pos': el['element_type'], 'price': el['now_cost'] / 10,
                         'g': mp['gws'] if mp else [0.0] * 4,
                         'tt': mp['tot4'] if mp else 0.0, 'cap': is_cap})
@@ -475,11 +513,71 @@ def paste(squad: str = '', mode: str = '', src: str = ''):
         title = f'Pasted squad — {len(entries)} matched'
         intro = ('The model has picked the best legal starting XI — adjust any '
                  'Role (XI / C / VC / Bench) and the totals update live. ')
+    lines_canon = [f"{r['rawn']} {r['t']}" for r in entries]
+    edit_ui = """<div id="subpanel" hidden class="card">
+<b id="sublabel"></b>
+<input id="subq" placeholder="Search a replacement…" autocomplete="off"
+ style="width:100%;margin-top:8px;padding:9px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit">
+<div id="subres" style="margin-top:8px;display:flex;flex-direction:column;gap:4px"></div>
+<p class="note" style="margin-top:8px"><button type="button" onclick="document.getElementById('subpanel').hidden=true"
+ style="background:none;border:none;color:var(--ink2);cursor:pointer;text-decoration:underline;font:inherit">cancel</button></p>
+</div>
+<script>
+const LINES=__LINES__, PIDX2=__PIDX2__;
+const nrm2=s=>s.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');
+function saveGo(lines){
+ localStorage.setItem('fpl_my_squad', JSON.stringify(lines));
+ location='/paste?squad='+encodeURIComponent(lines.join('\\n'));
+}
+function replaceLine(outN,outT,inN,inT){
+ const lines=LINES.filter(l=>l!==outN+' '+outT);
+ lines.push(inN+' '+inT);
+ saveGo(lines);
+}
+let subTarget=null;
+document.addEventListener('click',e=>{
+ const a=e.target.closest('.apply');
+ if(a){replaceLine(a.dataset.on,a.dataset.ot,a.dataset.inn,a.dataset.int);return}
+ const s=e.target.closest('.subbtn');
+ if(s){
+  subTarget=[s.dataset.n,s.dataset.t,s.dataset.p];
+  const panel=document.getElementById('subpanel');
+  panel.hidden=false;
+  document.getElementById('sublabel').textContent='Replace '+s.dataset.n+' ('+s.dataset.p+') with:';
+  document.getElementById('subq').value='';
+  document.getElementById('subres').innerHTML='';
+  panel.scrollIntoView({behavior:'smooth',block:'center'});
+  document.getElementById('subq').focus();
+ }
+});
+document.getElementById('subq').addEventListener('input',()=>{
+ if(!subTarget)return;
+ const v=nrm2(document.getElementById('subq').value.trim());
+ const res=document.getElementById('subres'); res.innerHTML='';
+ if(v.length<2)return;
+ const inSquad=new Set(LINES);
+ const clubCount={};
+ LINES.forEach(l=>{const t=l.trim().split(' ').pop(); clubCount[t]=(clubCount[t]||0)+1});
+ PIDX2.filter(p=>p[2]===subTarget[2]&&!inSquad.has(p[0]+' '+p[1])
+   &&(nrm2(p[0]).includes(v)||nrm2(p[4]).includes(v))).slice(0,8).forEach(p=>{
+  const cc=(clubCount[p[1]]||0)-(p[1]===subTarget[1]?1:0);
+  const b=document.createElement('button'); b.type='button';
+  b.style.cssText='text-align:left;background:none;border:1px solid var(--grid);color:var(--ink);border-radius:8px;padding:7px 11px;font:13.5px system-ui;cursor:pointer';
+  b.innerHTML=`<b>${p[0]}</b> · ${p[1]} · £${p[3].toFixed(1)}`+(cc>=3?` — max 3 from ${p[1]}`:'');
+  if(cc>=3){b.disabled=true;b.style.opacity=.45}
+  else b.onclick=()=>replaceLine(subTarget[0],subTarget[1],p[0],p[1]);
+  res.appendChild(b);
+ });
+});
+</script>"""
+    edit_ui = (edit_ui.replace('__LINES__', json.dumps(lines_canon, ensure_ascii=False))
+                      .replace('__PIDX2__', json.dumps(player_index(m), ensure_ascii=False)))
     body = (f'<h1>{title}</h1>'
             f'<p class="sub">{intro}'
-            f'<a href="/paste">Edit / start over</a></p>'
+            f'Use ⇄ on any row to substitute a player. <a href="/paste">Edit / start over</a></p>'
             + table + prob_html
-            + transfers_html(owned, 0.0, m, bank_known=False))
+            + transfers_html(owned, 0.0, m, bank_known=False, editable=True)
+            + edit_ui)
     return PAGE.format(title='Pasted squad', body=body)
 
 
