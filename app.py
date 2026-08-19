@@ -193,9 +193,33 @@ input{{flex:1;padding:9px 12px;border:1px solid var(--grid);border-radius:8px;ba
 button{{padding:9px 16px;border:none;border-radius:8px;background:var(--accent);color:#fff;font:600 14px system-ui;cursor:pointer}}
 a{{color:var(--accent)}}
 .note{{font-size:12.5px;color:var(--muted);margin-top:10px}}
+.tabs{{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--grid);margin:0 0 20px;scrollbar-width:none}}
+.tabs::-webkit-scrollbar{{display:none}}
+.tab{{padding:10px 13px;font:700 11.5px system-ui;letter-spacing:.09em;text-transform:uppercase;color:var(--ink2);text-decoration:none;border-bottom:2px solid transparent;white-space:nowrap}}
+.tab[aria-current]{{color:var(--ink);border-bottom-color:var(--accent)}}
+.tab:hover{{color:var(--ink)}}
 </style>
 <div class="wrap">
 <div class="eyebrow">Fleamarket Analytics</div>
+<nav class="tabs">
+ <a class="tab" href="/#overview">Overview</a>
+ <a class="tab" href="/#value">Value</a>
+ <a class="tab" href="/#planner">Planner</a>
+ <a class="tab" href="/#market">Market</a>
+ <a class="tab" href="/#fixtures">Fixtures</a>
+ <a class="tab" href="/paste">Squad Lab</a>
+ <a class="tab" id="navmyteam" href="/team">My Team</a>
+</nav>
+<script>(function(){{
+ var p=location.pathname;
+ if(p.startsWith('/paste'))document.querySelector('.tab[href="/paste"]').setAttribute('aria-current','page');
+ else if(p.startsWith('/team')||p==='/me')document.getElementById('navmyteam').setAttribute('aria-current','page');
+ var a=document.getElementById('navmyteam');
+ var t=localStorage.getItem('fpl_team_id');
+ var s=localStorage.getItem('fpl_my_squad');
+ if(t)a.href='/team/'+t;
+ else if(s){{try{{a.href='/paste?squad='+encodeURIComponent(JSON.parse(s).join('\\n'))}}catch(e){{}}}}
+}})()</script>
 {body}
 <p class="note"><a href="/">← Dashboard</a> · Scores are model xPts per match, averaged over the
 next 4 gameweeks' fixtures, from prior-season Opta rates — a value lens, not an oracle.</p>
@@ -581,20 +605,6 @@ document.getElementById('subq').addEventListener('input',()=>{
     return PAGE.format(title='Pasted squad', body=body)
 
 
-ANALYZER_BANNER = """<section class="card" style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-top:0">
-<div><b>Analyze any team</b><br><span style="font-size:13px;color:var(--ink2)">Enter an FPL team ID or build a squad by hand — scored by the model, upgrade ideas included.</span></div>
-<span style="display:flex;gap:8px;align-items:center"><span id="myteam"></span>
-<a href="/team" style="background:var(--accent);color:#fff;text-decoration:none;font:600 14px system-ui;padding:9px 16px;border-radius:8px;white-space:nowrap">Open analyzer →</a></span>
-</section>
-<script>(function(){
-var h='';
-var t=localStorage.getItem('fpl_team_id');
-if(t)h+='<a href="/team/'+t+'" style="font:600 14px system-ui;color:var(--accent);text-decoration:none;white-space:nowrap">My team →</a> ';
-var s=localStorage.getItem('fpl_my_squad');
-if(s){try{var l=JSON.parse(s);
-h+='<a href="/paste?squad='+encodeURIComponent(l.join('\\n'))+'" style="font:600 14px system-ui;color:var(--accent);text-decoration:none;white-space:nowrap">My squad →</a>';}catch(e){}}
-document.getElementById('myteam').innerHTML=h;})()</script>"""
-
 REMEMBER_SNIPPET = """<p class="note"><button onclick="localStorage.setItem('fpl_team_id','{tid}');this.textContent='Remembered on this device ✓';this.disabled=true"
  style="background:none;border:1px solid var(--grid);color:var(--ink2);border-radius:8px;padding:6px 12px;font:600 12.5px system-ui;cursor:pointer">Remember as my team on this device</button></p>"""
 
@@ -602,10 +612,7 @@ REMEMBER_SNIPPET = """<p class="note"><button onclick="localStorage.setItem('fpl
 @app.get('/', response_class=HTMLResponse)
 def home():
     if os.path.exists('dashboard.html'):
-        html = open('dashboard.html', encoding='utf-8').read()
-        # inject the analyzer banner right after the page header (server-only:
-        # the static/artifact copy of dashboard.html stays unchanged)
-        return HTMLResponse(html.replace('</header>', '</header>' + ANALYZER_BANNER, 1))
+        return HTMLResponse(open('dashboard.html', encoding='utf-8').read())
     return PAGE.format(title='Fleamarket Analytics', body=FORM)
 
 

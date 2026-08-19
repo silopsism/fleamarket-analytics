@@ -100,6 +100,18 @@ td.num,th.num{text-align:right}
 .pill{display:inline-block;font:700 10px system-ui;letter-spacing:.06em;border:1px solid var(--ring);border-radius:99px;padding:2px 8px;color:var(--ink2)}
 .xi .pill{color:var(--accent);border-color:var(--accent)}
 footer{margin-top:26px;font-size:12px;color:var(--muted);max-width:70ch}
+.tabs{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--grid);margin:20px 0 4px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:10px 13px;font:700 11.5px system-ui;letter-spacing:.09em;text-transform:uppercase;color:var(--ink2);text-decoration:none;border-bottom:2px solid transparent;white-space:nowrap}
+.tab[aria-current]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab:hover{color:var(--ink)}
+.tabpane{display:none}
+.tabpane.active{display:block}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:18px}
+.tile{background:var(--surface);border:1px solid var(--ring);border-radius:10px;padding:14px 16px}
+.tile .tl{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.tile .tv{font-size:21px;font-weight:700;letter-spacing:-.01em;margin-top:5px}
+.tile .ts{font-size:12px;color:var(--ink2);margin-top:2px}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px;align-items:start}
 .stack{display:flex;flex-direction:column;gap:24px}
 @media(max-width:700px){.cols{grid-template-columns:1fr}}
@@ -112,11 +124,35 @@ h3{font-size:13.5px;margin-bottom:8px}
  <div class="eyebrow">Fleamarket Bargains · 2026/27 · Phase 1 model</div>
  <h1>Fleamarket Analytics</h1>
  <p class="sub">Every player scored from last season's Opta rates (xG, xA, clean sheets,
- defensive contributions), adjusted for opening fixtures. __SUBNOTE__Deadline: Fri 21 Aug, 18:30 UK.</p>
+ defensive contributions), season expectations, and fixtures. __SUBNOTE__</p>
 </header>
 
-__VALUEBANDS__
+<nav class="tabs">
+ <a class="tab" href="#overview">Overview</a>
+ <a class="tab" href="#value">Value</a>
+ <a class="tab" href="#planner">Planner</a>
+ <a class="tab" href="#market">Market</a>
+ <a class="tab" href="#fixtures">Fixtures</a>
+ <a class="tab" href="/paste">Squad Lab ↗</a>
+ <a class="tab" id="navmyteam" href="/team">My Team ↗</a>
+</nav>
 
+<div class="tabpane" data-tab="overview">
+<div class="tiles">
+ <div class="tile"><div class="tl">Next deadline</div><div class="tv">__DL_TIME__</div><div class="ts">__DL_GW__</div></div>
+ <div class="tile"><div class="tl">Top value</div><div class="tv">__TV_NAME__</div><div class="ts">__TV_SUB__</div></div>
+ <div class="tile"><div class="tl">Top differential</div><div class="tv">__TD_NAME__</div><div class="ts">__TD_SUB__</div></div>
+ <div class="tile"><div class="tl">Model top scorer</div><div class="tv">__TS_NAME__</div><div class="ts">__TS_SUB__</div></div>
+ <div class="tile" id="tile-squad" hidden><div class="tl">Your XI, next 4 GWs</div><div class="tv" id="tile-squad-v">–</div><div class="ts">model projection</div></div>
+</div>
+__SQUADSEC__
+</div>
+
+<div class="tabpane" data-tab="value">
+__VALUEBANDS__
+</div>
+
+<div class="tabpane" data-tab="planner">
 <section class="card">
  <h2>Next 4 gameweeks — the planner</h2>
  <p class="note">Projected points per gameweek against each team's actual fixtures, plus the 4-week total.
@@ -124,7 +160,9 @@ __VALUEBANDS__
  <div class="chips" id="plannerchips"></div>
  <div class="scroll"><table id="planner"></table></div>
 </section>
+</div>
 
+<div class="tabpane" data-tab="market">
 <section class="card">
  <h2>Differentials &amp; traps — the model vs the crowd</h2>
  <p class="note">Ownership against model score. Top-left: gems the crowd hasn't found. Bottom-right: popular picks the model doubts. Ownership axis is stretched at the low end.</p>
@@ -138,14 +176,16 @@ __VALUEBANDS__
   <p class="note" style="margin:8px 0 0">Model uses last season's rates — players in new, bigger roles this season may be unfairly flagged.</p></div>
  </div>
 </section>
+</div>
 
+<div class="tabpane" data-tab="fixtures">
 <section class="card">
  <h2>Opening fixtures — GW1–6</h2>
  <p class="note">Sorted easiest run first. Darker = harder (FPL difficulty rating). Uppercase = home.</p>
  <div class="scroll hm"><table id="heatmap"></table></div>
 </section>
+</div>
 
-__SQUADSEC__
 <footer>Phase 1 model: prior-season rates only — it can't yet see role changes,
 transfers between clubs, or minutes risk, so treat scores as a value lens, not an
 oracle. Regenerate with <code>python dashboard.py</code> after each data pull.</footer>
@@ -156,6 +196,29 @@ const DATA = __DATA__;
 const HEAT = __HEAT__;
 const SQUAD = __SQUAD__;
 const GWL = __GWL__;
+// tab routing (hash-based, default overview)
+const panes=[...document.querySelectorAll('.tabpane')];
+const hashTabs=[...document.querySelectorAll('.tab[href^="#"]')];
+function setTab(){
+ let h=location.hash.slice(1)||'overview';
+ if(!panes.some(p=>p.dataset.tab===h))h='overview';
+ panes.forEach(p=>p.classList.toggle('active',p.dataset.tab===h));
+ hashTabs.forEach(t=>{
+  if(t.getAttribute('href')==='#'+h)t.setAttribute('aria-current','page');
+  else t.removeAttribute('aria-current');
+ });
+}
+addEventListener('hashchange',()=>{setTab();scrollTo({top:0})});
+setTab();
+// smart My Team link
+(function(){
+ const a=document.getElementById('navmyteam');
+ const t=localStorage.getItem('fpl_team_id');
+ const s=localStorage.getItem('fpl_my_squad');
+ if(t)a.href='/team/'+t;
+ else if(s){try{a.href='/paste?squad='+encodeURIComponent(JSON.parse(s).join('\\n'))}catch(e){}}
+})();
+
 const COL = {DEF:'var(--def)',MID:'var(--mid)',FWD:'var(--fwd)',GKP:'var(--gkp)'};
 const dsvg=document.getElementById('diff'),
       fsvg=document.getElementById('frontier'), tip = document.getElementById('tip');
@@ -302,10 +365,13 @@ function renderSquadTable(rows, el){
  });
  const xi=rows.filter(r=>r.xi);
  const sums=GWL.map((_,k)=>xi.reduce((s,r)=>s+r.g[k],0));
+ const total=sums.reduce((a,b)=>a+b,0);
  h+=`</tbody><tfoot><tr><th colspan="4" style="text-align:left;color:var(--ink)">Starting XI</th>`+
   sums.map(v=>`<th class="num" style="color:var(--ink)">${v.toFixed(1)}</th>`).join('')+
-  `<th class="num" style="color:var(--accent)">${sums.reduce((a,b)=>a+b,0).toFixed(1)}</th><th></th></tr></tfoot>`;
+  `<th class="num" style="color:var(--accent)">${total.toFixed(1)}</th><th></th></tr></tfoot>`;
  el.innerHTML=h;
+ const tile=document.getElementById('tile-squad');
+ if(tile){tile.hidden=false;document.getElementById('tile-squad-v').textContent=total.toFixed(1)}
 }
 const sqEl=document.getElementById('squad');
 if(sqEl&&SQUAD.length)renderSquadTable(SQUAD, sqEl);
@@ -430,12 +496,30 @@ MY_SQUAD_SEC = """<section class="card" id="mysquadsec" hidden>
 </section>"""
 
 
+from datetime import datetime, timedelta
+
+_ev = next(e for e in ns['d']['events'] if e['id'] == gw_labels[0])
+_dl = datetime.strptime(_ev['deadline_time'], '%Y-%m-%dT%H:%M:%SZ') + timedelta(hours=1)  # UK summer time
+tile_deadline = _dl.strftime('%a %d %b, %H:%M')
+tile_dl_gw = f"GW{gw_labels[0]} · UK time"
+_tv = max((p for p in players if p['xmins'] >= 45 and p['price'] > 0), key=lambda p: p['xpts'] / p['price'])
+_ts = max(players, key=lambda p: p['xpts'])
+_td = diffs[0]
+
+
 def emit(path, personal):
     # public copy strips squad markers entirely (no rings, labels, table, or
     # flags in the embedded JSON) so nothing about our team leaks pre-deadline
     dat = data if personal else [{**r, 'v4': False, 'xi': False} for r in data]
     page = (html.replace('__VALUEBANDS__', band_tables(personal))
                 .replace('__SQUADSEC__', SQUAD_SEC if personal else MY_SQUAD_SEC)
+                .replace('__DL_TIME__', tile_deadline).replace('__DL_GW__', tile_dl_gw)
+                .replace('__TV_NAME__', _tv['name'])
+                .replace('__TV_SUB__', f"£{_tv['price']:.1f} · {_tv['xpts']:.2f} xPts · {teams[_tv['team']]}")
+                .replace('__TD_NAME__', _td['name'])
+                .replace('__TD_SUB__', f"{_td['sel']:.0f}% owned · {_td['xpts']:.2f} xPts · {teams[_td['team']]}")
+                .replace('__TS_NAME__', _ts['name'])
+                .replace('__TS_SUB__', f"{_ts['xpts']:.2f} xPts/match · {teams[_ts['team']]}")
                 .replace('__SUBNOTE__', 'Squad v5 marked with rings. ' if personal else '')
                 .replace('__RINGNOTE__', 'Ringed dots / ● = our squad. ' if personal else '')
                 .replace('__DIFFROWS__', table_rows(diffs))
