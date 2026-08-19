@@ -112,6 +112,13 @@ footer{margin-top:26px;font-size:12px;color:var(--muted);max-width:70ch}
 .tile .tl{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700}
 .tile .tv{font-size:21px;font-weight:700;letter-spacing:-.01em;margin-top:5px}
 .tile .ts{font-size:12px;color:var(--ink2);margin-top:2px}
+.selcol{background:color-mix(in srgb, var(--accent) 9%, transparent)}
+.absent{opacity:.35}
+tr.benchstart td{border-top:2px solid var(--axis)}
+.mvup{color:#0ca30c;font-weight:700}
+.mvdn{color:#d03b3b;font-weight:700}
+th.gwsel{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+th.gwsel:hover{color:var(--ink)}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px;align-items:start}
 .stack{display:flex;flex-direction:column;gap:24px}
 @media(max-width:700px){.cols{grid-template-columns:1fr}}
@@ -141,6 +148,17 @@ clean sheets, defensive contributions), season expectations, and fixtures. __SUB
  <div class="tile"><div class="tl">Model top scorer</div><div class="tv">__TS_NAME__</div><div class="ts">__TS_SUB__</div></div>
  <div class="tile" id="tile-squad" hidden><div class="tl">Your XI, next 4 GWs</div><div class="tv" id="tile-squad-v">–</div><div class="ts">model projection</div></div>
 </div>
+
+<section class="card" id="optsec" hidden>
+ <h2>Optimal model squad — the 4-week plan</h2>
+ <p class="note">The solver's best legal squad and transfer plan over the horizon: one free transfer
+ earned per week (bankable), extra moves cost 4 points (max 4 hits). <b>Click a GW column header</b>
+ to show that week's squad — the shaded column belongs to the displayed squad; dimmed scores mean
+ that player isn't in the plan's squad that week; the footer always shows the plan's true weekly
+ XI + captain totals. ⇄ transferred in · ↑ promoted from bench · ↓ benched.</p>
+ <div class="scroll"><table id="opttable"></table></div>
+ <p class="note" id="opttrans" style="margin:10px 0 0"></p>
+</section>
 __SQUADSEC__
 </div>
 
@@ -212,7 +230,7 @@ setTab();
  const t=localStorage.getItem('fpl_team_id');
  const s=localStorage.getItem('fpl_my_squad');
  if(t)a.href='/team/'+t;
- else if(s){try{a.href='/paste?squad='+encodeURIComponent(JSON.parse(s).join('\\n'))}catch(e){}}
+ else if(s){try{a.href='/paste?squad='+encodeURIComponent(JSON.parse(s).join('\\n'))+'&my=1'}catch(e){}}
 })();
 
 const COL = {DEF:'var(--def)',MID:'var(--mid)',FWD:'var(--fwd)',GKP:'var(--gkp)'};
@@ -354,8 +372,10 @@ ht.innerHTML='<tr><th></th>'+[1,2,3,4,5,6].map(g=>`<th class="num" style="text-a
 function renderSquadTable(rows, el){
  let h=`<thead><tr><th>Player</th><th>Team</th><th>Pos</th><th class="num">£m</th>`+
   GWL.map(g=>`<th class="num">GW${g}</th>`).join('')+`<th class="num">Total</th><th>Role</th></tr></thead><tbody>`;
+ let benchMarked=false;
  rows.forEach(r=>{
-  h+=`<tr class="${r.xi?'xi':''}"><td><b>${esc(r.n)}</b></td><td>${r.t}</td><td>${r.p}</td><td class="num">${r.c.toFixed(1)}</td>`+
+  const bs=!r.xi&&!benchMarked?(benchMarked=true,' benchstart'):'';
+  h+=`<tr class="${r.xi?'xi':''}${bs}"><td><b>${esc(r.n)}</b></td><td>${r.t}</td><td>${r.p}</td><td class="num">${r.c.toFixed(1)}</td>`+
    r.g.map(v=>`<td class="num">${v.toFixed(1)}</td>`).join('')+
    `<td class="num"><b>${r.tt.toFixed(1)}</b></td><td><span class="pill">${r.xi?'XI':'Bench'}</span></td></tr>`;
  });
@@ -402,6 +422,52 @@ if(!SQUAD.length){(function(){
   }
  }catch(e){}
 })()}
+// optimal 4-week plan
+const OPT=__OPT__;
+const POSORD2={GKP:0,DEF:1,MID:2,FWD:3};
+if(OPT){
+ document.getElementById('optsec').hidden=false;
+ let sel=0;
+ const memb=OPT.gws.map(g=>new Set(g.map(r=>r.n+'|'+r.t)));
+ const HMAP=Object.fromEntries(HEAT.map(r=>[r.team,r.gws]));
+ const opp=t=>{const g=(HMAP[t]||[])[GWL[sel]-1];return g?`${g.o} (${g.h?'H':'A'})`:'—'};
+ function rOpt(){
+  const rows=[...OPT.gws[sel]].sort((a,b)=>(a.xi?0:1)-(b.xi?0:1)||POSORD2[a.p]-POSORD2[b.p]);
+  const inSet=new Set(sel>0?OPT.transfers[sel-1].in.map(x=>x.n+'|'+x.t):[]);
+  const prevXI=new Map(sel>0?OPT.gws[sel-1].map(r=>[r.n+'|'+r.t,r.xi]):[]);
+  let h='<thead><tr><th>Player</th><th>Opp</th><th>Pos</th><th class="num">£m</th>'+
+   GWL.map((g,k)=>`<th class="num gwsel${k===sel?' selcol':''}" data-gw="${k}" title="Show the GW${g} squad">GW${g}</th>`).join('')+'<th>Role</th></tr></thead><tbody>';
+  let benchMarked=false;
+  rows.forEach(r=>{
+   const bs=!r.xi&&!benchMarked?(benchMarked=true,' benchstart'):'';
+   const key=r.n+'|'+r.t;
+   let mv='';
+   if(prevXI.has(key)){
+    if(r.xi&&!prevXI.get(key))mv=' <span class="mvup" title="promoted from the bench this week">↑</span>';
+    else if(!r.xi&&prevXI.get(key))mv=' <span class="mvdn" title="dropped to the bench this week">↓</span>';
+   }
+   h+=`<tr class="${r.xi?'xi':''}${bs}"><td><b>${esc(r.n)}</b> <span style="color:var(--muted);font-size:11.5px">${r.t}</span>${inSet.has(key)?' <span style="color:var(--accent)" title="transferred in this week">⇄</span>':''}${mv}${r.cap?' <b style="color:var(--accent)">(C)</b>':''}</td><td>${opp(r.t)}</td><td>${r.p}</td><td class="num">${r.c.toFixed(1)}</td>`+
+    r.g.map((v,k)=>`<td class="num${k===sel?' selcol':''}${memb[k].has(r.n+'|'+r.t)?'':' absent'}">${v.toFixed(1)}</td>`).join('')+
+    `<td><span class="pill">${r.xi?'XI':'Bench'}</span></td></tr>`;
+  });
+  const grand=(OPT.totals.reduce((a,b)=>a+b,0)-OPT.hitpen).toFixed(1);
+  h+='</tbody><tfoot><tr><th colspan="4" style="text-align:left;color:var(--ink)">Plan XI + captain</th>'+
+   OPT.totals.map((v,k)=>`<th class="num${k===sel?' selcol':''}" style="color:var(--ink)">${v.toFixed(1)}</th>`).join('')+
+   `<th class="num" style="color:var(--accent)" title="4-week total after hit costs">${grand}</th></tr></tfoot>`;
+  document.getElementById('opttable').innerHTML=h;
+  const tr=sel>0?OPT.transfers[sel-1]:null;
+  document.getElementById('opttrans').innerHTML = sel===0 ? 'Initial squad — transfers begin GW'+GWL[1]+'.' :
+   (tr.in.length ? 'This week: OUT '+tr.out.map(x=>`<b>${esc(x.n)}</b> (${x.t})`).join(', ')+' → IN '+
+     tr.in.map(x=>`<b>${esc(x.n)}</b> (${x.t})`).join(', ')+(tr.hits?` · ${tr.hits} hit(s), −${tr.hits*4} pts`:' · free')
+    : 'No transfers this week — free transfer banked.');
+ }
+ document.getElementById('opttable').addEventListener('click',e=>{
+  const th=e.target.closest('th[data-gw]');
+  if(th){sel=+th.dataset.gw;rOpt()}
+ });
+ rOpt();
+}
+
 drawDiff('All');drawFrontier('All');drawPlanner();
 </script>
 """
@@ -483,14 +549,36 @@ SQUAD_SEC = """<section class="card">
  <div class="scroll"><table id="squad"></table></div>
 </section>"""
 
-# public pages: hidden section that fills from the squad saved on this device
-# by the analyzer (localStorage) — rings/● appear on the charts too
-MY_SQUAD_SEC = """<section class="card" id="mysquadsec" hidden>
- <h2>Your squad</h2>
- <p class="note" id="mysquadnote"></p>
- <div class="scroll"><table id="mysquad"></table></div>
-</section>"""
+# (the public "Your squad" table was superseded by the Optimal Model Squad
+# section — saved squads still get chart rings/● via the personalize script,
+# and their full table lives behind the My Team nav link)
 
+
+# 4-week transfer-plan optimizer (skipped gracefully if the solver fails)
+OPT = None
+try:
+    import plan4
+    _plan = plan4.solve_plan(players, n_gw=len(gw_labels))
+    if _plan:
+        _pool = _plan['pool']
+        _ogws = [[{'n': _pool[s['id']]['name'], 't': teams[_pool[s['id']]['team']],
+                   'p': pos_name[_pool[s['id']]['pos']], 'c': _pool[s['id']]['price'],
+                   'g': _pool[s['id']]['gws'], 'xi': s['xi'], 'cap': s['cap']}
+                  for s in squad] for squad in _plan['gws']]
+        _otr = [{'out': [{'n': _pool[i]['name'], 't': teams[_pool[i]['team']]} for i in m['out']],
+                 'in': [{'n': _pool[i]['name'], 't': teams[_pool[i]['team']]} for i in m['in']],
+                 'hits': m['hits']} for m in _plan['transfers']]
+        _tot = []
+        for g, squad in enumerate(_plan['gws']):
+            xi_ids = [s['id'] for s in squad if s['xi']]
+            t = sum(_pool[i]['gws'][g] for i in xi_ids)
+            t += sum(_pool[s['id']]['gws'][g] for s in squad if s['cap'])
+            _tot.append(round(t, 1))
+        OPT = {'gws': _ogws, 'transfers': _otr, 'totals': _tot,
+               'hitpen': sum(m['hits'] for m in _plan['transfers']) * 4}
+        print(f"plan4: {_plan['status']}, 4-GW plan total {sum(_tot) - OPT['hitpen']:.1f}")
+except Exception as _exc:  # noqa: BLE001 - dashboard must still build
+    print('plan4 skipped:', _exc)
 
 from datetime import datetime, timedelta, timezone
 
@@ -508,7 +596,7 @@ def emit(path, personal):
     # flags in the embedded JSON) so nothing about our team leaks pre-deadline
     dat = data if personal else [{**r, 'v4': False, 'xi': False} for r in data]
     page = (html.replace('__VALUEBANDS__', band_tables(personal))
-                .replace('__SQUADSEC__', SQUAD_SEC if personal else MY_SQUAD_SEC)
+                .replace('__SQUADSEC__', SQUAD_SEC if personal else '')
                 .replace('__PULLED__', (datetime.now(timezone.utc) + timedelta(hours=1)).strftime('%a %d %b %H:%M'))
                 .replace('__DL_TIME__', tile_deadline).replace('__DL_GW__', tile_dl_gw)
                 .replace('__TV_NAME__', _tv['name'])
@@ -521,6 +609,7 @@ def emit(path, personal):
                 .replace('__RINGNOTE__', 'Ringed dots / ● = our squad. ' if personal else '')
                 .replace('__DIFFROWS__', table_rows(diffs))
                 .replace('__TRAPROWS__', table_rows(trapped))
+                .replace('__OPT__', json.dumps(OPT, ensure_ascii=False))
                 .replace('__GWL__', json.dumps(gw_labels))
                 .replace('__DATA__', json.dumps(dat, ensure_ascii=False))
                 .replace('__HEAT__', json.dumps(heat, ensure_ascii=False))

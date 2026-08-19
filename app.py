@@ -117,7 +117,11 @@ def squad_table_html(entries, gwl, interactive=False):
             + '<th class="num">Total</th></tr>')
     rows = ''
     ordered = sorted(entries, key=lambda r: (not r['xi'], r['pos']))
+    bench_marked = False
     for r in ordered:
+        bs = ''
+        if not r['xi'] and not bench_marked:
+            bench_marked, bs = True, ' class="benchstart"'
         low = r['xi'] and r['tt'] < 10
         if interactive:
             role = 'C' if (r.get('cap') and r['xi']) else ('XI' if r['xi'] else 'Bench')
@@ -133,7 +137,7 @@ def squad_table_html(entries, gwl, interactive=False):
                          f"border-radius:6px;padding:3px 7px;cursor:pointer;font-size:12px'>⇄</button>")
         else:
             role_cell = ('XI' if r['xi'] else 'bench') + (' (C)' if r.get('cap') else '')
-        rows += (f"<tr><td style='white-space:nowrap'>{role_cell}</td><td><b>{r['n']}</b></td>"
+        rows += (f"<tr{bs}><td style='white-space:nowrap'>{role_cell}</td><td><b>{r['n']}</b></td>"
                  f"<td>{r['t']}</td><td>{POS_NAME[r['pos']]}</td><td class='num'>{r['price']:.1f}</td>"
                  + ''.join(f"<td class='num'>{v:.1f}</td>" for v in r['g'])
                  + f"<td class='num {'low' if low else ''}'><b>{r['tt']:.1f}</b></td></tr>")
@@ -188,6 +192,7 @@ th{{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut
 td{{padding:6px 8px;border-bottom:1px solid var(--grid);font-size:13.5px}}
 td.num,th.num{{text-align:right}}
 .low{{color:var(--warn);font-weight:700}}
+tr.benchstart td{{border-top:2px solid var(--grid)}}
 form{{display:flex;gap:8px;margin-top:8px}}
 input{{flex:1;padding:9px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}}
 button{{padding:9px 16px;border:none;border-radius:8px;background:var(--accent);color:#fff;font:600 14px system-ui;cursor:pointer}}
@@ -211,14 +216,14 @@ a{{color:var(--accent)}}
  <a class="tab" id="navmyteam" href="/team">My Team</a>
 </nav>
 <script>(function(){{
- var p=location.pathname;
- if(p.startsWith('/paste'))document.querySelector('.tab[href="/paste"]').setAttribute('aria-current','page');
- else if(p.startsWith('/team')||p==='/me')document.getElementById('navmyteam').setAttribute('aria-current','page');
+ var p=location.pathname, mine=new URLSearchParams(location.search).has('my');
+ if(p.startsWith('/paste')&&!mine)document.querySelector('.tab[href="/paste"]').setAttribute('aria-current','page');
+ else if(p.startsWith('/team')||p==='/me'||mine)document.getElementById('navmyteam').setAttribute('aria-current','page');
  var a=document.getElementById('navmyteam');
  var t=localStorage.getItem('fpl_team_id');
  var s=localStorage.getItem('fpl_my_squad');
  if(t)a.href='/team/'+t;
- else if(s){{try{{a.href='/paste?squad='+encodeURIComponent(JSON.parse(s).join('\\n'))}}catch(e){{}}}}
+ else if(s){{try{{a.href='/paste?squad='+encodeURIComponent(JSON.parse(s).join('\\n'))+'&my=1'}}catch(e){{}}}}
 }})()</script>
 {body}
 <p class="note"><a href="/">← Dashboard</a> · Scores are model xPts per match, averaged over the
