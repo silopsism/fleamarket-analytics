@@ -104,8 +104,18 @@ def model_data():
         ns = {}
         exec(compile(src, 'model.py', 'exec'), ns)
         boot = json.load(open('bootstrap.json', encoding='utf-8'))
+        teams = ns['teams']
+        heat = {}
+        try:
+            for f in json.load(open('fixtures.json', encoding='utf-8')):
+                if not f['event']:
+                    continue
+                heat.setdefault(teams[f['team_h']], {})[f['event']] = [teams[f['team_a']], 1]
+                heat.setdefault(teams[f['team_a']], {})[f['event']] = [teams[f['team_h']], 0]
+        except Exception:
+            heat = {}
         _cache.update(ts=mtime, players={p['id']: p for p in ns['players']},
-                      teams=ns['teams'], events=boot['events'],
+                      teams=teams, events=boot['events'], heat=heat,
                       gwl=ns['HORIZON_EVENTS'],
                       elements={e['id']: e for e in boot['elements']})
     return _cache
@@ -746,79 +756,140 @@ def api_optimal():
         return {'error': 'not built yet'}
 
 
+PLAN_TABLE = """<div class="card">
+<h2 style="font-size:16px">4-week plan for this squad</h2>
+<p class="note">Best legal path from here: one free transfer a week (bankable), hits cost 4
+points. <b>Click a GW column header</b> to show that week's squad — the shaded column belongs
+to the displayed squad, dimmed scores mean that player isn't in the squad that week, and the
+footer always shows the plan's true weekly XI + captain totals.
+⇄ transferred in · <span style="color:#0ca30c">↑</span> promoted ·
+<span style="color:#d03b3b">↓</span> benched.</p>
+<div style="overflow-x:auto"><table id="plantab"></table></div>
+<p class="note" id="plantr" style="margin:10px 0 0"></p>
+<p class="note" style="margin:6px 0 0">Projected <b>__TOTAL__</b> over the next __N__
+gameweeks__GAP__.</p>
+<style>
+#plantab th.gwsel{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+#plantab .selcol{background:color-mix(in srgb, var(--accent) 10%, transparent)}
+#plantab .absent{opacity:.35}
+#plantab tr.benchstart td{border-top:2px solid var(--grid)}
+</style>
+<script>(function(){
+const W=__WEEKS__, GWL=__GWL__, HEAT=__HEAT__, TOT=__TOTALS__, TR=__TRANSFERS__;
+const POS={GKP:0,DEF:1,MID:2,FWD:3};
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+let sel=0;
+const memb=W.map(w=>new Set(w.map(r=>r.n+'|'+r.t)));
+const opp=t=>{const g=(HEAT[t]||{})[GWL[sel]];return g?g[0]+' ('+(g[1]?'H':'A')+')':'—'};
+function draw(){
+ const rows=[...W[sel]].sort((a,b)=>(a.xi?0:1)-(b.xi?0:1)||POS[a.pos]-POS[b.pos]);
+ const inSet=new Set(sel>0&&TR[sel-1]?TR[sel-1]['in'].map(x=>x.n+'|'+x.t):[]);
+ const prev=new Map(sel>0?W[sel-1].map(r=>[r.n+'|'+r.t,r.xi]):[]);
+ let h='<thead><tr><th>Player</th><th>Opp</th><th>Pos</th><th class="num">£m</th>'+
+  GWL.map((g,k)=>`<th class="num gwsel${k===sel?' selcol':''}" data-gw="${k}">GW${g}</th>`).join('')+
+  '<th>Role</th></tr></thead><tbody>';
+ let benched=false;
+ rows.forEach(r=>{
+  const key=r.n+'|'+r.t, bs=!r.xi&&!benched?(benched=true,' class="benchstart"'):'';
+  let mv='';
+  if(prev.has(key)){
+   if(r.xi&&!prev.get(key))mv=' <span style="color:#0ca30c;font-weight:700" title="promoted from the bench">↑</span>';
+   else if(!r.xi&&prev.get(key))mv=' <span style="color:#d03b3b;font-weight:700" title="dropped to the bench">↓</span>';
+  }
+  h+=`<tr${bs}><td><b>${esc(r.n)}</b> <span style="color:var(--muted);font-size:11.5px">${esc(r.t)}</span>`+
+   (inSet.has(key)?' <span style="color:var(--accent)" title="transferred in this week">⇄</span>':'')+mv+
+   (r.cap?' <b style="color:var(--accent)">(C)</b>':'')+`</td><td>${esc(opp(r.t))}</td><td>${r.pos}</td>`+
+   `<td class="num">${r.price.toFixed(1)}</td>`+
+   r.gws.map((v,k)=>`<td class="num${k===sel?' selcol':''}${memb[k].has(key)?'':' absent'}">${v.toFixed(1)}</td>`).join('')+
+   `<td><span class="pill">${r.xi?'XI':'Bench'}</span></td></tr>`;
+ });
+ h+='</tbody><tfoot><tr><th colspan="4" style="text-align:left">Plan XI + captain</th>'+
+  TOT.map((v,k)=>`<th class="num${k===sel?' selcol':''}">${v.toFixed(1)}</th>`).join('')+
+  '<th></th></tr></tfoot>';
+ document.getElementById('plantab').innerHTML=h;
+ const t=sel>0?TR[sel-1]:null;
+ document.getElementById('plantr').innerHTML = sel===0
+  ? 'Starting squad — transfers begin GW'+GWL[1]+'.'
+  : (t&&t['in'].length
+     ? 'This week: OUT '+t.out.map(x=>'<b>'+esc(x.n)+'</b> ('+esc(x.t)+')').join(', ')+' → IN '+
+       t['in'].map(x=>'<b>'+esc(x.n)+'</b> ('+esc(x.t)+')').join(', ')+
+       (t.hits?' · '+t.hits+' hit(s), −'+(t.hits*4)+' pts':' · free')
+     : 'No transfer this week — free transfer banked.');
+}
+document.getElementById('plantab').addEventListener('click',e=>{
+ const th=e.target.closest('th[data-gw]'); if(th){sel=+th.dataset.gw;draw()}
+});
+draw();
+})()</script>
+</div>"""
+
+
 def squad_plan_html(entries, m, stored=None):
-    """4-week diagnostic for a specific squad: weekly XI totals, captain and the
-    optimal transfer plan starting FROM this squad. `stored` short-circuits with
-    a precomputed plan (used for the model's own optimum)."""
+    """Interactive 4-week plan for a specific squad: per-week squads, weekly XI
+    and captain, and the optimal transfer path from here."""
     import html as _h
     gwl = m['gwl']
-    if stored:
-        weekly, transfers, total = stored['weekly'], stored['transfers'], stored['total']
-    else:
-        ids = tuple(sorted(e['id'] for e in entries if e.get('id')))
-        if len(ids) != 15:
-            return ('<div class="card"><h2 style="font-size:16px">4-week plan</h2>'
-                    '<p class="note">Needs a full 15-player squad to plan transfers.</p></div>')
-        if ids in _plan_cache:
-            weekly, transfers, total = _plan_cache[ids]
-        else:
-            try:
-                import plan4
-                src = open('model.py', encoding='utf-8').read().split('# --- SCORES-END ---')[0]
-                ns = {}
-                exec(compile(src, 'model.py', 'exec'), ns)
-                budget = sum(e['price'] for e in entries)
-                plan = plan4.solve_plan(ns['players'], n_gw=len(gwl), budget=budget,
-                                        initial_ids=list(ids), time_limit=25)
-                if not plan:
-                    return ''
-                pool = plan['pool']
-                weekly = []
-                for g, squad in enumerate(plan['gws']):
-                    t = sum(pool[s['id']]['gws'][g] for s in squad if s['xi'])
-                    t += sum(pool[s['id']]['gws'][g] for s in squad if s['cap'])
-                    weekly.append(round(t, 1))
-                transfers = [{
-                    'out': [{'n': pool[i]['name'], 't': m['teams'][pool[i]['team']]} for i in mv['out']],
-                    'in': [{'n': pool[i]['name'], 't': m['teams'][pool[i]['team']]} for i in mv['in']],
-                    'hits': mv['hits']} for mv in plan['transfers']]
-                caps = [next((pool[s['id']]['name'] for s in sq if s['cap']), '?')
-                        for sq in plan['gws']]
-                total = round(sum(weekly) - 4 * sum(t['hits'] for t in transfers), 1)
-                _plan_cache[ids] = (weekly, transfers, total)
-                stored = {'caps': caps}
-            except Exception as exc:  # noqa: BLE001
-                return (f'<div class="card"><h2 style="font-size:16px">4-week plan</h2>'
-                        f'<p class="note">Planner unavailable ({_h.escape(str(exc)[:70])}).</p></div>')
-    rows = ''
-    for k, gw in enumerate(gwl):
-        mv = transfers[k - 1] if k > 0 and k - 1 < len(transfers) else None
-        if k == 0:
-            act = 'starting squad'
-        elif mv and mv['in']:
-            act = (' , '.join(f"{_h.escape(o['n'])} → {_h.escape(i['n'])}"
-                              for o, i in zip(mv['out'], mv['in']))
-                   + (f" ({mv['hits']} hit{'s' if mv['hits'] > 1 else ''}, −{mv['hits']*4})"
-                      if mv['hits'] else ' (free)'))
-        else:
-            act = 'no transfer — bank it'
-        rows += (f"<tr><td><b>GW{gw}</b></td><td class='num'><b>{weekly[k]:.1f}</b></td>"
-                 f"<td style='white-space:normal'>{act}</td></tr>")
+
+    def render(weeks, totals, transfers, total):
+        try:
+            opt = json.load(open('optimal_squad.json', encoding='utf-8'))['total']
+            gap = (f", against the model's own optimum of <b>{opt:.1f}</b>"
+                   if abs(opt - total) > 0.05 else '')
+        except Exception:
+            gap = ''
+        return (PLAN_TABLE
+                .replace('__WEEKS__', json.dumps(weeks, ensure_ascii=False))
+                .replace('__GWL__', json.dumps(gwl))
+                .replace('__HEAT__', json.dumps(m.get('heat') or {}, ensure_ascii=False))
+                .replace('__TOTALS__', json.dumps(totals))
+                .replace('__TRANSFERS__', json.dumps(transfers, ensure_ascii=False))
+                .replace('__TOTAL__', f'{total:.1f} pts')
+                .replace('__N__', str(len(gwl)))
+                .replace('__GAP__', gap))
+
+    if stored and stored.get('weeks'):
+        return render(stored['weeks'], stored['weekly'], stored['transfers'], stored['total'])
+
+    ids = tuple(sorted(e['id'] for e in entries if e.get('id')))
+    if len(ids) != 15:
+        return ('<div class="card"><h2 style="font-size:16px">4-week plan</h2>'
+                '<p class="note">Needs a full 15-player squad to plan transfers.</p></div>')
+    if ids in _plan_cache:
+        return render(*_plan_cache[ids])
     try:
-        opt_total = json.load(open('optimal_squad.json', encoding='utf-8'))['total']
-        gap = (f" · the model's own optimum scores <b>{opt_total:.1f}</b>"
-               if abs(opt_total - total) > 0.05 else '')
-    except Exception:
-        gap = ''
-    return ('<div class="card"><h2 style="font-size:16px">4-week plan for this squad</h2>'
-            '<p class="note">Best legal path from here: one free transfer a week (bankable), '
-            'hits cost 4 points. Weekly totals include the captain.</p>'
-            f"<div style='overflow-x:auto'><table><tr><th>Gameweek</th>"
-            f"<th class='num'>XI + C</th><th>Transfer plan</th></tr>{rows}"
-            f"<tr><th>Total</th><th class='num' style='color:var(--accent)'>{total:.1f}</th>"
-            f"<th></th></tr></table></div>"
-            f"<p class='note' style='margin-top:8px'>Projected <b>{total:.1f}</b> points over "
-            f"the next {len(gwl)} gameweeks{gap}.</p></div>")
+        import plan4
+        src = open('model.py', encoding='utf-8').read().split('# --- SCORES-END ---')[0]
+        ns = {}
+        exec(compile(src, 'model.py', 'exec'), ns)
+        budget = sum(e['price'] for e in entries)
+        plan = plan4.solve_plan(ns['players'], n_gw=len(gwl), budget=budget,
+                                initial_ids=list(ids), time_limit=25)
+        if not plan:
+            return ''
+        pool = plan['pool']
+        weeks, totals = [], []
+        for g, squad in enumerate(plan['gws']):
+            wk = []
+            for sp in squad:
+                q = pool[sp['id']]
+                wk.append({'n': q['name'], 't': m['teams'][q['team']],
+                           'pos': {1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD'}[q['pos']],
+                           'price': q['price'], 'gws': q['gws'],
+                           'xi': sp['xi'], 'cap': sp['cap']})
+            weeks.append(wk)
+            t = sum(r['gws'][g] for r in wk if r['xi'])
+            t += sum(r['gws'][g] for r in wk if r['cap'])
+            totals.append(round(t, 1))
+        transfers = [{
+            'out': [{'n': pool[i]['name'], 't': m['teams'][pool[i]['team']]} for i in mv['out']],
+            'in': [{'n': pool[i]['name'], 't': m['teams'][pool[i]['team']]} for i in mv['in']],
+            'hits': mv['hits']} for mv in plan['transfers']]
+        total = round(sum(totals) - 4 * sum(t['hits'] for t in transfers), 1)
+        _plan_cache[ids] = (weeks, totals, transfers, total)
+        return render(weeks, totals, transfers, total)
+    except Exception as exc:  # noqa: BLE001
+        return (f'<div class="card"><h2 style="font-size:16px">4-week plan</h2>'
+                f'<p class="note">Planner unavailable ({_h.escape(str(exc)[:70])}).</p></div>')
 
 
 NEWS_CACHE = 'news_cache.json'

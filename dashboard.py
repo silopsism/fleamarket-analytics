@@ -634,10 +634,13 @@ try:
         # a permanent 🤖 entry; roles encode its GW1 XI and captain)
         _gw1 = _ogws[0]
         _roles = ''.join('C' if r['cap'] else ('X' if r['xi'] else 'B') for r in _gw1)
+        _weeks = [[{'n': r['n'], 't': r['t'], 'pos': r['p'], 'price': r['c'],
+                    'gws': r['g'], 'xi': r['xi'], 'cap': r['cap']} for r in wk]
+                  for wk in _ogws]
         json.dump({'ts': datetime.now(timezone.utc).isoformat(timespec='minutes'),
                    'lines': [f"{r['n']} {r['t']}" for r in _gw1], 'roles': _roles,
                    'total': round(sum(_tot) - OPT['hitpen'], 1),
-                   'weekly': _tot, 'transfers': _otr},
+                   'weekly': _tot, 'transfers': _otr, 'weeks': _weeks},
                   open('optimal_squad.json', 'w', encoding='utf-8'),
                   ensure_ascii=False, indent=1)
 except Exception as _exc:  # noqa: BLE001 - dashboard must still build
