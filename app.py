@@ -38,6 +38,15 @@ def refresh_data():
             with open(fn, 'wb') as f:
                 f.write(data)
         subprocess.run([sys.executable, 'dashboard.py'], check=True, timeout=180)
+        try:
+            import momentum as mom
+            boot = json.load(open('bootstrap.json', encoding='utf-8'))
+            els = {e['id']: e for e in boot['elements']}
+            teams = {t['id']: t['short_name'] for t in boot['teams']}
+            n = mom.snapshot(els, teams)
+            print(f'snapshot: {n} rows')
+        except Exception as exc:  # noqa: BLE001
+            print('snapshot skipped:', exc)
         print('data refresh ok')
     except Exception as exc:  # noqa: BLE001 - keep serving on any failure
         print(f'data refresh failed (serving previous data): {exc}')
@@ -784,6 +793,43 @@ def news_page(refresh: str = ''):
         props = ('<p class="note">Nothing contradicts the model right now — no availability, '
                  'rotation or exit signals in the window.</p>')
 
+    # market momentum, cross-referenced with the news
+    momo = ''
+    try:
+        import momentum as mom
+        m = model_data()
+        src = open('model.py', encoding='utf-8').read().split('# --- SCORES-END ---')[0]
+        ns = {}
+        exec(compile(src, 'model.py', 'exec'), ns)
+        mm = mom.momentum(ns['players'], m['elements'], m['teams'])
+        if mm['quiet']:
+            momo = ('<p class="note">No transfer movement yet — net transfers start flowing '
+                    'once the gameweek opens, and ownership deltas need a few hours of '
+                    f'baseline (currently {mm["span_h"]:.0f}h collected).</p>')
+        else:
+            rows = mom.correlate(mm, p)
+            head = ('<tr><th>Player</th><th class="num">£m</th><th class="num">Own%</th>'
+                    + ('<th class="num">Net in</th>' if mm['live'] else '<th class="num">Own Δ</th>')
+                    + '<th class="num">model xPts</th><th>Catalyst</th></tr>')
+            body = ''
+            for r in rows:
+                who, club = r['player'].split('|')
+                move = (f"{r['net']:+,}" if mm['live'] else
+                        (f"{r['d_sel']:+.1f}pp" if r['d_sel'] is not None else '–'))
+                cat = (f"<span style='color:var(--ink2)'>“{_h.escape(r['headline'][:70])}” "
+                       f"— {_h.escape(r['source'])}</span>" if r['explained'] else
+                       "<b style='color:#fab219'>no story found</b>")
+                body += (f"<tr><td><b>{_h.escape(who)}</b> <span style='color:var(--muted)'>"
+                         f"{_h.escape(club)}</span></td><td class='num'>{r['price']:.1f}</td>"
+                         f"<td class='num'>{r['sel']:.1f}</td><td class='num'>{move}</td>"
+                         f"<td class='num'>{r['xpts']:.2f}</td><td style='white-space:normal'>{cat}</td></tr>")
+            momo = (f"<div style='overflow-x:auto'><table>{head}{body}</table></div>"
+                    "<p class='note' style='margin-top:8px'>“No story found” is the interesting "
+                    "column: the crowd is moving without a public catalyst — either they know "
+                    "something, or it is a bandwagon feeding itself.</p>")
+    except Exception as exc:  # noqa: BLE001
+        momo = f'<p class="note">Momentum unavailable ({_h.escape(str(exc)[:80])}).</p>'
+
     disc = ''
     for r in p.get('discoveries', []):
         who, club = r['player'].split('|')
@@ -834,6 +880,9 @@ def news_page(refresh: str = ''):
         f'<div class="card"><h2 style="font-size:16px">Flagged against the model</h2>'
         f'<p class="note">Where the news disagrees with our expected-minutes assumption.</p>'
         f'{props}</div>'
+        f'<div class="card"><h2 style="font-size:16px">Market momentum</h2>'
+        f'<p class="note">Who the crowd is buying, matched against the headlines.</p>'
+        f'{momo}</div>'
         f'<div class="card"><h2 style="font-size:16px">Off the radar</h2>'
         f'<p class="note">Found the other way round — reading all 20 clubs\' team-news feeds and '
         f'matching any player, then keeping the ones our model does <i>not</i> rate. Ranked by how '
