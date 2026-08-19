@@ -177,7 +177,7 @@ PAGE = """<meta charset="utf-8"><meta name="viewport" content="width=device-widt
 @media (prefers-color-scheme:dark){{:root{{--bg:#0d0d0d;--surface:#1a1a19;--ink:#fff;
 --ink2:#c3c2b7;--grid:#2c2c2a;--ring:rgba(255,255,255,.10);--accent:#9085e9;--warn:#e66767}}}}
 *{{box-sizing:border-box;margin:0}}
-body{{background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,sans-serif;padding:28px 20px 60px}}
+body{{background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,sans-serif;padding:0 20px 60px}}
 .wrap{{max-width:760px;margin:0 auto}}
 .eyebrow{{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}}
 h1{{font-size:clamp(22px,4vw,32px);letter-spacing:-.02em;margin-bottom:4px}}
@@ -193,14 +193,14 @@ input{{flex:1;padding:9px 12px;border:1px solid var(--grid);border-radius:8px;ba
 button{{padding:9px 16px;border:none;border-radius:8px;background:var(--accent);color:#fff;font:600 14px system-ui;cursor:pointer}}
 a{{color:var(--accent)}}
 .note{{font-size:12.5px;color:var(--muted);margin-top:10px}}
-.tabs{{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--grid);margin:0 0 20px;scrollbar-width:none}}
+.tabs{{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--grid);margin:0 0 20px;scrollbar-width:none;position:sticky;top:0;background:var(--bg);z-index:6}}
 .tabs::-webkit-scrollbar{{display:none}}
 .tab{{padding:10px 13px;font:700 11.5px system-ui;letter-spacing:.09em;text-transform:uppercase;color:var(--ink2);text-decoration:none;border-bottom:2px solid transparent;white-space:nowrap}}
 .tab[aria-current]{{color:var(--ink);border-bottom-color:var(--accent)}}
 .tab:hover{{color:var(--ink)}}
 </style>
 <div class="wrap">
-<div class="eyebrow">Fleamarket Analytics</div>
+<div class="eyebrow" style="padding:10px 0 2px">Fleamarket Analytics · 2026/27</div>
 <nav class="tabs">
  <a class="tab" href="/#overview">Overview</a>
  <a class="tab" href="/#value">Value</a>

@@ -69,7 +69,7 @@ html = """<meta charset="utf-8">
  --grid:#2c2c2a;--axis:#383835;--ring:rgba(255,255,255,.10);--accent:#9085e9;
  --def:#3987e5;--mid:#d95926;--fwd:#199e70;--gkp:#898781}
 *{box-sizing:border-box;margin:0}
-body{background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;padding:28px 20px 60px}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;padding:0 20px 60px}
 .wrap{max-width:980px;margin:0 auto}
 header{margin-bottom:28px}
 .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
@@ -100,7 +100,7 @@ td.num,th.num{text-align:right}
 .pill{display:inline-block;font:700 10px system-ui;letter-spacing:.06em;border:1px solid var(--ring);border-radius:99px;padding:2px 8px;color:var(--ink2)}
 .xi .pill{color:var(--accent);border-color:var(--accent)}
 footer{margin-top:26px;font-size:12px;color:var(--muted);max-width:70ch}
-.tabs{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--grid);margin:20px 0 4px;scrollbar-width:none}
+.tabs{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--grid);margin:0 0 4px;scrollbar-width:none;position:sticky;top:0;background:var(--bg);z-index:6}
 .tabs::-webkit-scrollbar{display:none}
 .tab{padding:10px 13px;font:700 11.5px system-ui;letter-spacing:.09em;text-transform:uppercase;color:var(--ink2);text-decoration:none;border-bottom:2px solid transparent;white-space:nowrap}
 .tab[aria-current]{color:var(--ink);border-bottom-color:var(--accent)}
@@ -120,13 +120,7 @@ h3{font-size:13.5px;margin-bottom:8px}
 #diff{width:100%;height:auto;display:block}
 </style>
 <div class="wrap">
-<header>
- <div class="eyebrow">Fleamarket Bargains · 2026/27 · Phase 1 model</div>
- <h1>Fleamarket Analytics</h1>
- <p class="sub">Every player scored from last season's Opta rates (xG, xA, clean sheets,
- defensive contributions), season expectations, and fixtures. __SUBNOTE__</p>
-</header>
-
+<div class="eyebrow" style="padding:10px 0 2px">Fleamarket Analytics · 2026/27</div>
 <nav class="tabs">
  <a class="tab" href="#overview">Overview</a>
  <a class="tab" href="#value">Value</a>
@@ -138,6 +132,8 @@ h3{font-size:13.5px;margin-bottom:8px}
 </nav>
 
 <div class="tabpane" data-tab="overview">
+<p class="sub" style="margin-top:16px">Every player scored from last season's Opta rates (xG, xA,
+clean sheets, defensive contributions), season expectations, and fixtures. __SUBNOTE__</p>
 <div class="tiles">
  <div class="tile"><div class="tl">Next deadline</div><div class="tv">__DL_TIME__</div><div class="ts">__DL_GW__</div></div>
  <div class="tile"><div class="tl">Top value</div><div class="tv">__TV_NAME__</div><div class="ts">__TV_SUB__</div></div>
