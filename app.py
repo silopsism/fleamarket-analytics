@@ -23,7 +23,8 @@ app = FastAPI(title='Fleamarket Analytics')
 UA = {'User-Agent': 'Mozilla/5.0 (fleamarket-analytics; personal FPL tool)'}
 _cache = {'ts': 0.0, 'players': None, 'teams': None, 'events': None}
 
-REFRESH_HOURS = 6
+SNAPSHOT_HOURS = 1   # cheap: two FPL calls + a snapshot row per player
+NEWS_EVERY = 6       # every Nth cycle: the ~90s, 91-feed news sweep
 
 
 def rebuild_dashboard():
@@ -66,11 +67,14 @@ def _refresh_forever():
     refresh_data(build=False)
     run_news_sweep()
     rebuild_dashboard()
+    cycle = 0
     while True:
-        time.sleep(REFRESH_HOURS * 3600)
-        refresh_data(build=False)
-        run_news_sweep()
-        rebuild_dashboard()
+        time.sleep(SNAPSHOT_HOURS * 3600)
+        cycle += 1
+        refresh_data(build=False)          # hourly: prices, ownership, snapshot
+        if cycle % NEWS_EVERY == 0:
+            run_news_sweep()               # six-hourly: the press
+        rebuild_dashboard()                # so Overview movements stay current
 
 
 @app.on_event('startup')
