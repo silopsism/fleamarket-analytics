@@ -794,7 +794,17 @@ def news_page(refresh: str = ''):
                  'rotation or exit signals in the window.</p>')
 
     # market momentum, cross-referenced with the news
-    momo = ''
+    momo, hist_note = '', ''
+    try:
+        import momentum as _m
+        hs = _m.history_stats()
+        if hs['rows']:
+            hist_note = (f" · snapshot history: {hs['rows']:,} rows since "
+                         f"{_h.escape((hs['oldest'] or '')[:16])}")
+        else:
+            hist_note = ' · snapshot history: none yet'
+    except Exception:
+        pass
     try:
         import momentum as mom
         m = model_data()
@@ -889,7 +899,7 @@ def news_page(refresh: str = ''):
         f'much they should change our view.</p>{disc}</div>'
         f'<div class="card"><h2 style="font-size:16px">Everything we found</h2>{feed}</div>'
         f'<p class="note">Swept {when} UTC · re-sweeps every few hours · '
-        f'<a href="/news?refresh=1">↻ sweep now</a></p>')
+        f'<a href="/news?refresh=1">↻ sweep now</a>{hist_note}</p>')
     return PAGE.format(title='Player news', body=body)
 
 

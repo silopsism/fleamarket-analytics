@@ -52,6 +52,27 @@ def _history(path=SNAP):
     return hist
 
 
+def history_stats(path=SNAP):
+    """Rows and time span in the snapshot log — also the proof that whatever
+    directory we're writing to actually persists across deployments."""
+    rows, oldest, newest = 0, None, None
+    try:
+        with open(path, encoding='utf-8') as f:
+            for line in f:
+                try:
+                    t = json.loads(line)['t']
+                except Exception:
+                    continue
+                rows += 1
+                if oldest is None or t < oldest:
+                    oldest = t
+                if newest is None or t > newest:
+                    newest = t
+    except FileNotFoundError:
+        pass
+    return {'rows': rows, 'oldest': oldest, 'newest': newest, 'path': os.path.abspath(path)}
+
+
 def momentum(players, elements, teams, top=12):
     """Rank transfer momentum. net = this gameweek's net transfers; where
     snapshot history exists, also ownership change since the oldest snapshot."""
