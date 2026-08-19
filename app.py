@@ -49,6 +49,12 @@ def refresh_data(build=True):
         if build:
             subprocess.run([sys.executable, 'dashboard.py'], check=True, timeout=240)
         try:
+            import odds as odds_mod
+            op = odds_mod.fetch()
+            print(f"odds: {len(op['fixtures'])} fixtures priced")
+        except Exception as exc:  # noqa: BLE001
+            print('odds fetch skipped:', exc)
+        try:
             import momentum as mom
             boot = json.load(open('bootstrap.json', encoding='utf-8'))
             els = {e['id']: e for e in boot['elements']}

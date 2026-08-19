@@ -72,6 +72,16 @@ if os.path.exists('context_adjustments.json'):
            if not k.startswith('_')}
 short2id = {v: k for k, v in teams.items()}
 
+# bookmaker odds per fixture, if a cache exists (see odds.py)
+ODDS = None
+try:
+    import odds as _odds_mod
+    _oc = _odds_mod.load()
+    if _oc and _oc.get('teams'):
+        ODDS = _oc
+except Exception:
+    ODDS = None
+
 # season-expectation sentiment: predicted vs last-season league points per club
 # (betting-market/Elo based), sqrt-dampened, applied to attack rates and
 # inversely to team xGC. Promoted clubs (no 'last') stay at 1.0.
@@ -93,12 +103,20 @@ for e in d['elements']:
     att_adj = 1 + 0.10 * (3 - avg_fdr[e['team']])
     xgc = base_xgc * (1 + 0.18 * (avg_fdr[e['team']] - 3))
     p_cs = math.exp(-xgc)
-    # per-fixture adjustments for each horizon event (stronger single-game swing;
-    # ±16%/FDR-pt attack, ±26% xGC — still flatter than odds-implied spreads,
-    # pending the Phase 3 bookmaker-odds fixture model)
-    ev_adjs = {ev: [(1 + 0.16 * (3 - fd), base_xgc * (1 + 0.26 * (fd - 3)))
-                    for fd in ev_fdr[e['team']].get(ev, [])]
-               for ev in HORIZON_EVENTS}
+    # per-fixture adjustments for each horizon event.
+    # Bookmaker odds, where available, replace the coarse 1-5 difficulty rating:
+    # the market's expected goals for/against a team is continuous, and its
+    # 'against' figure feeds clean sheets and the concession penalty directly.
+    _odds_team = (ODDS['teams'].get(teams[e['team']]) or {}) if ODDS else {}
+    ev_adjs = {}
+    for ev in HORIZON_EVENTS:
+        o = _odds_team.get(str(ev))
+        if o:
+            att = min(max(math.sqrt(o['gf'] / 1.45), 0.75), 1.35)
+            ev_adjs[ev] = [(att, max(o['ga'], 0.25))]
+        else:
+            ev_adjs[ev] = [(1 + 0.16 * (3 - fd), base_xgc * (1 + 0.26 * (fd - 3)))
+                           for fd in ev_fdr[e['team']].get(ev, [])]
 
     xmins = XMINS[e['id']]['xmins']   # availability already applied inside
     xmins_src = XMINS[e['id']]['src']

@@ -252,7 +252,7 @@ __VALUEBANDS__
 
 <footer>Phase 1 model: built on prior-season Opta rates, expected minutes, transfer
 context, season expectations and fixtures — a value lens, not an oracle.
-<br>FPL data pulled __PULLED__ UK · refreshes automatically every 6 hours.</footer>
+<br>FPL data pulled __PULLED__ UK · refreshed hourly · __ODDSNOTE__</footer>
 </div>
 <div class="tip" id="tip"></div>
 <script>
@@ -657,6 +657,14 @@ _td = diffs[0]
 
 import html as _html
 
+try:
+    _oc = json.load(open('odds_cache.json', encoding='utf-8'))
+    _n_odds = len([f for f in _oc.get('fixtures', []) if f.get('event')])
+    _odds_note = (f"fixtures priced by bookmaker odds: {_n_odds}"
+                  if _n_odds else 'fixture difficulty from FPL ratings (no odds posted yet)')
+except Exception:
+    _odds_note = 'fixture difficulty from FPL ratings'
+
 # Overview: market movements from snapshot history, and the top news stories
 _moves_html, _move_win, _stories_html = '', '', ''
 try:
@@ -714,6 +722,7 @@ def emit(path, personal):
     dat = data if personal else [{**r, 'v4': False, 'xi': False} for r in data]
     page = (html.replace('__VALUEBANDS__', band_tables(personal))
                 .replace('__SQUADSEC__', SQUAD_SEC if personal else '')
+                .replace('__ODDSNOTE__', _odds_note)
                 .replace('__MOVES__', _moves_html)
                 .replace('__MOVEWIN__', _move_win)
                 .replace('__STORIES__', _stories_html)

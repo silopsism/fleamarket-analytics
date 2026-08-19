@@ -10,3 +10,4 @@ news_cache.json
 data/
 optimal_squad.json
 .telegram.env
+odds_cache.json
