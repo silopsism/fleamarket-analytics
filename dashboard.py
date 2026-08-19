@@ -29,10 +29,32 @@ def pkey(p):
 # embed ALL players so saved squads always resolve fully; the charts filter
 # to >=1.8 xPts at draw time to stay readable
 pts = players
-data = [{'n': p['name'], 't': teams[p['team']], 'p': pos_name[p['pos']],
-         'c': p['price'], 'x': round(p['xpts'], 2), 'xn': round(p['xnext'], 2),
-         'g': p['gws'], 'tt': p['tot4'],
-         's': p['sel'], 'v4': pkey(p) in V4, 'xi': pkey(p) in set(V4_XI)} for p in pts]
+_els_by_id = {e['id']: e for e in ns['d']['elements']}
+
+
+def _price_move(pid):
+    """FPL's own price-change signal: current progress and tonight's odds."""
+    e = _els_by_id.get(pid) or {}
+    try:
+        pct = float(e.get('price_change_percent') or 0)
+    except (TypeError, ValueError):
+        pct = 0.0
+    lik = 0.0
+    for pr in (e.get('price_change_projections') or [])[:1]:
+        try:
+            lik = float(pr.get('likelihood') or 0)
+        except (TypeError, ValueError):
+            lik = 0.0
+    return round(pct, 1), round(lik, 2)
+
+
+data = []
+for p in pts:
+    pct, lik = _price_move(p['id'])
+    data.append({'n': p['name'], 't': teams[p['team']], 'p': pos_name[p['pos']],
+                 'c': p['price'], 'x': round(p['xpts'], 2), 'xn': round(p['xnext'], 2),
+                 'g': p['gws'], 'tt': p['tot4'], 'pc': pct, 'pl': lik,
+                 's': p['sel'], 'v4': pkey(p) in V4, 'xi': pkey(p) in set(V4_XI)})
 gw_labels = ns['HORIZON_EVENTS']
 
 fx = json.load(open('fixtures.json', encoding='utf-8'))
@@ -120,6 +142,13 @@ tr.benchstart td{border-top:2px solid var(--axis)}
 th.gwsel{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
 th.gwsel:hover{color:var(--ink)}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px;align-items:start}
+.cols3{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:22px;margin-top:14px;align-items:start}
+.mini{font-size:13.5px;line-height:1.45}
+.mini .row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--grid)}
+.mini .row:last-child{border-bottom:0}
+.mini b{font-weight:700}
+.up{color:#0ca30c;font-weight:700}
+.down{color:#d03b3b;font-weight:700}
 .stack{display:flex;flex-direction:column;gap:24px}
 @media(max-width:700px){.cols{grid-template-columns:1fr}}
 h3{font-size:13.5px;margin-bottom:8px}
@@ -149,6 +178,23 @@ clean sheets, defensive contributions), season expectations, and fixtures. __SUB
  <div class="tile" id="tile-squad" hidden><div class="tl">Your XI, next 4 GWs</div><div class="tv" id="tile-squad-v">–</div><div class="ts">model projection</div></div>
  <div class="tile"><div class="tl">Model optimum, 4 GWs</div><div class="tv">__OPTTOTAL__</div><div class="ts">best legal plan · <a href="/squads">open in Squads</a></div></div>
 </div>
+
+<section class="card" id="mysec" hidden>
+ <h2>Your squad — what needs attention</h2>
+ <p class="note" id="mysecnote"></p>
+ <div class="cols3">
+  <div><h3>Captain this week</h3><div id="capbox"></div></div>
+  <div><h3>Best transfers</h3><div id="trbox"></div></div>
+  <div><h3>Price watch</h3><div id="pwbox"></div></div>
+ </div>
+</section>
+
+<section class="card" id="nosquadsec">
+ <h2>Track your squad here</h2>
+ <p class="note" style="margin-bottom:0">Import your FPL team or build one in
+ <a href="/squads">Squads</a> and this page gains a captain pick, transfer suggestions and a
+ price watch for your own players.</p>
+</section>
 
 <section class="card">
  <h2>Market movements <span class="mut">__MOVEWIN__</span></h2>
@@ -365,6 +411,60 @@ radios('chips3', drawFrontier);
 const ht=document.getElementById('heatmap');
 ht.innerHTML='<tr><th></th>'+[1,2,3,4,5,6].map(g=>`<th class="num" style="text-align:center">GW${g}</th>`).join('')+'</tr>'+
  HEAT.map(r=>'<tr><td class="teamlab">'+r.team+'</td>'+r.gws.map(g=>g?`<td><div class="cell d${g.d}">${g.h?g.o.toUpperCase():g.o.toLowerCase()}</div></td>`:'<td></td>').join('')+'</tr>').join('');
+// Overview panels driven by the squad saved on this device
+function squadPanels(rows){
+ const sec=document.getElementById('mysec');
+ if(!sec||!rows.length)return;
+ sec.hidden=false;
+ const ns=document.getElementById('nosquadsec'); if(ns)ns.hidden=true;
+ const HM=Object.fromEntries(HEAT.map(r=>[r.team,r.gws]));
+ const opp=t=>{const g=(HM[t]||[])[GWL[0]-1];return g?`${g.o} (${g.h?'H':'A'})`:'—'};
+
+ // captain: best single-fixture projection in the squad
+ const caps=[...rows].sort((a,b)=>b.xn-a.xn).slice(0,3);
+ document.getElementById('capbox').innerHTML='<div class="mini">'+caps.map((r,i)=>
+  `<div class="row"><span>${i===0?'<b>':''}${esc(r.n)}${i===0?'</b>':''} `+
+  `<span style="color:var(--muted)">${r.t} · ${opp(r.t)}</span></span>`+
+  `<span${i===0?' class="up"':''}>${r.xn.toFixed(2)}</span></div>`).join('')+'</div>'+
+  `<p class="note" style="margin:8px 0 0">GW${GWL[0]} projection, single fixture.</p>`;
+
+ // transfers: best legal same-position upgrade within each player's own price
+ const owned=new Set(rows.map(r=>r.n+'|'+r.t));
+ const clubs={}; rows.forEach(r=>clubs[r.t]=(clubs[r.t]||0)+1);
+ const ideas=[];
+ rows.forEach(r=>{
+  let best=null;
+  for(const d of DATA){
+   if(d.p!==r.p||d.c>r.c||owned.has(d.n+'|'+d.t))continue;
+   const cc=(clubs[d.t]||0)-(d.t===r.t?1:0);
+   if(cc>=3)continue;
+   if(!best||d.tt>best.tt)best=d;
+  }
+  if(best&&best.tt-r.tt>0.5)ideas.push({o:r,i:best,gain:best.tt-r.tt});
+ });
+ ideas.sort((a,b)=>b.gain-a.gain);
+ document.getElementById('trbox').innerHTML = ideas.length
+  ? '<div class="mini">'+ideas.slice(0,3).map(v=>
+     `<div class="row"><span>${esc(v.o.n)} → <b>${esc(v.i.n)}</b> `+
+     `<span style="color:var(--muted)">${v.i.t} £${v.i.c.toFixed(1)}</span></span>`+
+     `<span class="up">+${v.gain.toFixed(1)}</span></div>`).join('')+'</div>'+
+     '<p class="note" style="margin:8px 0 0">4-week gain, same position, no extra spend.</p>'
+  : '<p class="note">No upgrade beats what you own at these prices.</p>';
+
+ // price watch: FPL's own projections, your players first
+ const mine=rows.filter(r=>{const d=DATA.find(x=>x.n===r.n&&x.t===r.t);return d&&(Math.abs(d.pc)>=25||d.pl>=0.3)})
+   .map(r=>DATA.find(x=>x.n===r.n&&x.t===r.t));
+ const global=[...DATA].filter(d=>Math.abs(d.pc)>=50).sort((a,b)=>Math.abs(b.pc)-Math.abs(a.pc)).slice(0,3);
+ const list=(mine.length?mine:global).slice(0,4);
+ document.getElementById('pwbox').innerHTML = list.length
+  ? '<div class="mini">'+list.map(d=>{
+     const dir=d.pc>=0?'up':'down';
+     return `<div class="row"><span>${esc(d.n)} <span style="color:var(--muted)">${d.t} £${d.c.toFixed(1)}</span></span>`+
+      `<span class="${dir}">${d.pc>=0?'▲':'▼'} ${Math.abs(d.pc).toFixed(0)}%</span></div>`}).join('')+'</div>'+
+     `<p class="note" style="margin:8px 0 0">${mine.length?'Your players':'Nobody in your squad is moving — biggest movers overall'} · FPL's own price-change progress.</p>`
+  : '<p class="note">No price moves projected yet — this fills in once transfers start flowing.</p>';
+}
+
 function renderSquadTable(rows, el){
  let h=`<thead><tr><th>Player</th><th>Team</th><th>Pos</th><th class="num">£m</th>`+
   GWL.map(g=>`<th class="num">GW${g}</th>`).join('')+`<th class="num">Total</th><th>Role</th></tr></thead><tbody>`;
@@ -406,6 +506,7 @@ if(!SQUAD.length){(function(){
   for(const r of order){ if(xi.size>=11)break;
    if(!xi.has(r)&&[...xi].filter(x=>x.p===r.p).length<maxR[r.p]) xi.add(r);}
   rows.forEach(r=>r.xi=xi.has(r));
+  squadPanels(rows);
   const POSORD={GKP:0,DEF:1,MID:2,FWD:3};
   const sec=document.getElementById('mysquadsec');
   if(sec){
