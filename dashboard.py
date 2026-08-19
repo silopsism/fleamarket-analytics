@@ -496,7 +496,7 @@ MY_SQUAD_SEC = """<section class="card" id="mysquadsec" hidden>
 </section>"""
 
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 _ev = next(e for e in ns['d']['events'] if e['id'] == gw_labels[0])
 _dl = datetime.strptime(_ev['deadline_time'], '%Y-%m-%dT%H:%M:%SZ') + timedelta(hours=1)  # UK summer time
@@ -513,7 +513,7 @@ def emit(path, personal):
     dat = data if personal else [{**r, 'v4': False, 'xi': False} for r in data]
     page = (html.replace('__VALUEBANDS__', band_tables(personal))
                 .replace('__SQUADSEC__', SQUAD_SEC if personal else MY_SQUAD_SEC)
-                .replace('__PULLED__', (datetime.utcnow() + timedelta(hours=1)).strftime('%a %d %b %H:%M'))
+                .replace('__PULLED__', (datetime.now(timezone.utc) + timedelta(hours=1)).strftime('%a %d %b %H:%M'))
                 .replace('__DL_TIME__', tile_deadline).replace('__DL_GW__', tile_dl_gw)
                 .replace('__TV_NAME__', _tv['name'])
                 .replace('__TV_SUB__', f"£{_tv['price']:.1f} · {_tv['xpts']:.2f} xPts · {teams[_tv['team']]}")
