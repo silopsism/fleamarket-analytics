@@ -75,6 +75,14 @@ def _refresh_forever():
         if cycle % NEWS_EVERY == 0:
             run_news_sweep()               # six-hourly: the press
         rebuild_dashboard()                # so Overview movements stay current
+        try:
+            import notify
+            boot = json.load(open('bootstrap.json', encoding='utf-8'))
+            els = {e['id']: e for e in boot['elements']}
+            tms = {t['id']: t['short_name'] for t in boot['teams']}
+            print('notify:', notify.maybe_notify(els, tms, news_payload()))
+        except Exception as exc:  # noqa: BLE001
+            print('notify skipped:', exc)
 
 
 @app.on_event('startup')
