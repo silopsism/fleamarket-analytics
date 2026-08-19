@@ -26,9 +26,17 @@ _cache = {'ts': 0.0, 'players': None, 'teams': None, 'events': None}
 REFRESH_HOURS = 6
 
 
-def refresh_data():
-    """Pull fresh FPL data and regenerate the dashboard. Failures leave the
-    previous files in place, so the app degrades to slightly-stale data."""
+def rebuild_dashboard():
+    try:
+        subprocess.run([sys.executable, 'dashboard.py'], check=True, timeout=240)
+        print('dashboard rebuilt')
+    except Exception as exc:  # noqa: BLE001
+        print('dashboard rebuild failed:', exc)
+
+
+def refresh_data(build=True):
+    """Pull fresh FPL data (and optionally rebuild the dashboard). Failures
+    leave the previous files in place, so the app serves slightly-stale data."""
     try:
         for url, fn in [('https://fantasy.premierleague.com/api/bootstrap-static/', 'bootstrap.json'),
                         ('https://fantasy.premierleague.com/api/fixtures/', 'fixtures.json')]:
@@ -37,7 +45,8 @@ def refresh_data():
             json.loads(data)  # only overwrite with valid JSON
             with open(fn, 'wb') as f:
                 f.write(data)
-        subprocess.run([sys.executable, 'dashboard.py'], check=True, timeout=180)
+        if build:
+            subprocess.run([sys.executable, 'dashboard.py'], check=True, timeout=240)
         try:
             import momentum as mom
             boot = json.load(open('bootstrap.json', encoding='utf-8'))
@@ -53,12 +62,15 @@ def refresh_data():
 
 
 def _refresh_forever():
-    refresh_data()
+    # order matters: the dashboard build embeds the latest news + snapshots
+    refresh_data(build=False)
     run_news_sweep()
+    rebuild_dashboard()
     while True:
         time.sleep(REFRESH_HOURS * 3600)
-        refresh_data()
+        refresh_data(build=False)
         run_news_sweep()
+        rebuild_dashboard()
 
 
 @app.on_event('startup')
@@ -520,11 +532,11 @@ def paste(squad: str = '', mode: str = '', src: str = '', name: str = '',
         mp = m['players'].get(el['id'])
         flag = ' ⚠ ' + el['news'][:36] if el['status'] not in ('a',) else ''
         entries.append({'n': el['web_name'] + flag, 'rawn': el['web_name'],
-                        't': m['teams'][el['team']],
+                        'id': el['id'], 't': m['teams'][el['team']],
                         'pos': el['element_type'], 'price': el['now_cost'] / 10,
                         'g': mp['gws'] if mp else [0.0] * 4,
                         'tt': mp['tot4'] if mp else 0.0, 'cap': is_cap})
-    locked = type in ('my', 'spy')
+    locked = type in ('my', 'spy', 'model')
     if roles and len(roles) == len(entries):
         # real roles from the FPL import (X=XI, C=captain, V=vice, B=bench)
         for i, r in enumerate(entries):
@@ -551,11 +563,11 @@ def paste(squad: str = '', mode: str = '', src: str = '', name: str = '',
             problems.append(f'<li>Illegal squad: {n} players from {club} (max 3)</li>')
     prob_html = (f"<div class='card'><b>{len(problems)} issue(s)</b>"
                  f"<ul style='padding-left:20px;margin-top:6px'>{''.join(problems)}</ul></div>") if problems else ''
-    icon = {'my': '⭐', 'spy': '🕵', 'tinker': '🔧'}.get(type, '')
+    icon = {'my': '⭐', 'spy': '🕵', 'tinker': '🔧', 'model': '🤖'}.get(type, '')
     if name:
         title = f'{icon} {name}'.strip()
         kind = ('Your FPL team' if type == 'my' else 'Spied FPL team' if type == 'spy'
-                else 'Tinker squad')
+                else "The model's own optimum" if type == 'model' else 'Tinker squad')
         intro = kind + (f' · synced GW{gw}' if gw else '')
         intro += (' · locked to the real thing — duplicate it to tinker. '
                   if locked else ' · roles and substitutions editable, totals update live. ')
@@ -586,8 +598,14 @@ function dupTinker(){
         edit_ui = (edit_ui.replace('__LINES__', json.dumps(lines_canon, ensure_ascii=False))
                           .replace('__DNAME__', json.dumps(name or 'Squad'))
                           .replace('__DROLES__', json.dumps(roles)))
+        stored = None
+        if type == 'model':
+            try:
+                stored = json.load(open('optimal_squad.json', encoding='utf-8'))
+            except Exception:
+                stored = None
         body = (f'<h1>{title}</h1><p class="sub">{intro}</p>'
-                + table + prob_html
+                + table + squad_plan_html(entries, m, stored=stored) + prob_html
                 + transfers_html(owned, 0.0, m, bank_known=False, editable=False)
                 + edit_ui)
         return PAGE.format(title=name or 'Squad', body=body)
@@ -687,7 +705,7 @@ document.getElementById('subq').addEventListener('input',()=>{
     body = (f'<h1>{title}</h1>'
             f'<p class="sub">{intro}'
             f'Use ⇄ on any row to substitute a player. <a href="/squads">← All squads</a></p>'
-            + table + save_btn + prob_html
+            + table + save_btn + squad_plan_html(entries, m) + prob_html
             + transfers_html(owned, 0.0, m, bank_known=False, editable=True)
             + edit_ui)
     return PAGE.format(title=name or 'Squad analysis', body=body)
@@ -702,6 +720,93 @@ def home():
     if os.path.exists('dashboard.html'):
         return HTMLResponse(open('dashboard.html', encoding='utf-8').read())
     return PAGE.format(title='Fleamarket Analytics', body=FORM)
+
+
+_plan_cache = {}
+
+
+@app.get('/api/optimal')
+def api_optimal():
+    """The model's own best squad, published by the dashboard build."""
+    try:
+        return json.load(open('optimal_squad.json', encoding='utf-8'))
+    except Exception:
+        return {'error': 'not built yet'}
+
+
+def squad_plan_html(entries, m, stored=None):
+    """4-week diagnostic for a specific squad: weekly XI totals, captain and the
+    optimal transfer plan starting FROM this squad. `stored` short-circuits with
+    a precomputed plan (used for the model's own optimum)."""
+    import html as _h
+    gwl = m['gwl']
+    if stored:
+        weekly, transfers, total = stored['weekly'], stored['transfers'], stored['total']
+    else:
+        ids = tuple(sorted(e['id'] for e in entries if e.get('id')))
+        if len(ids) != 15:
+            return ('<div class="card"><h2 style="font-size:16px">4-week plan</h2>'
+                    '<p class="note">Needs a full 15-player squad to plan transfers.</p></div>')
+        if ids in _plan_cache:
+            weekly, transfers, total = _plan_cache[ids]
+        else:
+            try:
+                import plan4
+                src = open('model.py', encoding='utf-8').read().split('# --- SCORES-END ---')[0]
+                ns = {}
+                exec(compile(src, 'model.py', 'exec'), ns)
+                budget = sum(e['price'] for e in entries)
+                plan = plan4.solve_plan(ns['players'], n_gw=len(gwl), budget=budget,
+                                        initial_ids=list(ids), time_limit=25)
+                if not plan:
+                    return ''
+                pool = plan['pool']
+                weekly = []
+                for g, squad in enumerate(plan['gws']):
+                    t = sum(pool[s['id']]['gws'][g] for s in squad if s['xi'])
+                    t += sum(pool[s['id']]['gws'][g] for s in squad if s['cap'])
+                    weekly.append(round(t, 1))
+                transfers = [{
+                    'out': [{'n': pool[i]['name'], 't': m['teams'][pool[i]['team']]} for i in mv['out']],
+                    'in': [{'n': pool[i]['name'], 't': m['teams'][pool[i]['team']]} for i in mv['in']],
+                    'hits': mv['hits']} for mv in plan['transfers']]
+                caps = [next((pool[s['id']]['name'] for s in sq if s['cap']), '?')
+                        for sq in plan['gws']]
+                total = round(sum(weekly) - 4 * sum(t['hits'] for t in transfers), 1)
+                _plan_cache[ids] = (weekly, transfers, total)
+                stored = {'caps': caps}
+            except Exception as exc:  # noqa: BLE001
+                return (f'<div class="card"><h2 style="font-size:16px">4-week plan</h2>'
+                        f'<p class="note">Planner unavailable ({_h.escape(str(exc)[:70])}).</p></div>')
+    rows = ''
+    for k, gw in enumerate(gwl):
+        mv = transfers[k - 1] if k > 0 and k - 1 < len(transfers) else None
+        if k == 0:
+            act = 'starting squad'
+        elif mv and mv['in']:
+            act = (' , '.join(f"{_h.escape(o['n'])} → {_h.escape(i['n'])}"
+                              for o, i in zip(mv['out'], mv['in']))
+                   + (f" ({mv['hits']} hit{'s' if mv['hits'] > 1 else ''}, −{mv['hits']*4})"
+                      if mv['hits'] else ' (free)'))
+        else:
+            act = 'no transfer — bank it'
+        rows += (f"<tr><td><b>GW{gw}</b></td><td class='num'><b>{weekly[k]:.1f}</b></td>"
+                 f"<td style='white-space:normal'>{act}</td></tr>")
+    try:
+        opt_total = json.load(open('optimal_squad.json', encoding='utf-8'))['total']
+        gap = (f" · the model's own optimum scores <b>{opt_total:.1f}</b>"
+               if abs(opt_total - total) > 0.05 else '')
+    except Exception:
+        gap = ''
+    return ('<div class="card"><h2 style="font-size:16px">4-week plan for this squad</h2>'
+            '<p class="note">Best legal path from here: one free transfer a week (bankable), '
+            'hits cost 4 points. Weekly totals include the captain.</p>'
+            f"<div style='overflow-x:auto'><table><tr><th>Gameweek</th>"
+            f"<th class='num'>XI + C</th><th>Transfer plan</th></tr>{rows}"
+            f"<tr><th>Total</th><th class='num' style='color:var(--accent)'>{total:.1f}</th>"
+            f"<th></th></tr></table></div>"
+            f"<p class='note' style='margin-top:8px'>Projected <b>{total:.1f}</b> points over "
+            f"the next {len(gwl)} gameweeks{gap}.</p></div>")
 
 
 NEWS_CACHE = 'news_cache.json'
@@ -955,7 +1060,7 @@ SQUADS_PAGE = """<h1>Squads</h1>
 <div id="cards" style="display:flex;flex-direction:column;gap:10px"><p class="note">Loading…</p></div>
 </div>
 <script>
-const ICON={my:'⭐',spy:'🕵',tinker:'🔧'};
+const ICON={my:'⭐',spy:'🕵',tinker:'🔧',model:'🤖'};
 const load=()=>{try{return JSON.parse(localStorage.getItem('fpl_squads_v1'))||[]}catch(e){return[]}};
 const save=l=>localStorage.setItem('fpl_squads_v1',JSON.stringify(l));
 function migrate(){
@@ -979,17 +1084,24 @@ function detailUrl(s){
  return '/paste?squad='+encodeURIComponent(s.lines.join('\\n'))+'&name='+encodeURIComponent(s.name)
   +'&type='+s.type+'&sid='+s.id+(s.roles?'&roles='+s.roles:'')+(s.lastGw?'&gw='+s.lastGw:'');
 }
+let MODEL=null;
+fetch('/api/optimal').then(r=>r.json()).then(d=>{if(d&&d.lines){MODEL=d;render()}}).catch(()=>{});
+
 function render(){
  const l=load(), box=document.getElementById('cards');
+ if(MODEL){
+  l.unshift({id:'model',type:'model',name:'Model optimum',lines:MODEL.lines,
+             roles:MODEL.roles,total:MODEL.total,ts:0});
+ }
  if(!l.length){box.innerHTML='<p class="note">No squads yet — build one, import your FPL team, or add a spy.</p>';return}
- const ord={my:0,spy:1,tinker:2};
+ const ord={model:0,my:1,spy:2,tinker:3};
  l.sort((a,b)=>ord[a.type]-ord[b.type]||(b.ts||0)-(a.ts||0));
  box.innerHTML='';
  l.forEach(s=>{
   const url=detailUrl(s);
   const c=document.createElement('div');
   c.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--grid);border-radius:10px;padding:12px 14px';
-  const meta=s.type==='tinker'?'tinker squad':(s.sim?'preview of your entered team (pre-deadline)':(s.lastGw?'synced GW'+s.lastGw+(s.updated?' · <b style=\\'color:var(--accent)\\'>updated</b>':''):(s.lines&&s.lines.length?'synced':'awaiting first sync — reload or press ↻ Refresh teams; fills after the next deadline')));
+  const meta=s.type==='model'?('best legal plan · '+(s.total||'?')+' pts over 4 GWs'):s.type==='tinker'?'tinker squad':(s.sim?'preview of your entered team (pre-deadline)':(s.lastGw?'synced GW'+s.lastGw+(s.updated?' · <b style=\\'color:var(--accent)\\'>updated</b>':''):(s.lines&&s.lines.length?'synced':'awaiting first sync — reload or press ↻ Refresh teams; fills after the next deadline')));
   c.innerHTML=`<div><div style="font:700 15px system-ui">${ICON[s.type]} ${s.name} ${primary()===s.id?'<span title="primary — drives dashboard markers" style="color:var(--accent)">★</span>':''}</div>
    <div class="note" style="margin:2px 0 0">${meta}${s.lines&&s.lines.length?' · '+s.lines.length+' players':''}</div></div>
    <div style="display:flex;gap:6px;flex-wrap:wrap"></div>`;
@@ -1003,7 +1115,7 @@ function render(){
   if(s.type==='tinker'){
    mk('Rename',()=>{const n=prompt('Squad name:',s.name);if(n){const l2=load();l2.find(x=>x.id===s.id).name=n;save(l2);render()}});
   }
-  if(s.type!=='my')mk('Delete',()=>{if(confirm('Delete "'+s.name+'"?')){const l2=load();save(l2.filter(x=>x.id!==s.id));render()}});
+  if(s.type!=='my'&&s.type!=='model')mk('Delete',()=>{if(confirm('Delete "'+s.name+'"?')){const l2=load();save(l2.filter(x=>x.id!==s.id));render()}});
   box.appendChild(c);
  });
 }
@@ -1107,7 +1219,7 @@ def team(team_id: int):
         el = m['elements'].get(pk['element'])
         mp = m['players'].get(pk['element'])
         owned.append(el)
-        entries.append({'n': el['web_name'], 't': m['teams'][el['team']],
+        entries.append({'n': el['web_name'], 'id': el['id'], 't': m['teams'][el['team']],
                         'pos': el['element_type'], 'price': el['now_cost'] / 10,
                         'g': mp['gws'] if mp else [0.0] * 4,
                         'tt': mp['tot4'] if mp else 0.0,

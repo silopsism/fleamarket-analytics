@@ -17,7 +17,13 @@ XI_MAX = {1: 1, 2: 5, 3: 5, 4: 3}
 POOL_TOP = {1: 8, 2: 22, 3: 28, 4: 16}
 
 
-def solve_plan(players, n_gw=4, budget=100.0, max_hits=4, time_limit=90):
+def solve_plan(players, n_gw=4, budget=100.0, max_hits=4, time_limit=90,
+               initial_ids=None):
+    """Best squad + weekly XI/captain + transfer plan over the horizon.
+
+    initial_ids: fix the first gameweek's 15 to an existing squad, turning this
+    into "what should THIS team do next" instead of "what is the best team".
+    """
     pool = {}
     for pos, top in POOL_TOP.items():
         cand = [p for p in players if p['pos'] == pos and p['xmins'] >= 45 and p['tot4'] > 0]
@@ -25,6 +31,11 @@ def solve_plan(players, n_gw=4, budget=100.0, max_hits=4, time_limit=90):
             pool[p['id']] = p
         for p in sorted(cand, key=lambda p: p['price'])[:4]:  # cheap enablers
             pool[p['id']] = p
+    if initial_ids:
+        by_id = {p['id']: p for p in players}
+        for pid in initial_ids:
+            if pid in by_id:
+                pool[pid] = by_id[pid]      # the owned squad must be selectable
     P = list(pool.values())
     G = list(range(n_gw))
 
@@ -55,6 +66,11 @@ def solve_plan(players, n_gw=4, budget=100.0, max_hits=4, time_limit=90):
         for p in P:
             prob += xi[p['id'], g] <= sq[p['id'], g]
             prob += cp[p['id'], g] <= xi[p['id'], g]
+
+    if initial_ids:
+        owned = set(initial_ids)
+        for p in P:
+            prob += sq[p['id'], 0] == (1 if p['id'] in owned else 0)
 
     for g in G[1:]:
         for p in P:

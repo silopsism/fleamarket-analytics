@@ -127,6 +127,47 @@ def momentum(players, elements, teams, top=12):
             'has_history': any(r['d_sel'] is not None for r in rows)}
 
 
+def recent_moves(elements, teams, hours=6, top=6, min_pp=0.15):
+    """Ownership/transfer movement over roughly the last `hours`, from snapshot
+    history. Returns (risers, fallers, meta) — empty until enough baseline."""
+    hist = _history()
+    if not hist:
+        return [], [], {'ready': False, 'hours': 0}
+    stamps = sorted({r['t'] for rows in hist.values() for r in rows})
+    if len(stamps) < 2:
+        return [], [], {'ready': False, 'hours': 0}
+    newest = stamps[-1]
+    try:
+        cutoff = datetime.fromisoformat(newest).timestamp() - hours * 3600
+        older = [s for s in stamps if datetime.fromisoformat(s).timestamp() <= cutoff]
+        base = older[-1] if older else stamps[0]
+        span = round((datetime.fromisoformat(newest).timestamp()
+                      - datetime.fromisoformat(base).timestamp()) / 3600, 1)
+    except Exception:
+        base, span = stamps[0], 0.0
+    moves = []
+    for pid, rows in hist.items():
+        e = elements.get(pid)
+        if not e:
+            continue
+        cur = next((r for r in reversed(rows) if r['t'] == newest), None)
+        old = next((r for r in reversed(rows) if r['t'] == base), None)
+        if not cur or not old:
+            continue
+        d_sel = round(cur['s'] - old['s'], 2)
+        d_net = (cur['ti'] - cur['to']) - (old['ti'] - old['to'])
+        if abs(d_sel) < min_pp and d_net == 0:
+            continue
+        moves.append({'player': f"{e['web_name']}|{teams[e['team']]}",
+                      'price': cur['c'] / 10, 'sel': cur['s'],
+                      'd_sel': d_sel, 'd_net': d_net,
+                      'd_cost': round((cur['c'] - old['c']) / 10, 1)})
+    key = (lambda m: (m['d_net'], m['d_sel']))
+    risers = sorted([m for m in moves if key(m) > (0, 0)], key=key, reverse=True)[:top]
+    fallers = sorted([m for m in moves if key(m) < (0, 0)], key=key)[:top]
+    return risers, fallers, {'ready': True, 'hours': span, 'snapshots': len(stamps)}
+
+
 def correlate(mom, news_payload, top=8):
     """Join momentum with the news sweep: is the market reacting to a story, or
     moving with no visible catalyst?"""

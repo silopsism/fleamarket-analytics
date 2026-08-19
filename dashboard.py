@@ -147,17 +147,21 @@ clean sheets, defensive contributions), season expectations, and fixtures. __SUB
  <div class="tile"><div class="tl">Top differential</div><div class="tv">__TD_NAME__</div><div class="ts">__TD_SUB__</div></div>
  <div class="tile"><div class="tl">Model top scorer</div><div class="tv">__TS_NAME__</div><div class="ts">__TS_SUB__</div></div>
  <div class="tile" id="tile-squad" hidden><div class="tl">Your XI, next 4 GWs</div><div class="tv" id="tile-squad-v">–</div><div class="ts">model projection</div></div>
+ <div class="tile"><div class="tl">Model optimum, 4 GWs</div><div class="tv">__OPTTOTAL__</div><div class="ts">best legal plan · <a href="/squads">open in Squads</a></div></div>
 </div>
 
-<section class="card" id="optsec" hidden>
- <h2>Optimal model squad — the 4-week plan</h2>
- <p class="note">The solver's best legal squad and transfer plan over the horizon: one free transfer
- earned per week (bankable), extra moves cost 4 points (max 4 hits). <b>Click a GW column header</b>
- to show that week's squad — the shaded column belongs to the displayed squad; dimmed scores mean
- that player isn't in the plan's squad that week; the footer always shows the plan's true weekly
- XI + captain totals. ⇄ transferred in · ↑ promoted from bench · ↓ benched.</p>
- <div class="scroll"><table id="opttable"></table></div>
- <p class="note" id="opttrans" style="margin:10px 0 0"></p>
+<section class="card">
+ <h2>Market movements <span class="mut">__MOVEWIN__</span></h2>
+ <p class="note">Who the crowd is buying and selling right now, from our own snapshot history.
+ Full detail and news cross-checks on the <a href="/news">News</a> tab.</p>
+ <div class="cols" id="movecols">__MOVES__</div>
+</section>
+
+<section class="card">
+ <h2>Top stories</h2>
+ <p class="note">Highest-signal headlines from the last few days, checked against the model's
+ assumptions. All of them, plus off-radar finds, on the <a href="/news">News</a> tab.</p>
+ __STORIES__
 </section>
 __SQUADSEC__
 </div>
@@ -414,52 +418,6 @@ if(!SQUAD.length){(function(){
   }
  }catch(e){}
 })()}
-// optimal 4-week plan
-const OPT=__OPT__;
-const POSORD2={GKP:0,DEF:1,MID:2,FWD:3};
-if(OPT){
- document.getElementById('optsec').hidden=false;
- let sel=0;
- const memb=OPT.gws.map(g=>new Set(g.map(r=>r.n+'|'+r.t)));
- const HMAP=Object.fromEntries(HEAT.map(r=>[r.team,r.gws]));
- const opp=t=>{const g=(HMAP[t]||[])[GWL[sel]-1];return g?`${g.o} (${g.h?'H':'A'})`:'—'};
- function rOpt(){
-  const rows=[...OPT.gws[sel]].sort((a,b)=>(a.xi?0:1)-(b.xi?0:1)||POSORD2[a.p]-POSORD2[b.p]);
-  const inSet=new Set(sel>0?OPT.transfers[sel-1].in.map(x=>x.n+'|'+x.t):[]);
-  const prevXI=new Map(sel>0?OPT.gws[sel-1].map(r=>[r.n+'|'+r.t,r.xi]):[]);
-  let h='<thead><tr><th>Player</th><th>Opp</th><th>Pos</th><th class="num">£m</th>'+
-   GWL.map((g,k)=>`<th class="num gwsel${k===sel?' selcol':''}" data-gw="${k}" title="Show the GW${g} squad">GW${g}</th>`).join('')+'<th>Role</th></tr></thead><tbody>';
-  let benchMarked=false;
-  rows.forEach(r=>{
-   const bs=!r.xi&&!benchMarked?(benchMarked=true,' benchstart'):'';
-   const key=r.n+'|'+r.t;
-   let mv='';
-   if(prevXI.has(key)){
-    if(r.xi&&!prevXI.get(key))mv=' <span class="mvup" title="promoted from the bench this week">↑</span>';
-    else if(!r.xi&&prevXI.get(key))mv=' <span class="mvdn" title="dropped to the bench this week">↓</span>';
-   }
-   h+=`<tr class="${r.xi?'xi':''}${bs}"><td><b>${esc(r.n)}</b> <span style="color:var(--muted);font-size:11.5px">${r.t}</span>${inSet.has(key)?' <span style="color:var(--accent)" title="transferred in this week">⇄</span>':''}${mv}${r.cap?' <b style="color:var(--accent)">(C)</b>':''}</td><td>${opp(r.t)}</td><td>${r.p}</td><td class="num">${r.c.toFixed(1)}</td>`+
-    r.g.map((v,k)=>`<td class="num${k===sel?' selcol':''}${memb[k].has(r.n+'|'+r.t)?'':' absent'}">${v.toFixed(1)}</td>`).join('')+
-    `<td><span class="pill">${r.xi?'XI':'Bench'}</span></td></tr>`;
-  });
-  const grand=(OPT.totals.reduce((a,b)=>a+b,0)-OPT.hitpen).toFixed(1);
-  h+='</tbody><tfoot><tr><th colspan="4" style="text-align:left;color:var(--ink)">Plan XI + captain</th>'+
-   OPT.totals.map((v,k)=>`<th class="num${k===sel?' selcol':''}" style="color:var(--ink)">${v.toFixed(1)}</th>`).join('')+
-   `<th class="num" style="color:var(--accent)" title="4-week total after hit costs">${grand}</th></tr></tfoot>`;
-  document.getElementById('opttable').innerHTML=h;
-  const tr=sel>0?OPT.transfers[sel-1]:null;
-  document.getElementById('opttrans').innerHTML = sel===0 ? 'Initial squad — transfers begin GW'+GWL[1]+'.' :
-   (tr.in.length ? 'This week: OUT '+tr.out.map(x=>`<b>${esc(x.n)}</b> (${x.t})`).join(', ')+' → IN '+
-     tr.in.map(x=>`<b>${esc(x.n)}</b> (${x.t})`).join(', ')+(tr.hits?` · ${tr.hits} hit(s), −${tr.hits*4} pts`:' · free')
-    : 'No transfers this week — free transfer banked.');
- }
- document.getElementById('opttable').addEventListener('click',e=>{
-  const th=e.target.closest('th[data-gw]');
-  if(th){sel=+th.dataset.gw;rOpt()}
- });
- rOpt();
-}
-
 drawDiff('All');drawFrontier('All');drawPlanner();
 </script>
 """
@@ -546,6 +504,8 @@ SQUAD_SEC = """<section class="card">
 # and their full table lives behind the My Team nav link)
 
 
+from datetime import datetime, timedelta, timezone
+
 # 4-week transfer-plan optimizer (skipped gracefully if the solver fails)
 OPT = None
 try:
@@ -569,10 +529,18 @@ try:
         OPT = {'gws': _ogws, 'transfers': _otr, 'totals': _tot,
                'hitpen': sum(m['hits'] for m in _plan['transfers']) * 4}
         print(f"plan4: {_plan['status']}, 4-GW plan total {sum(_tot) - OPT['hitpen']:.1f}")
+        # publish the optimum as a selectable squad (the Squads tab shows it as
+        # a permanent 🤖 entry; roles encode its GW1 XI and captain)
+        _gw1 = _ogws[0]
+        _roles = ''.join('C' if r['cap'] else ('X' if r['xi'] else 'B') for r in _gw1)
+        json.dump({'ts': datetime.now(timezone.utc).isoformat(timespec='minutes'),
+                   'lines': [f"{r['n']} {r['t']}" for r in _gw1], 'roles': _roles,
+                   'total': round(sum(_tot) - OPT['hitpen'], 1),
+                   'weekly': _tot, 'transfers': _otr},
+                  open('optimal_squad.json', 'w', encoding='utf-8'),
+                  ensure_ascii=False, indent=1)
 except Exception as _exc:  # noqa: BLE001 - dashboard must still build
     print('plan4 skipped:', _exc)
-
-from datetime import datetime, timedelta, timezone
 
 _ev = next(e for e in ns['d']['events'] if e['id'] == gw_labels[0])
 _dl = datetime.strptime(_ev['deadline_time'], '%Y-%m-%dT%H:%M:%SZ') + timedelta(hours=1)  # UK summer time
@@ -583,12 +551,69 @@ _ts = max(players, key=lambda p: p['xpts'])
 _td = diffs[0]
 
 
+import html as _html
+
+# Overview: market movements from snapshot history, and the top news stories
+_moves_html, _move_win, _stories_html = '', '', ''
+try:
+    import momentum as _mom
+    _els = {e['id']: e for e in ns['d']['elements']}
+    _ris, _fal, _meta = _mom.recent_moves(_els, teams, hours=6)
+
+    def _mv_table(rows, label):
+        if not rows:
+            return f"<div><h3>{label}</h3><p class='note'>Nothing yet.</p></div>"
+        body = ''.join(
+            f"<tr><td><b>{_html.escape(r['player'].split('|')[0])}</b> "
+            f"<span style='color:var(--muted)'>{r['player'].split('|')[1]}</span></td>"
+            f"<td class='num'>{r['price']:.1f}</td><td class='num'>{r['sel']:.1f}</td>"
+            f"<td class='num'>{r['d_sel']:+.2f}</td>"
+            f"<td class='num'>{r['d_net']:+,}</td></tr>" for r in rows)
+        return (f"<div><h3>{label}</h3><div class='scroll'><table><tr><th>Player</th>"
+                f"<th class='num'>£m</th><th class='num'>Own%</th><th class='num'>Δ own</th>"
+                f"<th class='num'>Δ net</th></tr>{body}</table></div></div>")
+
+    if _meta['ready'] and (_ris or _fal):
+        _moves_html = _mv_table(_ris, 'Moving in') + _mv_table(_fal, 'Moving out')
+        _move_win = f"last {_meta['hours']:.0f}h"
+    else:
+        _moves_html = ("<p class='note'>Collecting baseline — movement appears once we have "
+                       "a few hours of snapshots and the gameweek opens.</p>")
+        _move_win = f"{_meta.get('snapshots', 0)} snapshots so far"
+except Exception as _e:
+    _moves_html = f"<p class='note'>Movements unavailable ({_html.escape(str(_e)[:60])}).</p>"
+
+try:
+    _news = json.load(open('news_cache.json', encoding='utf-8'))
+    _picks = (_news.get('proposals') or [])[:3] + [
+        {'player': d['player'], 'headline': d['items'][0]['title'],
+         'source': d['items'][0]['source'], 'when': '', 'why': d['why']}
+        for d in (_news.get('discoveries') or [])[:3] if d.get('items')]
+    if _picks:
+        _stories_html = ''.join(
+            f"<div style='border-top:1px solid var(--grid);padding:9px 0'>"
+            f"<b>{_html.escape(s['player'].split('|')[0])}</b> "
+            f"<span style='color:var(--muted);font-size:12.5px'>{s['player'].split('|')[1]}"
+            f" · {_html.escape(s.get('why',''))}</span>"
+            f"<div style='font-size:13.5px'>“{_html.escape(s['headline'][:120])}”</div>"
+            f"<div class='note' style='margin:0'>{_html.escape(s.get('source',''))}"
+            f" {_html.escape(s.get('when',''))}</div></div>" for s in _picks)
+    else:
+        _stories_html = "<p class='note'>No flagged stories in the window.</p>"
+except Exception:
+    _stories_html = "<p class='note'>News sweep hasn't run yet.</p>"
+
+
 def emit(path, personal):
     # public copy strips squad markers entirely (no rings, labels, table, or
     # flags in the embedded JSON) so nothing about our team leaks pre-deadline
     dat = data if personal else [{**r, 'v4': False, 'xi': False} for r in data]
     page = (html.replace('__VALUEBANDS__', band_tables(personal))
                 .replace('__SQUADSEC__', SQUAD_SEC if personal else '')
+                .replace('__MOVES__', _moves_html)
+                .replace('__MOVEWIN__', _move_win)
+                .replace('__STORIES__', _stories_html)
+                .replace('__OPTTOTAL__', f"{OPT['totals'] and round(sum(OPT['totals']) - OPT['hitpen'], 1) or '–'}" if OPT else '–')
                 .replace('__PULLED__', (datetime.now(timezone.utc) + timedelta(hours=1)).strftime('%a %d %b %H:%M'))
                 .replace('__DL_TIME__', tile_deadline).replace('__DL_GW__', tile_dl_gw)
                 .replace('__TV_NAME__', _tv['name'])
@@ -601,7 +626,6 @@ def emit(path, personal):
                 .replace('__RINGNOTE__', 'Ringed dots / ● = our squad. ' if personal else '')
                 .replace('__DIFFROWS__', table_rows(diffs))
                 .replace('__TRAPROWS__', table_rows(trapped))
-                .replace('__OPT__', json.dumps(OPT, ensure_ascii=False))
                 .replace('__GWL__', json.dumps(gw_labels))
                 .replace('__DATA__', json.dumps(dat, ensure_ascii=False))
                 .replace('__HEAT__', json.dumps(heat, ensure_ascii=False))

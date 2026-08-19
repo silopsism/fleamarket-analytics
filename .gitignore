@@ -8,3 +8,4 @@ my_team_preview.json
 news_cache.json
 # momentum snapshots (accumulated locally / on a persistent volume)
 data/
+optimal_squad.json
