@@ -186,9 +186,9 @@ __VALUEBANDS__
 </section>
 </div>
 
-<footer>Phase 1 model: prior-season rates only — it can't yet see role changes,
-transfers between clubs, or minutes risk, so treat scores as a value lens, not an
-oracle. Regenerate with <code>python dashboard.py</code> after each data pull.</footer>
+<footer>Phase 1 model: built on prior-season Opta rates, expected minutes, transfer
+context, season expectations and fixtures — a value lens, not an oracle.
+<br>FPL data pulled __PULLED__ UK · refreshes automatically every 6 hours.</footer>
 </div>
 <div class="tip" id="tip"></div>
 <script>
@@ -513,6 +513,7 @@ def emit(path, personal):
     dat = data if personal else [{**r, 'v4': False, 'xi': False} for r in data]
     page = (html.replace('__VALUEBANDS__', band_tables(personal))
                 .replace('__SQUADSEC__', SQUAD_SEC if personal else MY_SQUAD_SEC)
+                .replace('__PULLED__', (datetime.utcnow() + timedelta(hours=1)).strftime('%a %d %b %H:%M'))
                 .replace('__DL_TIME__', tile_deadline).replace('__DL_GW__', tile_dl_gw)
                 .replace('__TV_NAME__', _tv['name'])
                 .replace('__TV_SUB__', f"£{_tv['price']:.1f} · {_tv['xpts']:.2f} xPts · {teams[_tv['team']]}")
