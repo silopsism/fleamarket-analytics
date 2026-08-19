@@ -63,8 +63,10 @@ def refresh_data(build=True):
 
 
 def _refresh_forever():
-    # order matters: the dashboard build embeds the latest news + snapshots
-    refresh_data(build=False)
+    # first pass builds the dashboard immediately, so the site is complete within
+    # seconds of a deploy (optimal_squad.json is generated, not shipped); the
+    # slow news sweep follows and triggers a rebuild to fold its stories in
+    refresh_data(build=True)
     run_news_sweep()
     rebuild_dashboard()
     cycle = 0
