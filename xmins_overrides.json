@@ -4,7 +4,7 @@
   "Dubravka|TOT": {"xmins": 0, "reason": "Signed as backup to Kinsky", "added": "2026-08-15", "review": "Kinsky injury"},
   "Lammens|MUN": {"xmins": 88, "reason": "Predicted #1 in all GW1 lineups", "added": "2026-08-15", "review": "GW1 team sheet"},
   "Roefs|SUN": {"xmins": 88, "reason": "Predicted #1 in Sunderland XI", "added": "2026-08-15", "review": "GW1 team sheet"},
-  "Woltemade|NEW": {"xmins": 70, "reason": "New signing, expected starter", "added": "2026-08-16", "review": "GW1 team sheet"},
+  "Woltemade|NEW": {"xmins": 18, "reason": "NEW says he is free to leave on loan for 26/27 (West Ham favourites, Dortmund/Villa linked); minutes already declined last season - fringe until resolved", "added": "2026-08-19", "review": "loan resolved or GW1 team sheet", "found_by": "news sweep 2026-08-19"},
   "Mosquera|ARS": {"xmins": 80, "reason": "Nailed CB while Saliba injured", "added": "2026-08-16", "review": "Saliba return"},
   "Isak|LIV": {"xmins": 72, "trust_rates": true, "reason": "LIV first-choice striker after Ekitike Achilles (out until 2027); 25/26 sample was injury-hit, not fringe status", "added": "2026-08-16", "review": "minutes managed early - late preseason start"},
   "Davis|IPS": {"xmins": 80, "reason": "In both predicted Ipswich XIs (below crowd-signal ownership threshold at 5%)", "added": "2026-08-16", "review": "GW1 team sheet"}

@@ -134,8 +134,8 @@ h3{font-size:13.5px;margin-bottom:8px}
  <a class="tab" href="#planner">Planner</a>
  <a class="tab" href="#market">Market</a>
  <a class="tab" href="#fixtures">Fixtures</a>
- <a class="tab" href="/paste">Squad Lab ↗</a>
- <a class="tab" id="navmyteam" href="/team">My Team ↗</a>
+ <a class="tab" href="/news">News ↗</a>
+ <a class="tab" href="/squads">Squads ↗</a>
 </nav>
 
 <div class="tabpane" data-tab="overview">
@@ -224,14 +224,6 @@ function setTab(){
 }
 addEventListener('hashchange',()=>{setTab();scrollTo({top:0})});
 setTab();
-// smart My Team link
-(function(){
- const a=document.getElementById('navmyteam');
- const t=localStorage.getItem('fpl_team_id');
- const s=localStorage.getItem('fpl_my_squad');
- if(t)a.href='/team/'+t;
- else if(s){try{a.href='/paste?squad='+encodeURIComponent(JSON.parse(s).join('\\n'))+'&my=1'}catch(e){}}
-})();
 
 const COL = {DEF:'var(--def)',MID:'var(--mid)',FWD:'var(--fwd)',GKP:'var(--gkp)'};
 const dsvg=document.getElementById('diff'),

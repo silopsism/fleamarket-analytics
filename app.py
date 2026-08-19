@@ -14,6 +14,7 @@ import threading
 import time
 import unicodedata
 import urllib.request
+from datetime import datetime, timezone
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
@@ -44,9 +45,11 @@ def refresh_data():
 
 def _refresh_forever():
     refresh_data()
+    run_news_sweep()
     while True:
         time.sleep(REFRESH_HOURS * 3600)
         refresh_data()
+        run_news_sweep()
 
 
 @app.on_event('startup')
@@ -128,7 +131,7 @@ def squad_table_html(entries, gwl, interactive=False):
             opts = ''.join(f"<option{' selected' if o == role else ''}>{o}</option>"
                            for o in ('XI', 'C', 'VC', 'Bench'))
             rawn = r.get('rawn', r['n'])
-            role_cell = (f"<select class='role' data-g='{json.dumps(r['g'])}' "
+            role_cell = (f"<select class='role' data-i='{r.get('_i', '')}' data-g='{json.dumps(r['g'])}' "
                          f"style='background:var(--bg);color:var(--ink);border:1px solid var(--grid);"
                          f"border-radius:6px;padding:3px 6px;font:600 12px system-ui'>{opts}</select>"
                          f" <button type='button' class='subbtn' title='substitute this player' "
@@ -212,18 +215,14 @@ a{{color:var(--accent)}}
  <a class="tab" href="/#planner">Planner</a>
  <a class="tab" href="/#market">Market</a>
  <a class="tab" href="/#fixtures">Fixtures</a>
- <a class="tab" href="/paste">Squad Lab</a>
- <a class="tab" id="navmyteam" href="/team">My Team</a>
+ <a class="tab" id="navnews" href="/news">News</a>
+ <a class="tab" id="navsquads" href="/squads">Squads</a>
 </nav>
 <script>(function(){{
- var p=location.pathname, mine=new URLSearchParams(location.search).has('my');
- if(p.startsWith('/paste')&&!mine)document.querySelector('.tab[href="/paste"]').setAttribute('aria-current','page');
- else if(p.startsWith('/team')||p==='/me'||mine)document.getElementById('navmyteam').setAttribute('aria-current','page');
- var a=document.getElementById('navmyteam');
- var t=localStorage.getItem('fpl_team_id');
- var s=localStorage.getItem('fpl_my_squad');
- if(t)a.href='/team/'+t;
- else if(s){{try{{a.href='/paste?squad='+encodeURIComponent(JSON.parse(s).join('\\n'))+'&my=1'}}catch(e){{}}}}
+ var p=location.pathname;
+ if(p.startsWith('/squads')||p.startsWith('/paste')||p.startsWith('/team')||p==='/me')
+  document.getElementById('navsquads').setAttribute('aria-current','page');
+ else if(p.startsWith('/news'))document.getElementById('navnews').setAttribute('aria-current','page');
 }})()</script>
 {body}
 <p class="note"><a href="/">← Dashboard</a> · Scores are model xPts per match, averaged over the
@@ -486,7 +485,8 @@ go.onclick=()=>{
 
 
 @app.get('/paste', response_class=HTMLResponse)
-def paste(squad: str = '', mode: str = '', src: str = ''):
+def paste(squad: str = '', mode: str = '', src: str = '', name: str = '',
+          type: str = '', sid: str = '', roles: str = '', gw: str = ''):
     if not squad.strip():
         if mode == 'text':
             return PAGE.format(title='Paste your squad', body=PASTE_FORM)
@@ -515,10 +515,19 @@ def paste(squad: str = '', mode: str = '', src: str = ''):
                         'pos': el['element_type'], 'price': el['now_cost'] / 10,
                         'g': mp['gws'] if mp else [0.0] * 4,
                         'tt': mp['tot4'] if mp else 0.0, 'cap': is_cap})
-    xi_idx = pick_best_xi(entries)
+    locked = type in ('my', 'spy')
+    if roles and len(roles) == len(entries):
+        # real roles from the FPL import (X=XI, C=captain, V=vice, B=bench)
+        for i, r in enumerate(entries):
+            r['xi'] = roles[i] in 'XCV'
+            r['cap'] = roles[i] == 'C'
+    else:
+        xi_idx = pick_best_xi(entries)
+        for i, r in enumerate(entries):
+            r['xi'] = i in xi_idx
     for i, r in enumerate(entries):
-        r['xi'] = i in xi_idx
-    table = squad_table_html(entries, m['gwl'], interactive=True) if entries else ''
+        r['_i'] = i
+    table = squad_table_html(entries, m['gwl'], interactive=not locked) if entries else ''
     # legality check (catches the free-text path, which the picker pre-enforces)
     limits = {1: 2, 2: 5, 3: 5, 4: 3}
     for pos, cap_n in limits.items():
@@ -533,16 +542,47 @@ def paste(squad: str = '', mode: str = '', src: str = ''):
             problems.append(f'<li>Illegal squad: {n} players from {club} (max 3)</li>')
     prob_html = (f"<div class='card'><b>{len(problems)} issue(s)</b>"
                  f"<ul style='padding-left:20px;margin-top:6px'>{''.join(problems)}</ul></div>") if problems else ''
-    if src == 'template':
+    icon = {'my': '⭐', 'spy': '🕵', 'tinker': '🔧'}.get(type, '')
+    if name:
+        title = f'{icon} {name}'.strip()
+        kind = ('Your FPL team' if type == 'my' else 'Spied FPL team' if type == 'spy'
+                else 'Tinker squad')
+        intro = kind + (f' · synced GW{gw}' if gw else '')
+        intro += (' · locked to the real thing — duplicate it to tinker. '
+                  if locked else ' · roles and substitutions editable, totals update live. ')
+    elif src == 'template':
         title = 'The template squad'
         intro = ('Built from the most-selected players in the game (a legal £100m squad of '
                  'the crowd’s favourites). The model then picked the best starting XI '
                  'among them — adjust any Role (XI / C / VC / Bench) and the totals update live. ')
     else:
-        title = f'Pasted squad — {len(entries)} matched'
+        title = f'Squad analysis — {len(entries)} matched'
         intro = ('The model has picked the best legal starting XI — adjust any '
                  'Role (XI / C / VC / Bench) and the totals update live. ')
     lines_canon = [f"{r['rawn']} {r['t']}" for r in entries]
+    if locked:
+        edit_ui = """<p style="margin-top:14px"><button type="button" onclick="dupTinker()"
+ style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 16px;font:600 14px system-ui;cursor:pointer">🔧 Duplicate to tinker</button>
+ <a href="/squads" style="margin-left:10px">← All squads</a></p>
+<script>
+const LINES=__LINES__, DNAME=__DNAME__, DROLES=__DROLES__;
+function dupTinker(){
+ let l=[];try{l=JSON.parse(localStorage.getItem('fpl_squads_v1'))||[]}catch(e){}
+ const id='t'+Date.now();
+ l.push({id:id,type:'tinker',name:DNAME+' (tinker)',lines:LINES,roles:DROLES,ts:Date.now()});
+ localStorage.setItem('fpl_squads_v1',JSON.stringify(l));
+ location='/paste?squad='+encodeURIComponent(LINES.join('\\n'))+'&name='+encodeURIComponent(DNAME+' (tinker)')+'&type=tinker&sid='+id+(DROLES?'&roles='+DROLES:'');
+}
+</script>"""
+        edit_ui = (edit_ui.replace('__LINES__', json.dumps(lines_canon, ensure_ascii=False))
+                          .replace('__DNAME__', json.dumps(name or 'Squad'))
+                          .replace('__DROLES__', json.dumps(roles)))
+        body = (f'<h1>{title}</h1><p class="sub">{intro}</p>'
+                + table + prob_html
+                + transfers_html(owned, 0.0, m, bank_known=False, editable=False)
+                + edit_ui)
+        return PAGE.format(title=name or 'Squad', body=body)
+
     edit_ui = """<div id="subpanel" hidden class="card">
 <b id="sublabel"></b>
 <input id="subq" placeholder="Search a replacement…" autocomplete="off"
@@ -552,11 +592,39 @@ def paste(squad: str = '', mode: str = '', src: str = ''):
  style="background:none;border:none;color:var(--ink2);cursor:pointer;text-decoration:underline;font:inherit">cancel</button></p>
 </div>
 <script>
-const LINES=__LINES__, PIDX2=__PIDX2__;
+const LINES=__LINES__, PIDX2=__PIDX2__, SID=__SID__, DNAME=__DNAME__;
 const nrm2=s=>s.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');
+function loadSquads(){try{return JSON.parse(localStorage.getItem('fpl_squads_v1'))||[]}catch(e){return[]}}
+function currentRoles(){
+ const arr=Array(LINES.length).fill('B');
+ document.querySelectorAll('select.role').forEach(s=>{
+  const i=+s.dataset.i;
+  arr[i]={XI:'X',C:'C',VC:'V',Bench:'B'}[s.value]||'B';
+ });
+ return arr.join('');
+}
+function persist(lines,roles){
+ if(!SID)return;
+ const l=loadSquads(), e=l.find(x=>x.id===SID);
+ if(e){e.lines=lines;e.roles=roles;e.ts=Date.now();localStorage.setItem('fpl_squads_v1',JSON.stringify(l));
+  if(localStorage.getItem('fpl_primary')===SID)localStorage.setItem('fpl_my_squad',JSON.stringify(lines));}
+}
 function saveGo(lines){
- localStorage.setItem('fpl_my_squad', JSON.stringify(lines));
- location='/paste?squad='+encodeURIComponent(lines.join('\\n'));
+ persist(lines,'');
+ if(!SID)localStorage.setItem('fpl_my_squad', JSON.stringify(lines));
+ location='/paste?squad='+encodeURIComponent(lines.join('\\n'))
+  +(SID?'&sid='+SID+'&type=tinker&name='+encodeURIComponent(DNAME):'');
+}
+document.addEventListener('change',e=>{
+ if(e.target.matches('select.role')&&SID)persist(LINES,currentRoles());
+});
+function saveAsNew(){
+ const n=prompt('Name this squad:', DNAME||'My squad');
+ if(!n)return;
+ const l=loadSquads(), id='t'+Date.now();
+ l.push({id:id,type:'tinker',name:n,lines:LINES,roles:currentRoles(),ts:Date.now()});
+ localStorage.setItem('fpl_squads_v1',JSON.stringify(l));
+ location='/paste?squad='+encodeURIComponent(LINES.join('\\n'))+'&name='+encodeURIComponent(n)+'&type=tinker&sid='+id+'&roles='+currentRoles();
 }
 function replaceLine(outN,outT,inN,inT){
  const lines=LINES.filter(l=>l!==outN+' '+outT);
@@ -600,14 +668,20 @@ document.getElementById('subq').addEventListener('input',()=>{
 });
 </script>"""
     edit_ui = (edit_ui.replace('__LINES__', json.dumps(lines_canon, ensure_ascii=False))
-                      .replace('__PIDX2__', json.dumps(player_index(m), ensure_ascii=False)))
+                      .replace('__PIDX2__', json.dumps(player_index(m), ensure_ascii=False))
+                      .replace('__SID__', json.dumps(sid))
+                      .replace('__DNAME__', json.dumps(name or 'My squad')))
+    save_btn = ('' if sid else
+                '<button type="button" onclick="saveAsNew()" style="background:var(--accent);color:#fff;'
+                'border:none;border-radius:8px;padding:8px 14px;font:600 13px system-ui;cursor:pointer;'
+                'margin-top:12px">💾 Save squad</button> ')
     body = (f'<h1>{title}</h1>'
             f'<p class="sub">{intro}'
-            f'Use ⇄ on any row to substitute a player. <a href="/paste">Edit / start over</a></p>'
-            + table + prob_html
+            f'Use ⇄ on any row to substitute a player. <a href="/squads">← All squads</a></p>'
+            + table + save_btn + prob_html
             + transfers_html(owned, 0.0, m, bank_known=False, editable=True)
             + edit_ui)
-    return PAGE.format(title='Pasted squad', body=body)
+    return PAGE.format(title=name or 'Squad analysis', body=body)
 
 
 REMEMBER_SNIPPET = """<p class="note"><button onclick="localStorage.setItem('fpl_team_id','{tid}');this.textContent='Remembered on this device ✓';this.disabled=true"
@@ -619,6 +693,310 @@ def home():
     if os.path.exists('dashboard.html'):
         return HTMLResponse(open('dashboard.html', encoding='utf-8').read())
     return PAGE.format(title='Fleamarket Analytics', body=FORM)
+
+
+NEWS_CACHE = 'news_cache.json'
+_news_lock = threading.Lock()
+
+
+def news_payload():
+    try:
+        return json.load(open(NEWS_CACHE, encoding='utf-8'))
+    except Exception:
+        return None
+
+
+def run_news_sweep():
+    """Background news sweep (~1 min). Skipped if the cache is fresh."""
+    if not _news_lock.acquire(blocking=False):
+        return
+    try:
+        import news as news_mod
+        src = open('model.py', encoding='utf-8').read().split('# --- SCORES-END ---')[0]
+        ns = {}
+        exec(compile(src, 'model.py', 'exec'), ns)
+        boot = json.load(open('bootstrap.json', encoding='utf-8'))
+        els = {e['id']: e for e in boot['elements']}
+        news_mod.sweep(ns['players'], els, ns['teams'], out=NEWS_CACHE)
+        print('news sweep ok')
+    except Exception as exc:  # noqa: BLE001
+        print('news sweep failed:', exc)
+    finally:
+        _news_lock.release()
+
+
+def news_is_stale(hours=4):
+    p = news_payload()
+    if not p:
+        return True
+    try:
+        age = datetime.now(timezone.utc) - datetime.fromisoformat(p['ts'])
+        return age.total_seconds() > hours * 3600
+    except Exception:
+        return True
+
+
+KIND_STYLE = {
+    'reduce': ('#d03b3b', 'CUT MINUTES?'),
+    'raise': ('#0ca30c', 'RAISE MINUTES?'),
+    'watch': ('#fab219', 'WATCH'),
+    'note': ('#898781', 'NOTE'),
+}
+TAG_LABEL = {'out': 'unavailable', 'doubt': 'fitness doubt', 'rotation': 'rotation',
+             'return': 'return', 'lineup': 'team news', 'role': 'set pieces',
+             'transfer': 'transfer'}
+
+
+@app.get('/news', response_class=HTMLResponse)
+def news_page(refresh: str = ''):
+    import html as _h
+    if refresh:
+        threading.Thread(target=run_news_sweep, daemon=True).start()
+        return PAGE.format(title='News', body=(
+            '<h1>Sweeping…</h1><p class="sub">Fetching the latest headlines for the '
+            'top-projected players — takes about a minute. '
+            '<a href="/news">Reload the news page</a> shortly.</p>'))
+    p = news_payload()
+    if not p:
+        if news_is_stale():
+            threading.Thread(target=run_news_sweep, daemon=True).start()
+        return PAGE.format(title='News', body=(
+            '<h1>Player news</h1><p class="sub">First sweep is running — reload in a '
+            'minute. <a href="/news">Reload</a></p>'))
+    if news_is_stale():
+        threading.Thread(target=run_news_sweep, daemon=True).start()
+
+    props = ''
+    order = {'reduce': 0, 'raise': 1, 'watch': 2, 'note': 3}
+    for pr in sorted(p['proposals'], key=lambda x: order.get(x['kind'], 9)):
+        colour, label = KIND_STYLE.get(pr['kind'], ('#898781', 'NOTE'))
+        who, club = pr['player'].split('|')
+        props += (
+            f"<div style='border-left:3px solid {colour};padding:8px 0 8px 12px;margin-bottom:12px'>"
+            f"<span style='color:{colour};font:700 10px system-ui;letter-spacing:.09em'>{label}</span> "
+            f"<b>{_h.escape(who)}</b> <span style='color:var(--ink2)'>{_h.escape(club)}</span>"
+            f"<div class='note' style='margin:2px 0 4px'>{_h.escape(pr['why'])}</div>"
+            f"<div style='font-size:13.5px'>“{_h.escape(pr['headline'])}”</div>"
+            f"<div class='note' style='margin-top:2px'>{_h.escape(pr['source'])} · {_h.escape(pr['when'])}"
+            + (f" · <a href='{_h.escape(pr['url'])}' target='_blank' rel='noopener'>read</a>" if pr.get('url') else '')
+            + "</div></div>")
+    if not props:
+        props = ('<p class="note">Nothing contradicts the model right now — no availability, '
+                 'rotation or exit signals in the window.</p>')
+
+    disc = ''
+    for r in p.get('discoveries', []):
+        who, club = r['player'].split('|')
+        chips = ''.join(
+            f"<span style='border:1px solid var(--grid);border-radius:99px;padding:1px 8px;"
+            f"font:600 10.5px system-ui;color:var(--ink2);margin-left:6px'>{TAG_LABEL.get(t, t)}</span>"
+            for t in r['tags'])
+        lis = ''.join(
+            f"<li style='margin-bottom:4px'>{_h.escape(i['title'])}"
+            f"<span class='note'> — {_h.escape(i['source'])}"
+            + (f" · <a href='{_h.escape(i['url'])}' target='_blank' rel='noopener'>read</a>" if i.get('url') else '')
+            + "</span></li>" for i in r['items'][:2])
+        disc += (
+            f"<div style='border-top:1px solid var(--grid);padding:11px 0'>"
+            f"<b>{_h.escape(who)}</b> <span style='color:var(--ink2);font-size:13px'>{_h.escape(club)} · "
+            f"£{r['price']:.1f} · {r['sel']:.1f}% owned · model {r['xpts']:.2f} xPts / {r['xmins']} mins</span>{chips}"
+            f"<div class='note' style='margin:3px 0 2px'>{_h.escape(r['why'])}</div>"
+            f"<ul style='padding-left:20px;margin:4px 0 0;font-size:13.5px'>{lis}</ul></div>")
+    if not disc:
+        disc = '<p class="note">Nothing off-radar surfaced in this window.</p>'
+
+    feed = ''
+    for key, items in p['players'].items():
+        who, club = key.split('|')
+        tags = sorted({t for i in items for t in i['tags']})
+        chips = ''.join(
+            f"<span style='border:1px solid var(--grid);border-radius:99px;padding:1px 8px;"
+            f"font:600 10.5px system-ui;color:var(--ink2);margin-left:6px'>{TAG_LABEL.get(t, t)}</span>"
+            for t in tags)
+        lis = ''.join(
+            f"<li style='margin-bottom:5px'>{_h.escape(i['title'])}"
+            f"<span class='note'> — {_h.escape(i['source'])} · {_h.escape(i['when'])}"
+            + (f" · <a href='{_h.escape(i['url'])}' target='_blank' rel='noopener'>read</a>" if i.get('url') else '')
+            + "</span></li>" for i in items[:4])
+        feed += (f"<div style='border-top:1px solid var(--grid);padding:12px 0'>"
+                 f"<b>{_h.escape(who)}</b> <span style='color:var(--ink2);font-size:13px'>{_h.escape(club)}</span>{chips}"
+                 f"<ul style='padding-left:20px;margin-top:6px;font-size:13.5px'>{lis}</ul></div>")
+    if not feed:
+        feed = '<p class="note">No player headlines in the window.</p>'
+
+    when = p['ts'].replace('T', ' ')[:16]
+    body = (
+        '<h1>Player news</h1>'
+        f'<p class="sub">Headlines from the last {p["days"]} days for the '
+        f'{p["swept"]} highest-projected players plus every curated minutes override, '
+        'classified and cross-checked against the model. Suggestions only — nothing here '
+        'edits the model.</p>'
+        f'<div class="card"><h2 style="font-size:16px">Flagged against the model</h2>'
+        f'<p class="note">Where the news disagrees with our expected-minutes assumption.</p>'
+        f'{props}</div>'
+        f'<div class="card"><h2 style="font-size:16px">Off the radar</h2>'
+        f'<p class="note">Found the other way round — reading all 20 clubs\' team-news feeds and '
+        f'matching any player, then keeping the ones our model does <i>not</i> rate. Ranked by how '
+        f'much they should change our view.</p>{disc}</div>'
+        f'<div class="card"><h2 style="font-size:16px">Everything we found</h2>{feed}</div>'
+        f'<p class="note">Swept {when} UTC · re-sweeps every few hours · '
+        f'<a href="/news?refresh=1">↻ sweep now</a></p>')
+    return PAGE.format(title='Player news', body=body)
+
+
+@app.get('/api/team/{team_id}')
+def api_team(team_id: int, request: Request):
+    """Latest LOCKED gameweek picks for any FPL team, as squad lines + roles.
+    Used by the Squads page to auto-sync ⭐/🕵 squads after each deadline."""
+    m = model_data()
+    now = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+    locked = [e['id'] for e in m['events'] if e['deadline_time'] <= now]
+    try:
+        entry = fpl_get(f'https://fantasy.premierleague.com/api/entry/{team_id}/')
+    except Exception:
+        return {'error': 'team not found'}
+    name = entry.get('name', f'Team {team_id}')
+    if not locked:
+        # localhost-only pre-deadline preview: serve the user's entered team
+        # from my_team_preview.json; real locked picks supersede it after GW1
+        if (request.client and request.client.host in ('127.0.0.1', '::1')
+                and os.path.exists('my_team_preview.json')):
+            pv = json.load(open('my_team_preview.json', encoding='utf-8'))
+            if pv.get('team_id') == team_id:
+                return {'name': name, 'gw': 1, 'simulated': True,
+                        'lines': pv['lines'], 'roles': pv['roles']}
+        return {'name': name, 'gw': None, 'error': 'no locked gameweek yet'}
+    gw = max(locked)
+    try:
+        picks = fpl_get(f'https://fantasy.premierleague.com/api/entry/{team_id}/event/{gw}/picks/')
+        assert 'picks' in picks
+    except Exception:
+        return {'name': name, 'gw': None, 'error': f'no picks for GW{gw}'}
+    lines, roles = [], ''
+    for pk in picks['picks']:
+        el = m['elements'].get(pk['element'])
+        if not el:
+            continue
+        lines.append(f"{el['web_name']} {m['teams'][el['team']]}")
+        roles += ('C' if pk['is_captain'] else 'V' if pk['is_vice_captain']
+                  else 'X' if pk['position'] <= 11 else 'B')
+    return {'name': name, 'gw': gw, 'lines': lines, 'roles': roles}
+
+
+SQUADS_PAGE = """<h1>Squads</h1>
+<p class="sub">⭐ your FPL team and 🕵 spied rivals sync themselves after every deadline;
+🔧 tinker squads are yours to edit. The ★ primary squad drives the dashboard markers.</p>
+<div class="card">
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+ <a href="/paste" style="text-decoration:none;background:var(--accent);color:#fff;border-radius:8px;padding:8px 14px;font:600 13px system-ui">+ Build new</a>
+ <button type="button" id="importmy" style="background:none;border:1px solid var(--accent);color:var(--accent);border-radius:8px;padding:8px 14px;font:600 13px system-ui;cursor:pointer">⭐ Import my team</button>
+ <button type="button" id="addspy" style="background:none;border:1px solid var(--grid);color:var(--ink2);border-radius:8px;padding:8px 14px;font:600 13px system-ui;cursor:pointer">🕵 Add spy</button>
+ <button type="button" id="refresh" style="background:none;border:1px solid var(--grid);color:var(--ink2);border-radius:8px;padding:8px 14px;font:600 13px system-ui;cursor:pointer">↻ Refresh teams</button>
+</div>
+<div id="cards" style="display:flex;flex-direction:column;gap:10px"><p class="note">Loading…</p></div>
+</div>
+<script>
+const ICON={my:'⭐',spy:'🕵',tinker:'🔧'};
+const load=()=>{try{return JSON.parse(localStorage.getItem('fpl_squads_v1'))||[]}catch(e){return[]}};
+const save=l=>localStorage.setItem('fpl_squads_v1',JSON.stringify(l));
+function migrate(){
+ let l=load();
+ if(!l.length){
+  const old=localStorage.getItem('fpl_my_squad');
+  if(old){try{l.push({id:'t'+Date.now(),type:'tinker',name:'My draft',lines:JSON.parse(old),ts:Date.now()})}catch(e){}}
+ }
+ const tid=localStorage.getItem('fpl_team_id');
+ if(tid&&!l.some(s=>s.type==='my'))l.unshift({id:'my',type:'my',name:'My FPL team',teamId:tid,lines:[],roles:'',lastGw:0});
+ save(l);return l;
+}
+function primary(){return localStorage.getItem('fpl_primary')}
+function setPrimary(s){
+ localStorage.setItem('fpl_primary',s.id);
+ if(s.lines&&s.lines.length)localStorage.setItem('fpl_my_squad',JSON.stringify(s.lines));
+ render();
+}
+function detailUrl(s){
+ if(!s.lines||!s.lines.length)return null;
+ return '/paste?squad='+encodeURIComponent(s.lines.join('\\n'))+'&name='+encodeURIComponent(s.name)
+  +'&type='+s.type+'&sid='+s.id+(s.roles?'&roles='+s.roles:'')+(s.lastGw?'&gw='+s.lastGw:'');
+}
+function render(){
+ const l=load(), box=document.getElementById('cards');
+ if(!l.length){box.innerHTML='<p class="note">No squads yet — build one, import your FPL team, or add a spy.</p>';return}
+ const ord={my:0,spy:1,tinker:2};
+ l.sort((a,b)=>ord[a.type]-ord[b.type]||(b.ts||0)-(a.ts||0));
+ box.innerHTML='';
+ l.forEach(s=>{
+  const url=detailUrl(s);
+  const c=document.createElement('div');
+  c.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--grid);border-radius:10px;padding:12px 14px';
+  const meta=s.type==='tinker'?'tinker squad':(s.sim?'preview of your entered team (pre-deadline)':(s.lastGw?'synced GW'+s.lastGw+(s.updated?' · <b style=\\'color:var(--accent)\\'>updated</b>':''):(s.lines&&s.lines.length?'synced':'awaiting first sync — reload or press ↻ Refresh teams; fills after the next deadline')));
+  c.innerHTML=`<div><div style="font:700 15px system-ui">${ICON[s.type]} ${s.name} ${primary()===s.id?'<span title="primary — drives dashboard markers" style="color:var(--accent)">★</span>':''}</div>
+   <div class="note" style="margin:2px 0 0">${meta}${s.lines&&s.lines.length?' · '+s.lines.length+' players':''}</div></div>
+   <div style="display:flex;gap:6px;flex-wrap:wrap"></div>`;
+  const btns=c.lastElementChild;
+  const mk=(txt,fn,title)=>{const b=document.createElement('button');b.textContent=txt;b.title=title||'';
+   b.style.cssText='background:none;border:1px solid var(--grid);color:var(--ink2);border-radius:7px;padding:5px 10px;font:600 12px system-ui;cursor:pointer';
+   b.onclick=fn;btns.appendChild(b)};
+  if(url)mk('Open',()=>location=url);
+  if(primary()!==s.id&&s.lines&&s.lines.length)mk('★',()=>setPrimary(s),'set as primary');
+  mk('Duplicate',()=>{const l2=load();const cp={id:'t'+Date.now(),type:'tinker',name:s.name+' (tinker)',lines:[...(s.lines||[])],roles:s.roles||'',ts:Date.now()};l2.push(cp);save(l2);render()},'copy to an editable tinker squad');
+  if(s.type==='tinker'){
+   mk('Rename',()=>{const n=prompt('Squad name:',s.name);if(n){const l2=load();l2.find(x=>x.id===s.id).name=n;save(l2);render()}});
+  }
+  if(s.type!=='my')mk('Delete',()=>{if(confirm('Delete "'+s.name+'"?')){const l2=load();save(l2.filter(x=>x.id!==s.id));render()}});
+  box.appendChild(c);
+ });
+}
+async function sync(force){
+ const l=load();let any=false;
+ for(const s of l){
+  if(s.type!=='my'&&s.type!=='spy')continue;
+  const tid=(s.teamId||'').toString().replace(/\\D/g,'');  // digits only — self-heals bad input
+  if(!tid)continue;
+  s.teamId=tid;
+  try{
+   const r=await fetch('/api/team/'+tid).then(x=>x.json());
+   if(r.name)s.name=r.name;
+   if(r.gw&&(force||r.gw>(s.lastGw||0))){
+    s.lines=r.lines;s.roles=r.roles;s.updated=true;any=true;
+    s.sim=!!r.simulated;
+    s.lastGw=r.simulated?0:r.gw;  // simulated preview: real GW1 will supersede
+   } else if(!r.simulated) s.updated=false;
+  }catch(e){}
+ }
+ save(l);
+ const p=l.find(x=>x.id===primary());
+ if(p&&p.lines&&p.lines.length)localStorage.setItem('fpl_my_squad',JSON.stringify(p.lines));
+ render();
+}
+document.getElementById('refresh').onclick=()=>sync(true);
+document.getElementById('importmy').onclick=()=>{
+ let tid=prompt('Your FPL team ID (from the Points page URL):',localStorage.getItem('fpl_team_id')||'');
+ if(!tid)return;
+ tid=tid.replace(/\\D/g,'');
+ if(!tid){alert('That doesn\\u2019t look like a team ID — digits only.');return}
+ localStorage.setItem('fpl_team_id',tid);
+ const l=load();let mine=l.find(s=>s.type==='my');
+ if(mine)mine.teamId=tid;else l.unshift({id:'my',type:'my',name:'My FPL team',teamId:tid,lines:[],roles:'',lastGw:0});
+ if(!primary())localStorage.setItem('fpl_primary','my');
+ save(l);sync(true);
+};
+document.getElementById('addspy').onclick=()=>{
+ let tid=prompt('Rival FPL team ID to track:');
+ if(!tid)return;
+ tid=tid.replace(/\\D/g,'');
+ if(!tid){alert('That doesn\\u2019t look like a team ID — digits only.');return}
+ const l=load();l.push({id:'s'+Date.now(),type:'spy',name:'Team '+tid,teamId:tid,lines:[],roles:'',lastGw:0});
+ save(l);sync(true);
+};
+migrate();render();sync(false);
+</script>"""
+
+
+@app.get('/squads', response_class=HTMLResponse)
+def squads():
+    return PAGE.format(title='Squads', body=SQUADS_PAGE)
 
 
 @app.get('/me', response_class=HTMLResponse)
