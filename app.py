@@ -22,6 +22,14 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 
 app = FastAPI(title='Fleamarket Analytics')
+
+
+def render(**kw):
+    """Wrap a page in the shared shell. The watermark is the first word of the
+    title, so each page carries its own ghosted headline."""
+    title = kw.get('title', 'Fleamarket')
+    wm = kw.pop('wm', None) or re.sub(r'[^A-Za-z ]', '', title).strip().split(' ')[0] or 'FPL'
+    return PAGE.format(style=theme.style_block(), wm=wm, **kw)
 UA = {'User-Agent': 'Mozilla/5.0 (fleamarket-analytics; personal FPL tool)'}
 _cache = {'ts': 0.0, 'players': None, 'teams': None, 'events': None}
 
@@ -232,7 +240,7 @@ def squad_table_html(entries, gwl, interactive=False):
 PAGE = """<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
 {style}
-<div class="wrap">
+<div class="wrap wmzone" style="--wm:'{wm}'">
 <div class="brand"><span class="mark">Flea<em>market</em></span><span class="season">2026/27</span></div>
 <nav class="tabs">
  <a class="tab" href="/#overview">Overview</a>
@@ -514,10 +522,10 @@ def paste(squad: str = '', mode: str = '', src: str = '', name: str = '',
           type: str = '', sid: str = '', roles: str = '', gw: str = ''):
     if not squad.strip():
         if mode == 'text':
-            return PAGE.format(style=theme.style_block(), title='Paste your squad', body=PASTE_FORM)
+            return render(title='Paste your squad', body=PASTE_FORM)
         m = model_data()
         pos_name = {1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD'}
-        return PAGE.format(style=theme.style_block(), title='Build your squad',
+        return render(title='Build your squad',
                            body=PICKER.replace('__PIDX__', json.dumps(player_index(m), ensure_ascii=False)))
     m = model_data()
     pos_name = {1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD'}
@@ -612,7 +620,7 @@ function dupTinker(){
                 + table + squad_plan_html(entries, m, stored=stored) + prob_html
                 + transfers_html(owned, 0.0, m, bank_known=False, editable=False)
                 + edit_ui)
-        return PAGE.format(style=theme.style_block(), title=name or 'Squad', body=body)
+        return render(title=name or 'Squad', body=body)
 
     edit_ui = """<div id="subpanel" hidden class="card">
 <b id="sublabel"></b>
@@ -712,7 +720,7 @@ document.getElementById('subq').addEventListener('input',()=>{
             + table + save_btn + squad_plan_html(entries, m) + prob_html
             + transfers_html(owned, 0.0, m, bank_known=False, editable=True)
             + edit_ui)
-    return PAGE.format(style=theme.style_block(), title=name or 'Squad analysis', body=body)
+    return render(title=name or 'Squad analysis', body=body)
 
 
 REMEMBER_SNIPPET = """<p class="note"><button onclick="localStorage.setItem('fpl_team_id','{tid}');this.textContent='Remembered on this device ✓';this.disabled=true"
@@ -723,7 +731,7 @@ REMEMBER_SNIPPET = """<p class="note"><button onclick="localStorage.setItem('fpl
 def home():
     if os.path.exists('dashboard.html'):
         return HTMLResponse(open('dashboard.html', encoding='utf-8').read())
-    return PAGE.format(style=theme.style_block(), title='Fleamarket Analytics', body=FORM)
+    return render(title='Fleamarket Analytics', body=FORM)
 
 
 _plan_cache = {}
@@ -949,7 +957,7 @@ def news_page(refresh: str = ''):
     import html as _h
     if refresh:
         threading.Thread(target=run_news_sweep, daemon=True).start()
-        return PAGE.format(style=theme.style_block(), title='News', body=(
+        return render(title='News', body=(
             '<h1>Sweeping…</h1><p class="sub">Fetching the latest headlines for the '
             'top-projected players — takes about a minute. '
             '<a href="/news">Reload the news page</a> shortly.</p>'))
@@ -957,7 +965,7 @@ def news_page(refresh: str = ''):
     if not p:
         if news_is_stale():
             threading.Thread(target=run_news_sweep, daemon=True).start()
-        return PAGE.format(style=theme.style_block(), title='News', body=(
+        return render(title='News', body=(
             '<h1>Player news</h1><p class="sub">First sweep is running — reload in a '
             'minute. <a href="/news">Reload</a></p>'))
     if news_is_stale():
@@ -1088,7 +1096,7 @@ def news_page(refresh: str = ''):
         f'<div class="card"><h2 style="font-size:16px">Everything we found</h2>{feed}</div>'
         f'<p class="note">Swept {when} UTC · re-sweeps every few hours · '
         f'<a href="/news?refresh=1">↻ sweep now</a>{hist_note}</p>')
-    return PAGE.format(style=theme.style_block(), title='Player news', body=body)
+    return render(title='Player news', body=body)
 
 
 @app.get('/api/team/{team_id}')
@@ -1250,7 +1258,7 @@ migrate();render();sync(false);
 
 @app.get('/squads', response_class=HTMLResponse)
 def squads():
-    return PAGE.format(style=theme.style_block(), title='Squads', body=SQUADS_PAGE)
+    return render(title='Squads', body=SQUADS_PAGE)
 
 
 @app.get('/me', response_class=HTMLResponse)
@@ -1259,7 +1267,7 @@ def me(request: Request):
     if request.client and request.client.host in ('127.0.0.1', '::1') \
             and os.path.exists('my_dashboard.html'):
         return HTMLResponse(open('my_dashboard.html', encoding='utf-8').read())
-    return PAGE.format(style=theme.style_block(), title='Not available',
+    return render(title='Not available',
                        body='<h1>Not available here</h1><p class="sub">The personal '
                             'dashboard is only served on localhost.</p>')
 
@@ -1267,7 +1275,7 @@ def me(request: Request):
 @app.get('/team', response_class=HTMLResponse)
 @app.get('/team/', response_class=HTMLResponse)
 def team_form():
-    return PAGE.format(style=theme.style_block(), title='Analyze a team', body=FORM)
+    return render(title='Analyze a team', body=FORM)
 
 
 @app.get('/team/{team_id}', response_class=HTMLResponse)
@@ -1276,7 +1284,7 @@ def team(team_id: int):
     try:
         entry = fpl_get(f'https://fantasy.premierleague.com/api/entry/{team_id}/')
     except Exception:
-        return PAGE.format(style=theme.style_block(), title='Not found', body='<h1>Team not found</h1>'
+        return render(title='Not found', body='<h1>Team not found</h1>'
                            '<p class="sub">Check the ID and try again.</p>' + FORM)
     name = entry.get('name', '?')
     manager = f"{entry.get('player_first_name', '')} {entry.get('player_last_name', '')}".strip()
@@ -1295,7 +1303,7 @@ def team(team_id: int):
                 'FPL only publishes each squad once it locks. Check back after the deadline, '
                 'or <a href="/paste">build your squad manually</a> to analyze it now.</p></div>'
                 + REMEMBER_SNIPPET.format(tid=team_id))
-        return PAGE.format(style=theme.style_block(), title=name, body=body)
+        return render(title=name, body=body)
 
     entries, owned = [], []
     for pk in picks['picks']:
@@ -1318,4 +1326,4 @@ def team(team_id: int):
             f'<b>{xi_total:.1f}</b> XI points over the next 4 GWs (captain doubled)</p>'
             + table + sugg
             + REMEMBER_SNIPPET.format(tid=team_id))
-    return PAGE.format(style=theme.style_block(), title=name, body=body)
+    return render(title=name, body=body)

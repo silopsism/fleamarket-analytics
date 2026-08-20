@@ -99,8 +99,8 @@ clean sheets, defensive contributions), season expectations, and fixtures. __SUB
  <div class="tile"><div class="tl">Top value</div><div class="tv">__TV_NAME__</div><div class="ts">__TV_SUB__</div></div>
  <div class="tile"><div class="tl">Top differential</div><div class="tv">__TD_NAME__</div><div class="ts">__TD_SUB__</div></div>
  <div class="tile"><div class="tl">Model top scorer</div><div class="tv">__TS_NAME__</div><div class="ts">__TS_SUB__</div></div>
- <div class="tile" id="tile-squad" hidden><div class="tl">Your XI, next 4 GWs</div><div class="tv" id="tile-squad-v">–</div><div class="ts">model projection</div></div>
  <div class="tile"><div class="tl">Model optimum, 4 GWs</div><div class="tv">__OPTTOTAL__</div><div class="ts">best legal plan · <a href="/squads">open in Squads</a></div></div>
+ <div class="tile" id="tile-squad" hidden><div class="tl">Your XI, next 4 GWs</div><div class="tv" id="tile-squad-v">–</div><div class="ts">model projection</div></div>
 </div>
 
 <section class="card" id="mysec" hidden>

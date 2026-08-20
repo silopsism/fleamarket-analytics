@@ -37,6 +37,7 @@ TOKENS = """
  --ink:#0e1411;--ink2:#4a544e;--muted:#7d867f;
  --grid:#dfe4e0;--axis:#b9c1bb;--ring:rgba(14,20,17,.12);
  --accent:#5b2bd9;--accent-soft:#efe9ff;--lime:#a8d600;--lime-ink:#1d2a00;
+ --glow:rgba(91,43,217,.10);
  --up:#12833c;--down:#c81e4a;--warn:#b45309;
  --def:#2a78d6;--mid:#eb6834;--fwd:#1baf7a;--gkp:#7d867f;
  --h2:#cde2fb;--h3:#86b6ef;--h4:#3987e5;--h5:#104281}
@@ -45,6 +46,7 @@ TOKENS = """
  --ink:#f1f5f1;--ink2:#b6c1b8;--muted:#7f8a81;
  --grid:#243028;--axis:#334237;--ring:rgba(241,245,241,.12);
  --accent:#a98bff;--accent-soft:#231a3d;--lime:#c8f53c;--lime-ink:#0b100d;
+ --glow:rgba(169,139,255,.16);
  --up:#3ecf6a;--down:#ff5c7a;--warn:#fbbf24;
  --def:#3987e5;--mid:#ff7a45;--fwd:#25c78b;--gkp:#7f8a81}}
 :root[data-theme="dark"]{color-scheme:dark;
@@ -52,6 +54,7 @@ TOKENS = """
  --ink:#f1f5f1;--ink2:#b6c1b8;--muted:#7f8a81;
  --grid:#243028;--axis:#334237;--ring:rgba(241,245,241,.12);
  --accent:#a98bff;--accent-soft:#231a3d;--lime:#c8f53c;--lime-ink:#0b100d;
+ --glow:rgba(169,139,255,.16);
  --up:#3ecf6a;--down:#ff5c7a;--warn:#fbbf24;
  --def:#3987e5;--mid:#ff7a45;--fwd:#25c78b;--gkp:#7f8a81}
 """
@@ -60,27 +63,35 @@ BASE = """
 *{box-sizing:border-box;margin:0}
 body{background:var(--bg);color:var(--ink);
  font:15px/1.5 Archivo,system-ui,-apple-system,"Segoe UI",sans-serif;
- font-variant-numeric:tabular-nums;padding:0 20px 70px}
+ font-variant-numeric:tabular-nums;padding:0 20px 70px;
+ background-image:repeating-linear-gradient(115deg,transparent 0 22px,var(--sunk) 22px 23px);
+ background-attachment:fixed}
+body:before{content:"";position:fixed;inset:-10% 0 auto;height:340px;pointer-events:none;
+ z-index:0;background:radial-gradient(60% 100% at 50% 0,var(--glow),transparent 70%)}
+.wrap{position:relative;z-index:1}
 .wrap{max-width:1000px;margin:0 auto}
 
 /* masthead: pitch stripes behind a poster-weight wordmark */
-.brand{display:flex;align-items:baseline;gap:10px;padding:15px 14px 12px;
- margin:0 -14px;position:relative}
-.brand:before{content:"";position:absolute;inset:0;z-index:0;border-radius:6px;
- background:repeating-linear-gradient(90deg,transparent 0 44px,var(--sunk) 44px 88px);
- opacity:.7}
+.brand{display:flex;align-items:center;gap:12px;padding:18px 18px 16px;margin:10px -6px 0;
+ position:relative;overflow:hidden;border-radius:14px;background:var(--accent);
+ box-shadow:0 6px 22px -12px var(--accent)}
+.brand:before{content:"FPL";position:absolute;right:14px;top:-26px;z-index:0;
+ font:400 108px/1 Anton,Impact,sans-serif;color:#fff;opacity:.13;letter-spacing:-.02em}
+.brand:after{content:"";position:absolute;inset:0;z-index:0;
+ background:repeating-linear-gradient(90deg,transparent 0 40px,rgba(255,255,255,.06) 40px 80px)}
 .brand>*{position:relative;z-index:1}
-.brand .mark{font:400 27px/1 Anton,Impact,sans-serif;letter-spacing:.015em;text-transform:uppercase}
-.brand .mark em{font-style:normal;color:var(--accent)}
+.brand .mark{font:400 34px/1 Anton,Impact,sans-serif;letter-spacing:.015em;
+ text-transform:uppercase;color:#fff}
+.brand .mark em{font-style:normal;color:var(--lime)}
 .brand .season{font:700 10px/1 Archivo;letter-spacing:.17em;text-transform:uppercase;
- color:var(--muted);padding:4px 7px;border:1px solid var(--grid);border-radius:4px;
- background:var(--surface)}
+ color:#fff;padding:5px 8px;border:1px solid rgba(255,255,255,.45);border-radius:5px}
 
 h1{font:400 clamp(30px,5vw,44px)/1.02 Anton,Impact,sans-serif;letter-spacing:.005em;
  text-transform:uppercase;text-wrap:balance;margin:6px 0 0}
-h2{font:400 19px/1.15 Anton,Impact,sans-serif;letter-spacing:.02em;text-transform:uppercase;
- display:flex;align-items:center;gap:9px;margin-bottom:3px}
-h2:before{content:"";width:5px;height:16px;background:var(--accent);border-radius:1px;flex:none}
+h2{font:400 22px/1.1 Anton,Impact,sans-serif;letter-spacing:.02em;text-transform:uppercase;
+ display:flex;align-items:center;gap:11px;margin-bottom:4px}
+h2:before{content:"";width:14px;height:14px;background:var(--accent);flex:none;
+ border-radius:3px;box-shadow:3px 3px 0 0 var(--lime)}
 h3{font:700 12px/1.2 Archivo;letter-spacing:.1em;text-transform:uppercase;
  color:var(--ink2);margin-bottom:9px}
 .sub{color:var(--ink2);max-width:64ch;margin-top:8px}
@@ -89,28 +100,37 @@ h3{font:700 12px/1.2 Archivo;letter-spacing:.1em;text-transform:uppercase;
 .eyebrow{font:700 11px/1 Archivo;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
 a{color:var(--accent)}
 
-.card{background:var(--surface);border:1px solid var(--ring);border-radius:12px;
- padding:20px;margin-top:20px}
+.card{background:var(--surface);border:1px solid var(--ring);border-radius:14px;
+ padding:22px;margin-top:22px;position:relative;overflow:hidden}
+.card:before{content:"";position:absolute;left:0;right:0;top:0;height:4px;
+ background:linear-gradient(90deg,var(--accent) 0 38%,var(--lime) 38% 52%,transparent 52%)}
 
 /* tabs: sticky, lime marker on the live one */
 .tabs{display:flex;overflow-x:auto;border-bottom:2px solid var(--grid);
  margin:0 0 4px;scrollbar-width:none;position:sticky;top:0;background:var(--bg);z-index:6}
 .tabs::-webkit-scrollbar{display:none}
-.tab{padding:11px 14px;font:700 11.5px/1 Archivo;letter-spacing:.11em;text-transform:uppercase;
- color:var(--muted);text-decoration:none;border-bottom:3px solid transparent;
- white-space:nowrap;margin-bottom:-2px;transition:color .12s}
-.tab:hover{color:var(--ink)}
-.tab[aria-current]{color:var(--ink);border-bottom-color:var(--lime)}
+.tab{padding:11px 15px;font:700 12px/1 Archivo;letter-spacing:.11em;text-transform:uppercase;
+ color:var(--muted);text-decoration:none;white-space:nowrap;margin-bottom:-2px;
+ border-bottom:3px solid transparent;border-radius:7px 7px 0 0;transition:all .12s}
+.tab:hover{color:var(--ink);background:var(--sunk)}
+.tab[aria-current]{color:#fff;background:var(--accent);border-bottom-color:var(--lime)}
 .tabpane{display:none}
 .tabpane.active{display:block}
 
 /* scoreboard tiles */
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin-top:16px}
 .tile{background:var(--surface);border:1px solid var(--ring);border-radius:12px;
- padding:13px 15px 14px 18px;position:relative;overflow:hidden}
-.tile:after{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent)}
+ padding:14px 15px 15px 20px;position:relative;overflow:hidden;--tint:var(--accent)}
+.tile:after{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--tint)}
+.tile:before{content:"";position:absolute;right:-30px;bottom:-46px;width:112px;height:112px;
+ border-radius:50%;background:var(--tint);opacity:.09}
+.tile:nth-child(2){--tint:var(--def)}
+.tile:nth-child(3){--tint:var(--mid)}
+.tile:nth-child(4){--tint:var(--fwd)}
+.tile:nth-child(5){--tint:var(--warn)}
+.tile:nth-child(6){--tint:var(--accent)}
 .tile .tl{font:700 10px/1 Archivo;letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
-.tile .tv{font:400 27px/1.05 Anton,Impact,sans-serif;letter-spacing:.01em;margin-top:7px;
+.tile .tv{font:400 31px/1.05 Anton,Impact,sans-serif;letter-spacing:.01em;margin-top:8px;
  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tile .ts{font-size:12px;color:var(--ink2);margin-top:3px}
 
@@ -173,6 +193,18 @@ th.gwsel:hover{color:var(--accent)}
  margin-top:14px;align-items:start}
 .stack{display:flex;flex-direction:column;gap:26px}
 @media(max-width:700px){.cols{grid-template-columns:1fr}}
+
+/* giant ghost type behind a section, set per pane via --wm */
+.tabpane,.wmzone{position:relative}
+.tabpane:before,.wmzone:before{content:var(--wm,"");position:absolute;right:0;top:-6px;
+ font:400 clamp(64px,12vw,132px)/.8 Anton,Impact,sans-serif;letter-spacing:-.02em;
+ color:var(--ink);opacity:.075;pointer-events:none;z-index:0;white-space:nowrap;
+ text-transform:uppercase}
+.tabpane[data-tab="overview"]{--wm:"Overview"}
+.tabpane[data-tab="value"]{--wm:"Value"}
+.tabpane[data-tab="planner"]{--wm:"Planner"}
+.tabpane[data-tab="market"]{--wm:"Market"}
+.tabpane[data-tab="fixtures"]{--wm:"Fixtures"}
 
 button,input,textarea,select{font-family:Archivo,system-ui,sans-serif}
 footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--grid);
