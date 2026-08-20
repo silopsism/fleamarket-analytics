@@ -28,7 +28,14 @@ def render(**kw):
     """Wrap a page in the shared shell. The watermark is the first word of the
     title, so each page carries its own ghosted headline."""
     title = kw.get('title', 'Fleamarket')
-    wm = kw.pop('wm', None) or re.sub(r'[^A-Za-z ]', '', title).strip().split(' ')[0] or 'FPL'
+    low = title.lower()
+    if 'news' in low:
+        wm = 'news'
+    elif any(w in low for w in ('squad', 'team', 'optimum', 'tinker', 'build', 'paste')):
+        wm = 'squads'
+    else:
+        wm = kw.pop('wm', None) or 'overview'
+    kw.pop('wm', None)
     return PAGE.format(style=theme.style_block(), wm=wm, **kw)
 UA = {'User-Agent': 'Mozilla/5.0 (fleamarket-analytics; personal FPL tool)'}
 _cache = {'ts': 0.0, 'players': None, 'teams': None, 'events': None}
@@ -240,7 +247,7 @@ def squad_table_html(entries, gwl, interactive=False):
 PAGE = """<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
 {style}
-<div class="wrap wmzone" style="--wm:'{wm}'">
+<div class="wrap wmzone sec-{wm}">
 <div class="brand"><span class="mark">Flea<em>market</em></span><span class="season">2026/27</span></div>
 <nav class="tabs">
  <a class="tab" href="/#overview">Overview</a>

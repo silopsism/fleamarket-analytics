@@ -75,8 +75,10 @@ body:before{content:"";position:fixed;inset:-10% 0 auto;height:340px;pointer-eve
 .brand{display:flex;align-items:center;gap:12px;padding:18px 18px 16px;margin:10px -6px 0;
  position:relative;overflow:hidden;border-radius:14px;background:var(--accent);
  box-shadow:0 6px 22px -12px var(--accent)}
-.brand:before{content:"FPL";position:absolute;right:14px;top:-26px;z-index:0;
- font:400 108px/1 Anton,Impact,sans-serif;color:#fff;opacity:.13;letter-spacing:-.02em}
+.brand:before{content:"";position:absolute;right:-18px;top:-34px;width:150px;height:150px;
+ z-index:0;background:#fff;opacity:.16;
+ -webkit-mask:var(--emb-ball) no-repeat center/contain;
+ mask:var(--emb-ball) no-repeat center/contain}
 .brand:after{content:"";position:absolute;inset:0;z-index:0;
  background:repeating-linear-gradient(90deg,transparent 0 40px,rgba(255,255,255,.06) 40px 80px)}
 .brand>*{position:relative;z-index:1}
@@ -194,17 +196,12 @@ th.gwsel:hover{color:var(--accent)}
 .stack{display:flex;flex-direction:column;gap:26px}
 @media(max-width:700px){.cols{grid-template-columns:1fr}}
 
-/* giant ghost type behind a section, set per pane via --wm */
+/* section emblem, watermarked into the top-right of each card */
+.card:after{content:"";position:absolute;right:-14px;top:-14px;width:132px;height:132px;
+ background:var(--ink);opacity:.07;pointer-events:none;z-index:0;
+ -webkit-mask:var(--emb) no-repeat center/contain;mask:var(--emb) no-repeat center/contain}
+.card>*{position:relative;z-index:1}
 .tabpane,.wmzone{position:relative}
-.tabpane:before,.wmzone:before{content:var(--wm,"");position:absolute;right:0;top:-6px;
- font:400 clamp(64px,12vw,132px)/.8 Anton,Impact,sans-serif;letter-spacing:-.02em;
- color:var(--ink);opacity:.075;pointer-events:none;z-index:0;white-space:nowrap;
- text-transform:uppercase}
-.tabpane[data-tab="overview"]{--wm:"Overview"}
-.tabpane[data-tab="value"]{--wm:"Value"}
-.tabpane[data-tab="planner"]{--wm:"Planner"}
-.tabpane[data-tab="market"]{--wm:"Market"}
-.tabpane[data-tab="fixtures"]{--wm:"Fixtures"}
 
 button,input,textarea,select{font-family:Archivo,system-ui,sans-serif}
 footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--grid);
@@ -212,6 +209,47 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--grid);
 """
 
 
+def _emb(body, sw='1.3'):
+    """A line-art SVG as a CSS mask URL. Masks take the theme's ink colour, so
+    emblems follow light/dark automatically."""
+    import urllib.parse
+    svg = ("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' "
+           "stroke='black' stroke-width='%s' stroke-linecap='round' "
+           "stroke-linejoin='round'>%s</svg>" % (sw, body))
+    return 'url("data:image/svg+xml,' + urllib.parse.quote(svg) + '")'
+
+
+EMBLEMS = {
+    'overview': _emb("<circle cx='12' cy='12' r='9'/>"
+                     "<path d='M12 6.4l3.4 2.5-1.3 4h-4.2l-1.3-4z'/>"
+                     "<path d='M12 3v3.4M4.4 9.3l2.9 1.1M19.6 9.3l-2.9 1.1"
+                     "M7.2 19.7l1.7-3.2M16.8 19.7l-1.7-3.2'/>"),
+    'value': _emb("<path d='M3 20.5h18'/><path d='M5 20.5V13M10.3 20.5V8.5"
+                  "M15.6 20.5V15.5M20.4 20.5V4.5'/>", sw='1.9'),
+    'planner': _emb("<rect x='3' y='5' width='18' height='16' rx='2'/>"
+                    "<path d='M3 10.2h18M8 3v4M16 3v4'/>"
+                    "<path d='M7.5 14h3M13.5 14h3M7.5 17.6h3M13.5 17.6h3'/>"),
+    'market': _emb("<path d='M3.5 18.5l5.2-6 3.8 2.8 7-8.3'/>"
+                   "<path d='M14.4 7h5.1v5'/><path d='M3.5 21h17'/>", sw='1.7'),
+    'fixtures': _emb("<rect x='2.5' y='4.5' width='19' height='15' rx='1.5'/>"
+                     "<path d='M12 4.5v15'/><circle cx='12' cy='12' r='2.8'/>"
+                     "<path d='M2.5 9h3.2v6H2.5M21.5 9h-3.2v6h3.2'/>"),
+    'news': _emb("<path d='M3.8 10.2v3.6l10 4V6.2l-10 4z'/>"
+                 "<path d='M13.8 8.6c2.6.8 4.2 2 4.2 3.4s-1.6 2.6-4.2 3.4'/>"
+                 "<path d='M6.2 14.6V19h3v-3.5'/>"),
+    'squads': _emb("<path d='M9 3.4 4.4 6l1.6 4.2 2-.8V20.6h8V9.4l2 .8L19.6 6 15 3.4"
+                   "c-.9 1.3-1.8 1.9-3 1.9s-2.1-.6-3-1.9z'/>"),
+}
+
+
+def emblem_css():
+    out = [':root{--emb:%s;--emb-ball:%s}'
+           % (EMBLEMS['overview'], EMBLEMS['overview'])]
+    for key, url in EMBLEMS.items():
+        out.append('.tabpane[data-tab="%s"],.sec-%s{--emb:%s}' % (key, key, url))
+    return ''.join(out)
+
+
 def style_block():
     """The full <style> element shared by every page."""
-    return '<style>' + fonts() + TOKENS + BASE + '</style>'
+    return '<style>' + fonts() + TOKENS + BASE + emblem_css() + '</style>'
