@@ -7,6 +7,8 @@ static host (home server, python -m http.server, nginx).
 import json
 from collections import defaultdict
 
+import theme
+
 src = open('model.py', encoding='utf-8').read().split('# --- SCORES-END ---')[0]
 ns = {}
 exec(compile(src, 'model.py', 'exec'), ns)
@@ -76,87 +78,9 @@ for name, club in V4_XI + V4_BENCH:
 html = """<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fleamarket Analytics</title>
-<style>
-:root{color-scheme:light;
- --bg:#f9f9f7;--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;
- --grid:#e1e0d9;--axis:#c3c2b7;--ring:rgba(11,11,11,.10);--accent:#4a3aa7;
- --def:#2a78d6;--mid:#eb6834;--fwd:#1baf7a;--gkp:#898781;
- --h2:#cde2fb;--h3:#86b6ef;--h4:#3987e5;--h5:#104281;--hd2:#0b0b0b;--hd4:#fff}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
- --bg:#0d0d0d;--surface:#1a1a19;--ink:#fff;--ink2:#c3c2b7;--muted:#898781;
- --grid:#2c2c2a;--axis:#383835;--ring:rgba(255,255,255,.10);--accent:#9085e9;
- --def:#3987e5;--mid:#d95926;--fwd:#199e70;--gkp:#898781}}
-:root[data-theme="dark"]{color-scheme:dark;
- --bg:#0d0d0d;--surface:#1a1a19;--ink:#fff;--ink2:#c3c2b7;--muted:#898781;
- --grid:#2c2c2a;--axis:#383835;--ring:rgba(255,255,255,.10);--accent:#9085e9;
- --def:#3987e5;--mid:#d95926;--fwd:#199e70;--gkp:#898781}
-*{box-sizing:border-box;margin:0}
-body{background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;padding:0 20px 60px}
-.wrap{max-width:980px;margin:0 auto}
-header{margin-bottom:28px}
-.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
-h1{font-size:clamp(26px,4.5vw,38px);letter-spacing:-.02em;text-wrap:balance}
-.sub{color:var(--ink2);max-width:62ch;margin-top:6px}
-.card{background:var(--surface);border:1px solid var(--ring);border-radius:10px;padding:20px;margin-top:22px}
-h2{font-size:16px;margin-bottom:2px}
-.note{font-size:12.5px;color:var(--muted);margin-bottom:14px}
-.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-.chip{border:1px solid var(--ring);background:none;color:var(--ink2);font:600 12px system-ui;padding:5px 11px;border-radius:99px;cursor:pointer;display:flex;align-items:center;gap:6px}
-.chip[aria-pressed="true"]{background:color-mix(in srgb, var(--accent) 18%, var(--surface));border-color:var(--accent);color:var(--ink);font-weight:700}
-.chip .sw{width:10px;height:10px;border-radius:3px}
-.chip[data-p="GKP"] .sw{border-radius:1px}
-#scat{width:100%;height:auto;display:block}
-.tip{position:fixed;pointer-events:none;background:var(--surface);border:1px solid var(--axis);border-radius:8px;padding:8px 11px;font-size:12.5px;box-shadow:0 4px 14px rgba(0,0,0,.18);opacity:0;transition:opacity .12s;z-index:9;max-width:230px}
-.tip b{font-size:13.5px}
-.tip .r{color:var(--ink2)}
-.scroll{overflow-x:auto}
-table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
-th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;padding:6px 10px;border-bottom:1px solid var(--grid)}
-td{padding:6px 10px;border-bottom:1px solid var(--grid);font-size:13.5px;white-space:nowrap}
-td.num,th.num{text-align:right}
-.hm td{padding:3px}
-.cell{min-width:52px;text-align:center;border-radius:5px;font:600 11.5px system-ui;padding:5px 4px}
-.d2{background:var(--h2);color:#0b0b0b}.d3{background:var(--h3);color:#0b0b0b}
-.d4{background:var(--h4);color:#fff}.d5{background:var(--h5);color:#fff}
-.teamlab{font-weight:700;font-size:12.5px;padding-right:10px}
-.pill{display:inline-block;font:700 10px system-ui;letter-spacing:.06em;border:1px solid var(--ring);border-radius:99px;padding:2px 8px;color:var(--ink2)}
-.xi .pill{color:var(--accent);border-color:var(--accent)}
-footer{margin-top:26px;font-size:12px;color:var(--muted);max-width:70ch}
-.tabs{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--grid);margin:0 0 4px;scrollbar-width:none;position:sticky;top:0;background:var(--bg);z-index:6}
-.tabs::-webkit-scrollbar{display:none}
-.tab{padding:10px 13px;font:700 11.5px system-ui;letter-spacing:.09em;text-transform:uppercase;color:var(--ink2);text-decoration:none;border-bottom:2px solid transparent;white-space:nowrap}
-.tab[aria-current]{color:var(--ink);border-bottom-color:var(--accent)}
-.tab:hover{color:var(--ink)}
-.tabpane{display:none}
-.tabpane.active{display:block}
-.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:18px}
-.tile{background:var(--surface);border:1px solid var(--ring);border-radius:10px;padding:14px 16px}
-.tile .tl{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700}
-.tile .tv{font-size:21px;font-weight:700;letter-spacing:-.01em;margin-top:5px}
-.tile .ts{font-size:12px;color:var(--ink2);margin-top:2px}
-.selcol{background:color-mix(in srgb, var(--accent) 9%, transparent)}
-.absent{opacity:.35}
-tr.benchstart td{border-top:2px solid var(--axis)}
-.mvup{color:#0ca30c;font-weight:700}
-.mvdn{color:#d03b3b;font-weight:700}
-th.gwsel{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
-th.gwsel:hover{color:var(--ink)}
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px;align-items:start}
-.cols3{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:22px;margin-top:14px;align-items:start}
-.mini{font-size:13.5px;line-height:1.45}
-.mini .row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--grid)}
-.mini .row:last-child{border-bottom:0}
-.mini b{font-weight:700}
-.up{color:#0ca30c;font-weight:700}
-.down{color:#d03b3b;font-weight:700}
-.stack{display:flex;flex-direction:column;gap:24px}
-@media(max-width:700px){.cols{grid-template-columns:1fr}}
-h3{font-size:13.5px;margin-bottom:8px}
-.mut{font-size:11px;color:var(--muted);font-weight:400;letter-spacing:.04em;text-transform:uppercase}
-#diff{width:100%;height:auto;display:block}
-</style>
+__STYLE__
 <div class="wrap">
-<div class="eyebrow" style="padding:10px 0 2px">Fleamarket Analytics · 2026/27</div>
+<div class="brand"><span class="mark">Flea<em>market</em></span><span class="season">2026/27</span></div>
 <nav class="tabs">
  <a class="tab" href="#overview">Overview</a>
  <a class="tab" href="#value">Value</a>
@@ -720,7 +644,8 @@ def emit(path, personal):
     # public copy strips squad markers entirely (no rings, labels, table, or
     # flags in the embedded JSON) so nothing about our team leaks pre-deadline
     dat = data if personal else [{**r, 'v4': False, 'xi': False} for r in data]
-    page = (html.replace('__VALUEBANDS__', band_tables(personal))
+    page = (html.replace('__STYLE__', theme.style_block())
+                .replace('__VALUEBANDS__', band_tables(personal))
                 .replace('__SQUADSEC__', SQUAD_SEC if personal else '')
                 .replace('__ODDSNOTE__', _odds_note)
                 .replace('__MOVES__', _moves_html)
