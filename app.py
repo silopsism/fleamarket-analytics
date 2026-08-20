@@ -755,6 +755,24 @@ def home():
 _plan_cache = {}
 
 
+@app.get('/api/notify')
+def api_notify(key: str = '', force: str = '1'):
+    """Send a digest on demand. Guarded by NOTIFY_KEY so a public URL can't be
+    used to spam the owner's phone."""
+    want = os.environ.get('NOTIFY_KEY')
+    if not want or key != want:
+        return {'error': 'bad or missing key'}
+    try:
+        import notify
+        boot = json.load(open('bootstrap.json', encoding='utf-8'))
+        els = {e['id']: e for e in boot['elements']}
+        tms = {t['id']: t['short_name'] for t in boot['teams']}
+        return {'result': notify.maybe_notify(els, tms, news_payload(),
+                                              force=(force == '1'))}
+    except Exception as exc:  # noqa: BLE001
+        return {'error': str(exc)[:120]}
+
+
 @app.get('/api/optimal')
 def api_optimal():
     """The model's own best squad, published by the dashboard build."""

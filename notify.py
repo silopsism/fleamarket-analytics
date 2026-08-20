@@ -15,8 +15,10 @@ import urllib.request
 from datetime import datetime, timedelta, timezone
 
 STATE = os.path.join(os.environ.get('FPL_DATA_DIR', 'data'), 'notified.json')
-QUIET_FROM, QUIET_TO = 23, 7          # UK local hours, inclusive-exclusive
-MOVE_THRESHOLD = 0.3                  # percentage points of ownership
+QUIET_FROM, QUIET_TO = 23, 6          # UK local hours, inclusive-exclusive
+MOVE_THRESHOLD = 0.2                  # percentage points of ownership
+# pre-deadline, ownership drift IS the transfer market: transfers_in_event
+# only counts once a gameweek is live, so d_sel carries the whole signal
 MAX_ITEMS = 6
 
 

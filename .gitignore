@@ -11,3 +11,4 @@ data/
 optimal_squad.json
 .telegram.env
 odds_cache.json
+.notify.env
