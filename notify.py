@@ -85,24 +85,37 @@ def build_digest(risers, fallers, news, seen):
     def esc(s):
         return (str(s).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'))
 
+    def qualifies(r):
+        # absolute move, or a big relative move on a lightly-owned player
+        return (abs(r['d_sel']) >= MOVE_THRESHOLD
+                or r.get('rel', 0) >= 0.08 or r['d_net'])
+
+    def own_note(r):
+        n = r.get('d_own')
+        if n is None or abs(n) < 500:
+            return ''
+        return f" ({n:+,} owners)".replace(',', ' ')
+
     moves = []
     for r in risers:
-        if abs(r['d_sel']) < MOVE_THRESHOLD and not r['d_net']:
+        if not qualifies(r):
             continue
         k = f"mv:{r['player']}:{round(r['sel'], 1)}"
         if k in seen:
             continue
         moves.append(f"▲ <b>{esc(r['player'].split('|')[0])}</b> "
-                     f"{esc(r['player'].split('|')[1])} {r['d_sel']:+.2f}pp → {r['sel']:.1f}%")
+                     f"{esc(r['player'].split('|')[1])} {r['d_sel']:+.2f}pp → "
+                     f"{r['sel']:.1f}%{own_note(r)}")
         keys.append(k)
     for r in fallers:
-        if abs(r['d_sel']) < MOVE_THRESHOLD and not r['d_net']:
+        if not qualifies(r):
             continue
         k = f"mv:{r['player']}:{round(r['sel'], 1)}"
         if k in seen:
             continue
         moves.append(f"▼ <b>{esc(r['player'].split('|')[0])}</b> "
-                     f"{esc(r['player'].split('|')[1])} {r['d_sel']:+.2f}pp → {r['sel']:.1f}%")
+                     f"{esc(r['player'].split('|')[1])} {r['d_sel']:+.2f}pp → "
+                     f"{r['sel']:.1f}%{own_note(r)}")
         keys.append(k)
 
     stories = []

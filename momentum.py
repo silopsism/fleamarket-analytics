@@ -17,12 +17,17 @@ DATA_DIR = os.environ.get('FPL_DATA_DIR', 'data')
 SNAP = os.path.join(DATA_DIR, 'snapshots.jsonl')
 
 
-def snapshot(elements, teams, path=SNAP):
-    """Append one compact row per interesting player. Cheap: ~200 rows/pull."""
+def snapshot(elements, teams, total_players=None, path=None):
+    """Append one compact row per interesting player, plus a sentinel row (i=0)
+    carrying the registered-team count so later deltas can separate real buying
+    from growth in the playerbase."""
+    path = path or SNAP
     try:
         os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
         ts = datetime.now(timezone.utc).isoformat(timespec='minutes')
         rows = []
+        if total_players:
+            rows.append({'t': ts, 'i': 0, 'tp': int(total_players)})
         for e in elements.values():
             sel = float(e['selected_by_percent'])
             if sel < 0.4 and e['now_cost'] < 55:
@@ -36,8 +41,9 @@ def snapshot(elements, teams, path=SNAP):
         return 0
 
 
-def _history(path=SNAP):
+def _history(path=None):
     """{player_id: [rows oldest-first]} from the snapshot log, if any."""
+    path = path or SNAP
     hist = {}
     try:
         with open(path, encoding='utf-8') as f:
@@ -52,9 +58,10 @@ def _history(path=SNAP):
     return hist
 
 
-def history_stats(path=SNAP):
+def history_stats(path=None):
     """Rows and time span in the snapshot log — also the proof that whatever
     directory we're writing to actually persists across deployments."""
+    path = path or SNAP
     rows, oldest, newest = 0, None, None
     try:
         with open(path, encoding='utf-8') as f:
@@ -133,7 +140,8 @@ def recent_moves(elements, teams, hours=6, top=6, min_pp=0.15):
     hist = _history()
     if not hist:
         return [], [], {'ready': False, 'hours': 0}
-    stamps = sorted({r['t'] for rows in hist.values() for r in rows})
+    tp_at = {r['t']: r['tp'] for r in hist.get(0, []) if r.get('tp')}
+    stamps = sorted({r['t'] for pid, rows in hist.items() if pid != 0 for r in rows})
     if len(stamps) < 2:
         return [], [], {'ready': False, 'hours': 0}
     newest = stamps[-1]
@@ -147,6 +155,8 @@ def recent_moves(elements, teams, hours=6, top=6, min_pp=0.15):
         base, span = stamps[0], 0.0
     moves = []
     for pid, rows in hist.items():
+        if pid == 0:
+            continue
         e = elements.get(pid)
         if not e:
             continue
@@ -156,13 +166,28 @@ def recent_moves(elements, teams, hours=6, top=6, min_pp=0.15):
             continue
         d_sel = round(cur['s'] - old['s'], 2)
         d_net = (cur['ti'] - cur['to']) - (old['ti'] - old['to'])
-        if abs(d_sel) < min_pp and d_net == 0:
+        # absolute owners, so growth in the playerbase can't look like selling
+        tp_now, tp_old = tp_at.get(newest), tp_at.get(base)
+        d_own = None
+        if tp_now and tp_old:
+            d_own = int(cur['s'] / 100 * tp_now - old['s'] / 100 * tp_old)
+        # a 0.2pp move is noise on a 33%-owned player and a surge on a 2% one,
+        # so qualify on absolute OR relative change
+        rel = abs(d_sel) / max(old['s'], 0.5)
+        if abs(d_sel) < min_pp and rel < 0.08 and d_net == 0:
             continue
         moves.append({'player': f"{e['web_name']}|{teams[e['team']]}",
-                      'price': cur['c'] / 10, 'sel': cur['s'],
-                      'd_sel': d_sel, 'd_net': d_net,
+                      'price': cur['c'] / 10, 'sel': cur['s'], 'sel_prev': old['s'],
+                      'd_sel': d_sel, 'd_net': d_net, 'd_own': d_own,
+                      'rel': round(rel, 3),
                       'd_cost': round((cur['c'] - old['c']) / 10, 1)})
-    key = (lambda m: (m['d_net'], m['d_sel']))
+    # classify by absolute owners when we have them: before the season the
+    # playerbase grows fast, so a falling percentage can still mean net buying
+    def key(m):
+        if m.get('d_own') is not None:
+            return (m['d_own'], m['d_sel'])
+        return (m['d_net'], m['d_sel'])
+
     risers = sorted([m for m in moves if key(m) > (0, 0)], key=key, reverse=True)[:top]
     fallers = sorted([m for m in moves if key(m) < (0, 0)], key=key)[:top]
     return risers, fallers, {'ready': True, 'hours': span, 'snapshots': len(stamps)}

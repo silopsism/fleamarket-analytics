@@ -59,7 +59,7 @@ def refresh_data(build=True):
             boot = json.load(open('bootstrap.json', encoding='utf-8'))
             els = {e['id']: e for e in boot['elements']}
             teams = {t['id']: t['short_name'] for t in boot['teams']}
-            n = mom.snapshot(els, teams)
+            n = mom.snapshot(els, teams, total_players=boot.get('total_players'))
             print(f'snapshot: {n} rows')
         except Exception as exc:  # noqa: BLE001
             print('snapshot skipped:', exc)
