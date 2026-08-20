@@ -87,8 +87,9 @@ __STYLE__
  <a class="tab" href="#planner">Planner</a>
  <a class="tab" href="#market">Market</a>
  <a class="tab" href="#fixtures">Fixtures</a>
+ <a class="tab" href="#teams">Teams</a>
  <a class="tab" href="/news">News ↗</a>
- <a class="tab" href="/squads">Squads ↗</a>
+ <a class="tab" href="/squads">Manager ↗</a>
 </nav>
 
 <div class="tabpane" data-tab="overview">
@@ -163,6 +164,28 @@ __VALUEBANDS__
   <div class="scroll"><table><tr><th>Player</th><th>Team</th><th class="num">£m</th><th class="num">Own%</th><th class="num">xPts</th></tr>__TRAPROWS__</table></div>
   <p class="note" style="margin:8px 0 0">Model uses last season's rates — players in new, bigger roles this season may be unfairly flagged.</p></div>
  </div>
+</section>
+</div>
+
+<div class="tabpane" data-tab="teams">
+<section class="card">
+ <h2>Summer window — who changed most</h2>
+ <p class="note">Fees and moves from Wikipedia's English transfer list (__TRSRC__).
+ Net spend counts permanent deals with a disclosed fee, so undisclosed and loan business is
+ listed but not totalled. <b>Click a club</b> for its full ledger and a squad read.</p>
+ <div class="scroll"><table id="teamtab"></table></div>
+</section>
+
+<section class="card" id="clubcard" hidden>
+ <h2 id="clubname">Club</h2>
+ <p class="note" id="clubmeta"></p>
+ <div class="cols">
+  <div><h3>Arrivals</h3><div id="clubin" class="mini"></div></div>
+  <div><h3>Departures</h3><div id="clubout" class="mini"></div></div>
+ </div>
+ <h3 style="margin-top:20px">Where the squad stands</h3>
+ <div class="scroll"><table id="clubpos"></table></div>
+ <p class="note" id="clubcaveat" style="margin-top:10px"></p>
 </section>
 </div>
 
@@ -443,6 +466,82 @@ if(!SQUAD.length){(function(){
   }
  }catch(e){}
 })()}
+
+// ---- Teams tab -----------------------------------------------------------
+const TEAMS=__TEAMS__;
+if(TEAMS.length){
+ const fm=v=>v==null?'–':(v>=0?'+':'')+'£'+Math.abs(v).toFixed(1)+'m';
+ const feeTxt=p=>p.loan?'loan':(p.fee?('£'+(p.fee/1e6).toFixed(1)+'m'):(p.label||'undisclosed'));
+ let sortKey='net';
+ function drawTeams(){
+  const rows=[...TEAMS].sort((a,b)=>(b[sortKey]??-1e9)-(a[sortKey]??-1e9));
+  let h='<thead><tr><th>Club</th><th class="num">In</th><th class="num">Out</th>'+
+   '<th class="num">Spent</th><th class="num">Received</th><th class="num">Net</th>'+
+   '<th class="num" title="thousands of prior-season Premier League minutes in the current squad">PL mins</th><th class="num">Squad xPts</th>'+
+   '<th class="num">Last</th><th class="num">Pred</th></tr></thead><tbody>';
+  rows.forEach(t=>{
+   const d=(t.pred!=null&&t.last!=null)?t.pred-t.last:null;
+   h+=`<tr data-c="${t.c}" style="cursor:pointer"><td><b>${t.c}</b></td>`+
+    `<td class="num">${t.in.length}</td><td class="num">${t.out.length}</td>`+
+    `<td class="num">${t.spend?fm(t.spend).replace('+',''):'–'}</td>`+
+    `<td class="num">${t.recv?fm(t.recv).replace('+',''):'–'}</td>`+
+    `<td class="num ${t.net>0?'down':(t.net<0?'up':'')}">${fm(t.net)}</td>`+
+    `<td class="num">${t.cont}k</td><td class="num"><b>${t.squad_xp.toFixed(1)}</b></td>`+
+    `<td class="num">${t.last??'–'}</td>`+
+    `<td class="num">${t.pred??'–'}${d!=null?` <span class="${d>0?'up':(d<0?'down':'')}">${d>0?'+':''}${d}</span>`:''}</td></tr>`;
+  });
+  h+='</tbody>';
+  document.getElementById('teamtab').innerHTML=h;
+ }
+ function showClub(c){
+  const t=TEAMS.find(x=>x.c===c); if(!t)return;
+  document.getElementById('clubcard').hidden=false;
+  document.getElementById('clubname').textContent=c+' — summer window';
+  const d=(t.pred!=null&&t.last!=null)?t.pred-t.last:null;
+  document.getElementById('clubmeta').innerHTML=
+   `Net spend <b>${fm(t.net)}</b> · ${t.in.length} in, ${t.out.length} out · `+
+   `<b>${t.cont}k</b> minutes of prior Premier League experience in the squad`+
+   (d!=null?` · market expects <b class="${d>0?'up':'down'}">${d>0?'+':''}${d} pts</b> on last season`:'');
+  const list=(arr,dir)=>arr.length?arr.map(p=>
+    `<div class="row"><span>${p.pos?`<span class="pill">${p.pos}</span> `:''}<b>${esc(p.n)}</b> `+
+    `<span style="color:var(--muted)">${dir} ${esc(p.other||'?')}</span></span>`+
+    `<span>${feeTxt(p)}${p.xp!=null?` · <b>${p.xp.toFixed(2)}</b>`:''}</span></div>`).join('')
+   :'<p class="note">None recorded.</p>';
+  document.getElementById('clubin').innerHTML=list(t.in,'from');
+  document.getElementById('clubout').innerHTML=list(t.out,'to');
+  // position read: squad strength now, and what moved in each position
+  const order=['GKP','DEF','MID','FWD'];
+  let ph='<thead><tr><th>Area</th><th class="num">Starters xPts</th><th class="num">League rank</th>'+
+   '<th class="num">In</th><th class="num">Out</th><th>Verdict</th></tr></thead><tbody>';
+  order.forEach(pos=>{
+   const mine=t.pos[pos];
+   const ranked=[...TEAMS].sort((a,b)=>b.pos[pos]-a.pos[pos]);
+   const rank=ranked.findIndex(x=>x.c===t.c)+1;
+   const ins=t.in.filter(p=>p.pos===pos), outs=t.out.filter(p=>p.pos===pos);
+   const inXp=ins.reduce((s,p)=>s+(p.xp||0),0);
+   let verdict='steady', cls='';
+   if(ins.length&&inXp>=3.5){verdict='rebuilt — '+ins.map(p=>p.n.split(' ').pop()).join(', ');cls='up'}
+   else if(ins.length>outs.length){verdict='added depth';cls=''}
+   else if(outs.length>ins.length){verdict='thinner on paper';cls='down'}
+   ph+=`<tr><td><b>${pos}</b></td><td class="num">${mine.toFixed(1)}</td>`+
+    `<td class="num">${rank}/20</td><td class="num">${ins.length}</td><td class="num">${outs.length}</td>`+
+    `<td class="${cls}">${esc(verdict)}</td></tr>`;
+  });
+  ph+='</tbody>';
+  document.getElementById('clubpos').innerHTML=ph;
+  const unknown=t.out.filter(p=>p.pos==null).length;
+  document.getElementById('clubcaveat').textContent=
+   'Starters xPts sums the best expected XI slots per area (1 GK, 4 DEF, 4 MID, 2 FWD) from the model. '+
+   (unknown?unknown+' departure(s) left the league, so their position and prior output are unknown to the model — '
+    :'')+'departures who moved within the league keep their model score.';
+  document.getElementById('clubcard').scrollIntoView({behavior:'smooth',block:'nearest'});
+ }
+ document.getElementById('teamtab').addEventListener('click',e=>{
+  const tr=e.target.closest('tr[data-c]'); if(tr)showClub(tr.dataset.c);
+ });
+ drawTeams();
+}
+
 drawDiff('All');drawFrontier('All');drawPlanner();
 </script>
 """
@@ -579,6 +678,76 @@ _ts = max(players, key=lambda p: p['xpts'])
 _td = diffs[0]
 
 
+
+# ---- Teams tab: transfer ledger joined to squad strength -------------------
+TEAMS, TR_SRC = [], 'not fetched'
+try:
+    import transfers as _tr
+    _led = _tr.load() or _tr.fetch()
+    TR_SRC = _led.get('ts', '')[:16].replace('T', ' ') + ' UTC'
+    _sent = {}
+    try:
+        _sj = json.load(open('team_sentiment.json', encoding='utf-8'))
+        _sent = {k: v for k, v in _sj.items() if not k.startswith('_')}
+    except Exception:
+        pass
+    _byclub = {}
+    for _p in players:
+        _byclub.setdefault(teams[_p['team']], []).append(_p)
+    _name_idx = {}
+    for _p in players:
+        _name_idx.setdefault(_p['name'].lower(), []).append(_p)
+
+    def _match(nm, club=None):
+        """Find an FPL player for a transfer-list name (surname match)."""
+        sur = nm.split()[-1].lower()
+        pool = _byclub.get(club, players) if club else players
+        for q in pool:
+            n = q['name'].lower()
+            if sur in n or n in sur:
+                return q
+        return None
+
+    STARTERS = {'GKP': 1, 'DEF': 4, 'MID': 4, 'FWD': 2}
+    for short in sorted(_byclub):
+        d = (_led.get('clubs') or {}).get(short) or {'in': [], 'out': [], 'spend': 0,
+                                                     'received': 0, 'net': 0}
+        squad = _byclub[short]
+        # squad strength: best expected starters per position
+        pos_now = {}
+        for pos, n in STARTERS.items():
+            best = sorted([q for q in squad if pos_name[q['pos']] == pos],
+                          key=lambda q: -q['xpts'])[:n]
+            pos_now[pos] = round(sum(q['xpts'] for q in best), 1)
+        # prior Premier League minutes still in the building (continuity proxy)
+        mins = sum(ns['d']['elements'][0].get('minutes', 0) * 0 for _ in [0])
+        el_by_id = {e['id']: e for e in ns['d']['elements']}
+        mins = sum(el_by_id[q['id']]['minutes'] for q in squad if q['id'] in el_by_id)
+        cont = round(mins / 1000)   # thousands of prior PL minutes in the squad
+
+        def _dec(lst, club):
+            out = []
+            for x in lst:
+                q = _match(x['name'], club)
+                out.append({'n': x['name'], 'other': x['other'], 'fee': x['fee'],
+                            'label': x['label'], 'loan': x['loan'],
+                            'pos': pos_name[q['pos']] if q else None,
+                            'xp': round(q['xpts'], 2) if q else None})
+            return out
+
+        TEAMS.append({
+            'c': short, 'in': _dec(d['in'], short), 'out': _dec(d['out'], None),
+            'spend': round(d['spend'] / 1e6, 1), 'recv': round(d['received'] / 1e6, 1),
+            'net': round(d['net'] / 1e6, 1), 'pos': pos_now, 'cont': cont,
+            'last': (_sent.get(short) or {}).get('last'),
+            'pred': (_sent.get(short) or {}).get('pred'),
+            'squad_xp': round(sum(pos_now.values()), 1),
+        })
+    print(f'teams tab: {len(TEAMS)} clubs, ledger {TR_SRC}')
+except Exception as _e:
+    print('teams tab data skipped:', _e)
+
+
 import html as _html
 
 try:
@@ -648,6 +817,8 @@ def emit(path, personal):
                 .replace('__VALUEBANDS__', band_tables(personal))
                 .replace('__SQUADSEC__', SQUAD_SEC if personal else '')
                 .replace('__ODDSNOTE__', _odds_note)
+                .replace('__TEAMS__', json.dumps(TEAMS, ensure_ascii=False))
+                .replace('__TRSRC__', TR_SRC)
                 .replace('__MOVES__', _moves_html)
                 .replace('__MOVEWIN__', _move_win)
                 .replace('__STORIES__', _stories_html)

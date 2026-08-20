@@ -255,8 +255,9 @@ PAGE = """<meta charset="utf-8"><meta name="viewport" content="width=device-widt
  <a class="tab" href="/#planner">Planner</a>
  <a class="tab" href="/#market">Market</a>
  <a class="tab" href="/#fixtures">Fixtures</a>
+ <a class="tab" href="/#teams">Teams</a>
  <a class="tab" id="navnews" href="/news">News</a>
- <a class="tab" id="navsquads" href="/squads">Squads</a>
+ <a class="tab" id="navsquads" href="/squads">Manager</a>
 </nav>
 <script>(function(){{
  var p=location.pathname;

@@ -1,12 +1,93 @@
 {
-  "_comment": "Summer-2026 movers whose prior-season attack rates were earned at a different club. Factor = sqrt(att_new/att_old), clamped 0.85-1.15, applied to xG90/xA90. Remove entries once current-season data takes over (Phase 2). Players who moved in 2025 (Mbeumo, Isak, Wirtz, Gyokeres) already carry current-club rates - do NOT list them.",
-  "Semenyo|MCI": {"from": "BOU"},
-  "Anderson|MCI": {"from": "NFO"},
-  "Guéhi|MCI": {"from": "CRY"},
-  "Rogers|CHE": {"from": "AVL"},
-  "Welbeck|CHE": {"from": "BHA"},
-  "Calvert-Lewin|LEE": {"from": "EVE"},
-  "Senesi|TOT": {"from": "BOU"},
-  "Nørgaard|EVE": {"from": "ARS"},
-  "Strand Larsen|CRY": {"from": "RELEGATED"}
+ "_comment": "Auto-derived from transfers_cache.json: SUMMER 2026 arrivals from other Premier League clubs, matched to FPL players with enough prior-season minutes for their rates to matter. Rebuilt because hand-curated guesses wrongly included JANUARY 2026 movers (Semenyo, Guehi), whose prior-season rates already reflect half a season at their new club. Factor = sqrt(att_new/att_old) clamped 0.85-1.15.",
+ "Henry|BRE": {
+  "from": "CHE",
+  "fee": null,
+  "via": "summer-2026 ledger"
+ },
+ "Tonali|TOT": {
+  "from": "NEW",
+  "fee": 92500000,
+  "via": "summer-2026 ledger"
+ },
+ "Van Hecke|TOT": {
+  "from": "BHA",
+  "fee": 52000000,
+  "via": "summer-2026 ledger"
+ },
+ "Robertson|TOT": {
+  "from": "LIV",
+  "fee": null,
+  "via": "summer-2026 ledger"
+ },
+ "Senesi|TOT": {
+  "from": "BOU",
+  "fee": null,
+  "via": "summer-2026 ledger"
+ },
+ "McNeil|CRY": {
+  "from": "EVE",
+  "fee": null,
+  "via": "summer-2026 ledger"
+ },
+ "Andrey Santos|MUN": {
+  "from": "CHE",
+  "fee": 48000000,
+  "via": "summer-2026 ledger"
+ },
+ "Tielemans|MUN": {
+  "from": "AVL",
+  "fee": 35000000,
+  "via": "summer-2026 ledger"
+ },
+ "Darlow|MUN": {
+  "from": "LEE",
+  "fee": null,
+  "via": "summer-2026 ledger"
+ },
+ "Struijk|BHA": {
+  "from": "LEE",
+  "fee": 20000000,
+  "via": "summer-2026 ledger"
+ },
+ "Rogers|CHE": {
+  "from": "AVL",
+  "fee": 117000000,
+  "via": "summer-2026 ledger"
+ },
+ "Lacroix|CHE": {
+  "from": "CRY",
+  "fee": 52000000,
+  "via": "summer-2026 ledger"
+ },
+ "Welbeck|CHE": {
+  "from": "BHA",
+  "fee": 5000000,
+  "via": "summer-2026 ledger"
+ },
+ "Henderson|CHE": {
+  "from": "BRE",
+  "fee": null,
+  "via": "summer-2026 ledger"
+ },
+ "Johnson|EVE": {
+  "from": "CRY",
+  "fee": null,
+  "via": "summer-2026 ledger"
+ },
+ "Diop|IPS": {
+  "from": "FUL",
+  "fee": null,
+  "via": "summer-2026 ledger"
+ },
+ "Lukić|IPS": {
+  "from": "FUL",
+  "fee": null,
+  "via": "summer-2026 ledger"
+ },
+ "Wilson|LEE": {
+  "from": "FUL",
+  "fee": null,
+  "via": "summer-2026 ledger"
+ }
 }
