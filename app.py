@@ -99,6 +99,7 @@ def _refresh_forever():
         refresh_data(build=False)          # hourly: prices, ownership, snapshot
         if cycle % NEWS_EVERY == 0:
             run_news_sweep()               # six-hourly: the press
+            refresh_transfers()            # and the transfer ledger
         rebuild_dashboard()                # so Overview movements stay current
         try:
             import notify
@@ -936,6 +937,17 @@ def run_news_sweep():
         print('news sweep failed:', exc)
     finally:
         _news_lock.release()
+
+
+def refresh_transfers():
+    """Re-pull the summer transfer ledger. On failure the previous cache stands,
+    so the Teams tab shows slightly older figures rather than none."""
+    try:
+        import transfers
+        p = transfers.fetch()
+        print(f"transfers: {p['rows_seen']} rows, {p['unmatched']} non-PL")
+    except Exception as exc:  # noqa: BLE001
+        print('transfers refresh skipped (keeping cache):', exc)
 
 
 def news_is_stale(hours=4):
