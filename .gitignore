@@ -12,3 +12,5 @@ optimal_squad.json
 .telegram.env
 odds_cache.json
 .notify.env
+transfers_cache.json
+wt.json
