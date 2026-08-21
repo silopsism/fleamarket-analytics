@@ -783,8 +783,10 @@ def api_optimal():
 
 PLAN_TABLE = """<div class="card">
 <h2 style="font-size:16px">4-week plan for this squad</h2>
-<p class="note">Best legal path from here: one free transfer a week (bankable), hits cost 4
-points. <b>Click a GW column header</b> to show that week's squad — the shaded column belongs
+<p class="note">Best legal path from here: one free transfer a week, bankable up to five;
+hits cost 4 points. A free transfer is not treated as free — the plan charges __FTVALUE__ points
+for spending one, so it only moves for a gain that beats keeping the transfer in hand. That is a
+planning cost, not a deduction: it is excluded from every total shown here. <b>Click a GW column header</b> to show that week's squad — the shaded column belongs
 to the displayed squad, dimmed scores mean that player isn't in the squad that week, and the
 footer always shows the plan's true weekly XI + captain totals.
 ⇄ transferred in · <span style="color:#0ca30c">↑</span> promoted ·
@@ -870,6 +872,7 @@ def squad_plan_html(entries, m, stored=None):
                 .replace('__TRANSFERS__', json.dumps(transfers, ensure_ascii=False))
                 .replace('__TOTAL__', f'{total:.1f} pts')
                 .replace('__N__', str(len(gwl)))
+                .replace('__FTVALUE__', f'{__import__("plan4").FT_VALUE:g}')
                 .replace('__GAP__', gap))
 
     if stored and stored.get('weeks'):

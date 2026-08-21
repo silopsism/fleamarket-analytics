@@ -713,9 +713,12 @@ try:
             t = sum(_pool[i]['gws'][g] for i in xi_ids)
             t += sum(_pool[s['id']]['gws'][g] for s in squad if s['cap'])
             _tot.append(round(t, 1))
+        _nhit = sum(m['hits'] for m in _plan['transfers'])
+        _nft = sum(len(m['in']) for m in _plan['transfers']) - _nhit
         OPT = {'gws': _ogws, 'transfers': _otr, 'totals': _tot,
-               'hitpen': sum(m['hits'] for m in _plan['transfers']) * 4}
-        print(f"plan4: {_plan['status']}, 4-GW plan total {sum(_tot) - OPT['hitpen']:.1f}")
+               'hitpen': _nhit * 4, 'ftspent': _nft, 'ftvalue': plan4.FT_VALUE}
+        print(f"plan4: {_plan['status']}, 4-GW plan total {sum(_tot) - OPT['hitpen']:.1f} "
+              f"({_nft} free transfers spent at {plan4.FT_VALUE} each, {_nhit} hits)")
         # publish the optimum as a selectable squad (the Squads tab shows it as
         # a permanent 🤖 entry; roles encode its GW1 XI and captain)
         _gw1 = _ogws[0]
@@ -726,6 +729,7 @@ try:
         json.dump({'ts': datetime.now(timezone.utc).isoformat(timespec='minutes'),
                    'lines': [f"{r['n']} {r['t']}" for r in _gw1], 'roles': _roles,
                    'total': round(sum(_tot) - OPT['hitpen'], 1),
+                   'ftspent': _nft, 'ftvalue': plan4.FT_VALUE,
                    'weekly': _tot, 'transfers': _otr, 'weeks': _weeks},
                   open('optimal_squad.json', 'w', encoding='utf-8'),
                   ensure_ascii=False, indent=1)
