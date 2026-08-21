@@ -1,11 +1,64 @@
 {
-  "_comment": "Curated expected-minutes facts. Highest-priority minutes signal. Each entry: xmins per match, reason, added date, review trigger.",
-  "Kinsky|TOT": {"xmins": 88, "reason": "Confirmed #1; Vicario left, Dubravka signed as backup", "added": "2026-08-15", "review": "none"},
-  "Dubravka|TOT": {"xmins": 0, "reason": "Signed as backup to Kinsky", "added": "2026-08-15", "review": "Kinsky injury"},
-  "Lammens|MUN": {"xmins": 88, "reason": "Predicted #1 in all GW1 lineups", "added": "2026-08-15", "review": "GW1 team sheet"},
-  "Roefs|SUN": {"xmins": 88, "reason": "Predicted #1 in Sunderland XI", "added": "2026-08-15", "review": "GW1 team sheet"},
-  "Woltemade|NEW": {"xmins": 18, "reason": "NEW says he is free to leave on loan for 26/27 (West Ham favourites, Dortmund/Villa linked); minutes already declined last season - fringe until resolved", "added": "2026-08-19", "review": "loan resolved or GW1 team sheet", "found_by": "news sweep 2026-08-19"},
-  "Mosquera|ARS": {"xmins": 80, "reason": "Nailed CB while Saliba injured", "added": "2026-08-16", "review": "Saliba return"},
-  "Isak|LIV": {"xmins": 72, "trust_rates": true, "reason": "LIV first-choice striker after Ekitike Achilles (out until 2027); 25/26 sample was injury-hit, not fringe status", "added": "2026-08-16", "review": "minutes managed early - late preseason start"},
-  "Davis|IPS": {"xmins": 80, "reason": "In both predicted Ipswich XIs (below crowd-signal ownership threshold at 5%)", "added": "2026-08-16", "review": "GW1 team sheet"}
+ "_comment": "Curated expected-minutes facts. Highest-priority minutes signal. Each entry: 'xmins' per match OR 'ramp' (one xmins per horizon gameweek, for minutes that climb rather than sit flat), plus reason, added date, review trigger.",
+ "Kinsky|TOT": {
+  "xmins": 88,
+  "reason": "Confirmed #1; Vicario left, Dubravka signed as backup",
+  "added": "2026-08-15",
+  "review": "none"
+ },
+ "Dubravka|TOT": {
+  "xmins": 0,
+  "reason": "Signed as backup to Kinsky",
+  "added": "2026-08-15",
+  "review": "Kinsky injury"
+ },
+ "Lammens|MUN": {
+  "xmins": 88,
+  "reason": "Predicted #1 in all GW1 lineups",
+  "added": "2026-08-15",
+  "review": "GW1 team sheet"
+ },
+ "Roefs|SUN": {
+  "xmins": 88,
+  "reason": "Predicted #1 in Sunderland XI",
+  "added": "2026-08-15",
+  "review": "GW1 team sheet"
+ },
+ "Woltemade|NEW": {
+  "xmins": 18,
+  "reason": "NEW says he is free to leave on loan for 26/27 (West Ham favourites, Dortmund/Villa linked); minutes already declined last season - fringe until resolved",
+  "added": "2026-08-19",
+  "review": "loan resolved or GW1 team sheet",
+  "found_by": "news sweep 2026-08-19"
+ },
+ "Mosquera|ARS": {
+  "xmins": 80,
+  "reason": "Nailed CB while Saliba injured",
+  "added": "2026-08-16",
+  "review": "Saliba return"
+ },
+ "Isak|LIV": {
+  "xmins": 72,
+  "trust_rates": true,
+  "reason": "LIV first-choice striker after Ekitike Achilles (out until 2027); 25/26 sample was injury-hit, not fringe status",
+  "added": "2026-08-16",
+  "review": "minutes managed early - late preseason start"
+ },
+ "Davis|IPS": {
+  "xmins": 80,
+  "reason": "In both predicted Ipswich XIs (below crowd-signal ownership threshold at 5%)",
+  "added": "2026-08-16",
+  "review": "GW1 team sheet"
+ },
+ "Konsa|ARS": {
+  "ramp": [
+   15,
+   45,
+   68,
+   78
+  ],
+  "reason": "Signed from AVL and registered 21 Aug with ZERO pre-season minutes for Arsenal; predicted GW1 XI is White-Mosquera-Gabriel-Calafiori. Last season 34 starts at Villa, which the baseline was reading as nailed-starter evidence at his new club. Ramp is a judgement on integration, not observed data: bench in GW1, first start likely GW2-3 given Saliba is absent.",
+  "added": "2026-08-21",
+  "review": "GW1 team sheet, then any league start - once he completes 70+ league minutes replace this with a flat xmins near 80"
+ }
 }

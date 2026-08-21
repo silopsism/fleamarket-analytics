@@ -174,8 +174,13 @@ for e in d['elements']:
     else:
         xmins_mode = 'out'
 
+    # a player's minutes can climb across the horizon rather than sit flat (a new
+    # signing bedding in, someone short of pre-season), so every component is
+    # evaluated per gameweek at that week's minutes
+    ramp = XMINS[e['id']].get('ramp')
+    xmins_gw = [ramp[i] if ramp and i < len(ramp) else xmins for i in range(HORIZON)]
+
     if xmins_mode == 'rates':
-        frac = min(xmins / 90, 1.0)
         # finishing-skill shrinkage: 75% chance quality (xG), 25% actual output.
         # Single-season overperformance is mostly noise, but not entirely —
         # persistent finishers keep a quarter of their edge.
@@ -197,35 +202,38 @@ for e in d['elements']:
             shrink = max(mins / 1500, 0.3)
             xg90, xa90 = xg90 * shrink, xa90 * shrink
         xg90, xa90 = xg90 * sent, xa90 * sent   # season-expectation sentiment
-        appearance = 2 * frac
-        # per-90 rates scaled by expected minutes (identical to season/38 for
-        # regular starters, but respects xmins overrides for role changers)
-        saves = (e['saves'] / (mins / 90) if mins else 0) / 3 * frac if pos == 1 else 0
-        dc_mean = e['defensive_contribution'] / (mins / 90) * frac if mins else 0
-        thresh = DEFCON_THRESH.get(pos)
-        # P(hitting the defcon threshold) via Poisson tail, not certainty
-        defcon = 2 * (1 - sum(math.exp(-dc_mean) * dc_mean ** k / math.factorial(k)
-                              for k in range(thresh))) if thresh and dc_mean > 0 else 0
+        # per-90 rates; each is scaled by THAT gameweek's expected minutes below
+        r_saves = (e['saves'] / (mins / 90) if mins else 0) if pos == 1 else 0
+        r_dc = e['defensive_contribution'] / (mins / 90) if mins else 0
         # per-played-90 basis: bonus/38 would double-discount players who
         # missed games (availability is already priced into frac)
-        bonus = e['bonus'] / (mins / 90) * frac if mins else 0
-        # designated #1 penalty taker: half-credit bonus (incumbents' rates
-        # already contain some of their past pens; new takers gain most)
-        pen = 0.04 * GOAL_VAL[pos] * frac if e['penalties_order'] == 1 else 0
-        yc_pen = e['yellow_cards'] / (mins / 90) * frac if mins else 0
+        r_bonus = e['bonus'] / (mins / 90) if mins else 0
+        r_yc = e['yellow_cards'] / (mins / 90) if mins else 0
+        thresh = DEFCON_THRESH.get(pos)
 
-        def _pts(att, xgc_v):
+        def _pts(att, xgc_v, frac):
             goals = xg90 * frac * GOAL_VAL[pos] * att
             assists = xa90 * frac * 3 * att
             cs = math.exp(-xgc_v) * CS_VAL[pos] * frac if pos <= 3 else 0
             gc = (xgc_v / 2) * frac if pos <= 2 else 0
-            return (appearance + goals + assists + cs + saves + defcon
-                    + bonus + pen - gc - yc_pen)
+            # P(hitting the defcon threshold) via Poisson tail, not certainty.
+            # Non-linear in minutes, so it is recomputed per gameweek rather
+            # than scaled: a 45-minute cameo is far less than half as likely to
+            # reach the threshold as a full 90.
+            dc_mean = r_dc * frac
+            defcon = 2 * (1 - sum(math.exp(-dc_mean) * dc_mean ** k / math.factorial(k)
+                                  for k in range(thresh))) if thresh and dc_mean > 0 else 0
+            # designated #1 penalty taker: half-credit bonus (incumbents' rates
+            # already contain some of their past pens; new takers gain most)
+            pen = 0.04 * GOAL_VAL[pos] * frac if e['penalties_order'] == 1 else 0
+            return (2 * frac + goals + assists + cs + r_saves / 3 * frac + defcon
+                    + r_bonus * frac + pen - gc - r_yc * frac)
 
-        gws = [sum(_pts(a, g) for a, g in ev_adjs[ev]) for ev in HORIZON_EVENTS]
+        gws = [sum(_pts(a, g, min(mm / 90, 1.0)) for a, g in ev_adjs[ev])
+               for ev, mm in zip(HORIZON_EVENTS, xmins_gw)]
         # headline xPts is the mean of the actual fixtures, so bookmaker odds
         # reach the value tables too (it used to use the FDR average only)
-        xpts = sum(gws) / len(gws) if gws else _pts(att_adj, xgc)
+        xpts = sum(gws) / len(gws) if gws else _pts(att_adj, xgc, min(xmins / 90, 1.0))
     elif xmins_mode == 'out':
         xpts = 0.0
         gws = [0.0] * HORIZON
@@ -233,23 +241,22 @@ for e in d['elements']:
         # no PL rate data: build from what we DO know — appearance points from
         # expected minutes, team-level clean sheets (fixture-adjusted), a modest
         # defcon prior for DEF/MID — plus a price-based guess only for attack
-        frac = min(xmins / 90, 1.0)
-        appearance = 2 * frac
-        dc_prior = 0.4 * frac if pos in (2, 3) else 0
-        pen = 0.04 * GOAL_VAL[pos] * frac if e['penalties_order'] == 1 else 0
-
-        def _prior(att, xgc_v):
+        def _prior(att, xgc_v, frac):
             cs = math.exp(-xgc_v) * CS_VAL[pos] * frac if pos <= 3 else 0
-            return appearance + cs + 0.10 * price * frac * att * sent + dc_prior + pen
+            dc_prior = 0.4 * frac if pos in (2, 3) else 0
+            pen = 0.04 * GOAL_VAL[pos] * frac if e['penalties_order'] == 1 else 0
+            return 2 * frac + cs + 0.10 * price * frac * att * sent + dc_prior + pen
 
-        gws = [sum(_prior(a, g) for a, g in ev_adjs[ev]) for ev in HORIZON_EVENTS]
-        xpts = sum(gws) / len(gws) if gws else _prior(att_adj, xgc)
+        gws = [sum(_prior(a, g, min(mm / 90, 1.0)) for a, g in ev_adjs[ev])
+               for ev, mm in zip(HORIZON_EVENTS, xmins_gw)]
+        xpts = sum(gws) / len(gws) if gws else _prior(att_adj, xgc, min(xmins / 90, 1.0))
 
     players.append({
         'id': e['id'], 'name': e['web_name'], 'team': e['team'], 'pos': pos,
         'price': price, 'sel': float(e['selected_by_percent']),
         'xpts': xpts, 'xnext': gws[0], 'gws': [round(g, 2) for g in gws],
         'tot4': round(sum(gws), 2), 'xmins': round(xmins), 'src': xmins_src,
+        'xmins_gws': [round(m) for m in xmins_gw] if ramp else None,
     })
 
 # --- SCORES-END --- (dashboard.py exec's the file up to this marker)

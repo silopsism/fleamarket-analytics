@@ -56,7 +56,8 @@ for p in pts:
     data.append({'n': p['name'], 't': teams[p['team']], 'p': pos_name[p['pos']],
                  'c': p['price'], 'x': round(p['xpts'], 2), 'xn': round(p['xnext'], 2),
                  'g': p['gws'], 'tt': p['tot4'], 'pc': pct, 'pl': lik,
-                 's': p['sel'], 'v4': pkey(p) in V4, 'xi': pkey(p) in set(V4_XI)})
+                 's': p['sel'], 'v4': pkey(p) in V4, 'xi': pkey(p) in set(V4_XI),
+                 'xm': p['xmins'], 'xmg': p['xmins_gws'], 'why': p['src']})
 gw_labels = ns['HORIZON_EVENTS']
 
 fx = json.load(open('fixtures.json', encoding='utf-8'))
@@ -279,7 +280,10 @@ function drawPlanner(){
    .slice(0,PLN_N[p]);
   h+=`<tr><th colspan="${5+GWL.length}" style="padding-top:12px;color:${COL[p]}">${p}</th></tr>`;
   rows.forEach(d=>{
-   h+=`<tr><td>${d.v4?'● ':''}<b>${esc(d.n)}</b></td><td>${d.t}</td><td class="num">${d.c.toFixed(1)}</td>`+
+   const mins=d.xmg?`expected minutes by GW: ${d.xmg.join(' → ')}`:`expected minutes ${d.xm}`;
+   h+=`<tr><td title="${esc(mins+' · '+d.why)}">${d.v4?'● ':''}<b>${esc(d.n)}</b>`+
+    `${d.xmg?' <span class="ramp">▲ minutes</span>':''}</td>`+
+    `<td>${d.t}</td><td class="num">${d.c.toFixed(1)}</td>`+
     d.g.map(v=>`<td class="num">${v.toFixed(1)}</td>`).join('')+
     `<td class="num"><b>${d.tt.toFixed(1)}</b></td><td class="num">${(d.tt/d.c).toFixed(2)}</td></tr>`;
   });

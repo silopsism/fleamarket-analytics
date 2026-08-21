@@ -194,6 +194,11 @@ th.gwsel:hover{color:var(--accent)}
 .hmkey .sc{display:flex;gap:3px}
 .hmkey .sc i{width:17px;height:9px;border-radius:2px}
 .teamlab{font:700 12px/1 Archivo;letter-spacing:.06em;padding-right:10px;text-transform:uppercase}
+/* a player whose expected minutes climb across the horizon, rather than a
+   player whose first week is simply low */
+.ramp{font:700 9.5px/1 Archivo;letter-spacing:.07em;text-transform:uppercase;
+ color:var(--warn);border:1px solid var(--warn);border-radius:4px;padding:2px 4px;
+ white-space:nowrap;vertical-align:1px}
 
 /* movement + mini lists */
 .up,.mvup{color:var(--up);font-weight:700}

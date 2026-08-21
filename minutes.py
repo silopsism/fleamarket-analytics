@@ -79,17 +79,31 @@ def expected_minutes(d):
             if sel >= 8 and sel > 3 * max(m, 0.5) and base < 65:
                 base, src = 75.0, f'crowd signal ({sel:.0f}% owned vs {m:.1f}% typical)'
 
+        ramp = None
         if okey in over:
-            base, src = float(over[okey]['xmins']), f"override: {over[okey]['reason']}"
+            o = over[okey]
+            # a ramp is one xmins per horizon gameweek, for a player whose
+            # minutes are climbing back rather than sitting flat: a new signing
+            # bedding in, someone short of pre-season, a return from injury.
+            # Flat 'xmins' stays the common case.
+            if o.get('ramp'):
+                ramp = [float(v) for v in o['ramp']]
+                base = sum(ramp) / len(ramp)
+            else:
+                base = float(o['xmins'])
+            src = f"override: {o['reason']}"
         # availability scaling always applies on top
         chance = e['chance_of_playing_next_round']
         if e['status'] in ('i', 'u', 'n', 's') and (chance is None or chance == 0):
-            base, src = 0.0, f"unavailable ({e['status']}): {e['news'][:40]}"
+            base, ramp, src = 0.0, None, f"unavailable ({e['status']}): {e['news'][:40]}"
         elif chance is not None and chance < 100:
             base *= chance / 100
+            if ramp:
+                ramp = [v * chance / 100 for v in ramp]
             src += f' × {chance}% fit'
 
         out[e['id']] = {'xmins': min(base, CAP), 'src': src,
+                        'ramp': [min(v, CAP) for v in ramp] if ramp else None,
                         'trust': bool(over.get(okey, {}).get('trust_rates'))}
     return out
 
