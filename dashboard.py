@@ -15,13 +15,17 @@ exec(compile(src, 'model.py', 'exec'), ns)
 players, teams = ns['players'], ns['teams']
 pos_name = ns['pos_name']
 
-V4_XI = [('Kinsky', 'TOT'), ('Guéhi', 'MCI'), ('Mosquera', 'ARS'),
+# The submitted GW1 squad. Bench order is the autosub order, so it is
+# meaningful and kept as given: Rodon, Hughes, Diop.
+MY_XI = [('Kinsky', 'TOT'), ('Virgil', 'LIV'), ('Calafiori', 'ARS'),
          ('Maguire', 'MUN'), ('B.Fernandes', 'MUN'), ('Szoboszlai', 'LIV'),
-         ('Mbeumo', 'MUN'), ('E.Le Fée', 'SUN'), ('Haaland', 'MCI'),
+         ('Tzolis', 'ARS'), ('E.Le Fée', 'SUN'), ('Haaland', 'MCI'),
          ('João Pedro', 'CHE'), ('Calvert-Lewin', 'LEE')]
-V4_BENCH = [('Verbruggen', 'BHA'), ('Davis', 'IPS'), ('van Ewijk', 'COV'),
-            ('Hughes', 'CRY')]
-V4 = set(V4_XI) | set(V4_BENCH)
+MY_BENCH = [('Verbruggen', 'BHA'), ('Rodon', 'LEE'), ('Hughes', 'CRY'),
+            ('Diop', 'IPS')]
+MY_CAPTAIN = ('Haaland', 'MCI')
+MY_VICE = ('B.Fernandes', 'MUN')
+MY_SQUAD = set(MY_XI) | set(MY_BENCH)
 
 
 def pkey(p):
@@ -56,7 +60,7 @@ for p in pts:
     data.append({'n': p['name'], 't': teams[p['team']], 'p': pos_name[p['pos']],
                  'c': p['price'], 'x': round(p['xpts'], 2), 'xn': round(p['xnext'], 2),
                  'g': p['gws'], 'tt': p['tot4'], 'pc': pct, 'pl': lik,
-                 's': p['sel'], 'v4': pkey(p) in V4, 'xi': pkey(p) in set(V4_XI),
+                 's': p['sel'], 'mine': pkey(p) in MY_SQUAD, 'xi': pkey(p) in set(MY_XI),
                  'xm': p['xmins'], 'xmg': p['xmins_gws'], 'why': p['src']})
 gw_labels = ns['HORIZON_EVENTS']
 
@@ -83,11 +87,11 @@ fixmeta = {k: v for k, v in (ns.get('FIXMETA') or {}).items()
            if k not in ('avg_gf', 'avg_ga')}
 
 squad_rows = []
-for name, club in V4_XI + V4_BENCH:
+for name, club in MY_XI + MY_BENCH:
     p = next(q for q in players if q['name'] == name and teams[q['team']] == club)
     squad_rows.append({'n': name, 't': club, 'p': pos_name[p['pos']],
                        'c': p['price'], 'g': p['gws'], 'tt': p['tot4'],
-                       'xi': (name, club) in set(V4_XI)})
+                       'xi': (name, club) in set(MY_XI)})
 
 html = """<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -257,13 +261,13 @@ const xmax=Math.max(...DATA.map(d=>d.c))+0.4, xmin=3.6;
 const ymax=Math.max(...DATA.map(d=>d.x))+0.4, ymin=0;
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;')}
 const CHART_MIN=1.8;  // charts hide sub-threshold players (unless in your squad)
-const show=(d,f)=>(f==='All'||d.p===f)&&(d.x>=CHART_MIN||d.v4);
+const show=(d,f)=>(f==='All'||d.p===f)&&(d.x>=CHART_MIN||d.mine);
 function mark(d,i,cx,cy,extra){
  const c=COL[d.p];
  const m = d.p==='GKP'
   ? `<rect x="${cx-4}" y="${cy-4}" width="8" height="8" fill="${c}"${extra||''}/>`
   : `<circle cx="${cx}" cy="${cy}" r="4.5" fill="${c}"${extra||''}/>`;
- return `<g class="dot" data-i="${i}">${d.v4?`<circle cx="${cx}" cy="${cy}" r="8.5" fill="none" stroke="var(--ink)" stroke-width="1.6"/>`:''}${m}<circle cx="${cx}" cy="${cy}" r="13" fill="transparent"/></g>`;
+ return `<g class="dot" data-i="${i}">${d.mine?`<circle cx="${cx}" cy="${cy}" r="8.5" fill="none" stroke="var(--ink)" stroke-width="1.6"/>`:''}${m}<circle cx="${cx}" cy="${cy}" r="13" fill="transparent"/></g>`;
 }
 
 // planner: per-GW projections, toggle total vs per-£m
@@ -281,7 +285,7 @@ function drawPlanner(){
   h+=`<tr><th colspan="${5+GWL.length}" style="padding-top:12px;color:${COL[p]}">${p}</th></tr>`;
   rows.forEach(d=>{
    const mins=d.xmg?`expected minutes by GW: ${d.xmg.join(' → ')}`:`expected minutes ${d.xm}`;
-   h+=`<tr><td title="${esc(mins+' · '+d.why)}">${d.v4?'● ':''}<b>${esc(d.n)}</b>`+
+   h+=`<tr><td title="${esc(mins+' · '+d.why)}">${d.mine?'● ':''}<b>${esc(d.n)}</b>`+
     `${d.xmg?' <span class="ramp">▲ minutes</span>':''}</td>`+
     `<td>${d.t}</td><td class="num">${d.c.toFixed(1)}</td>`+
     d.g.map(v=>`<td class="num">${v.toFixed(1)}</td>`).join('')+
@@ -358,7 +362,7 @@ function bindTips(el){
   const t=e.target.closest('.dot');
   if(!t){tip.style.opacity=0;return}
   const d=DATA[+t.dataset.i];
-  tip.innerHTML=`<b>${esc(d.n)}</b> <span class="r">${d.t} · ${d.p}</span><br>£${d.c.toFixed(1)}m · <b>${d.x}</b> xPts (next 4 GWs) · GW1: <b>${d.xn}</b><br><span class="r">${d.s}% owned${d.v4?' · in your squad':''}</span>`;
+  tip.innerHTML=`<b>${esc(d.n)}</b> <span class="r">${d.t} · ${d.p}</span><br>£${d.c.toFixed(1)}m · <b>${d.x}</b> xPts (next 4 GWs) · GW1: <b>${d.xn}</b><br><span class="r">${d.s}% owned${d.mine?' · in your squad':''}</span>`;
   tip.style.opacity=1;
   tip.style.left=Math.min(e.clientX+14,innerWidth-250)+'px';
   tip.style.top=(e.clientY+14)+'px';
@@ -646,7 +650,7 @@ BANDS = {
 
 
 def band_tables(personal):
-    v4set = set(V4_XI) | set(V4_BENCH)
+    v4set = set(MY_XI) | set(MY_BENCH)
     cols = []
     for pos_id in [2, 3, 4, 1]:
         rows = ''
@@ -898,7 +902,7 @@ except Exception:
 def emit(path, personal):
     # public copy strips squad markers entirely (no rings, labels, table, or
     # flags in the embedded JSON) so nothing about our team leaks pre-deadline
-    dat = data if personal else [{**r, 'v4': False, 'xi': False} for r in data]
+    dat = data if personal else [{**r, 'mine': False, 'xi': False} for r in data]
     page = (html.replace('__STYLE__', theme.style_block())
                 .replace('__VALUEBANDS__', band_tables(personal))
                 .replace('__SQUADSEC__', SQUAD_SEC if personal else '')
@@ -930,5 +934,5 @@ def emit(path, personal):
 
 
 emit('dashboard.html', False)      # public: general analysis only (served by app.py)
-emit('my_dashboard.html', True)    # personal: includes squad v4 (artifact / local viewing)
+emit('my_dashboard.html', True)    # personal: includes the submitted squad (local viewing only)
 print(f'dashboard.html (public) + my_dashboard.html (personal): {len(data)} players, {len(heat)} teams')
