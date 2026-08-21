@@ -344,7 +344,9 @@ def transfers_html(owned, bank, m, bank_known=True, editable=False):
            f"border-radius:6px;padding:3px 10px;font:600 12px system-ui;cursor:pointer'>Apply</button>"
            if editable else '') + '</li>'
         for gain, el, xp_out, cand in rows)
-    note = '' if bank_known else ' Assumes £0.0 in the bank.'
+    note = (f' £{bank:.1f}m in the bank included.' if bank_known and bank > 0
+            else '' if bank_known
+            else ' Assumes £0.0 in the bank \u2014 set it below to widen the search.')
     return ('<div class="card"><h2 style="font-size:16px">Best transfers by model</h2>'
             f'<p class="note" style="margin:2px 0 10px">Single swaps, same position, budget and '
             f'3-per-club respected.{note} Caveat: the model runs on last season’s rates — '
@@ -536,7 +538,16 @@ go.onclick=()=>{
 
 @app.get('/paste', response_class=HTMLResponse)
 def paste(squad: str = '', mode: str = '', src: str = '', name: str = '',
-          type: str = '', sid: str = '', roles: str = '', gw: str = ''):
+          type: str = '', sid: str = '', roles: str = '', gw: str = '',
+          bank: str = ''):
+    # a manually entered squad has no bank in the API, so the user tells us.
+    # None means 'not stated', which is different from stated-as-zero.
+    try:
+        bank_val = round(float(bank), 1) if bank.strip() != '' else None
+        if bank_val is not None and not 0 <= bank_val <= 100:
+            bank_val = None
+    except ValueError:
+        bank_val = None
     if not squad.strip():
         if mode == 'text':
             return render(title='Paste your squad', body=PASTE_FORM)
@@ -634,8 +645,12 @@ function dupTinker(){
             except Exception:
                 stored = None
         body = (f'<h1>{title}</h1><p class="sub">{intro}</p>'
-                + table + squad_plan_html(entries, m, stored=stored) + prob_html
-                + transfers_html(owned, 0.0, m, bank_known=False, editable=False)
+                + table
+                + squad_plan_html(entries, m, stored=stored, bank=bank_val or 0.0)
+                + prob_html
+                + transfers_html(owned, bank_val or 0.0, m,
+                                 bank_known=bank_val is not None, editable=False)
+                + BANK_UI.replace('__BANKVAL__', '' if bank_val is None else f'{bank_val:g}')
                 + edit_ui)
         return render(title=name or 'Squad', body=body)
 
@@ -734,10 +749,42 @@ document.getElementById('subq').addEventListener('input',()=>{
     body = (f'<h1>{title}</h1>'
             f'<p class="sub">{intro}'
             f'Use ⇄ on any row to substitute a player. <a href="/squads">← All squads</a></p>'
-            + table + save_btn + squad_plan_html(entries, m) + prob_html
-            + transfers_html(owned, 0.0, m, bank_known=False, editable=True)
+            + table + save_btn
+            + squad_plan_html(entries, m, bank=bank_val or 0.0)
+            + prob_html
+            + transfers_html(owned, bank_val or 0.0, m,
+                             bank_known=bank_val is not None, editable=True)
+            + BANK_UI.replace('__BANKVAL__', '' if bank_val is None else f'{bank_val:g}')
             + edit_ui)
     return render(title=name or 'Squad analysis', body=body)
+
+
+BANK_UI = """<div class="card"><h2 style="font-size:16px">Money in the bank</h2>
+<p class="note" style="margin:2px 0 10px">Cash sitting unspent changes what a transfer
+can reach, and the 4-week plan can spend it too. Without it both assume £0.0 and can
+only ever suggest a like-for-like or cheaper swap.</p>
+<label style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">£
+<input id="bankin" type="number" step="0.1" min="0" max="100" value="__BANKVAL__"
+ style="width:90px;padding:8px 10px;border:1px solid var(--grid);border-radius:8px;
+ background:var(--bg);color:var(--ink);font:inherit">m
+<button type="button" onclick="setBank()" style="background:var(--accent);color:#fff;border:none;
+ border-radius:8px;padding:8px 14px;font:600 13px system-ui;cursor:pointer">Apply</button>
+<span class="mut" id="banknote"></span></label></div>
+<script>
+function setBank(){
+ const v=document.getElementById('bankin').value||'0';
+ localStorage.setItem('fpl_bank',v);
+ const u=new URL(location.href);u.searchParams.set('bank',v);location.href=u.toString();
+}
+// if the page was opened without a bank but this device remembers one, apply it once
+(function(){
+ const u=new URL(location.href);
+ if(u.searchParams.has('bank'))return;
+ const v=localStorage.getItem('fpl_bank');
+ if(v===null||parseFloat(v)<=0)return;
+ u.searchParams.set('bank',v);location.replace(u.toString());
+})();
+</script>"""
 
 
 REMEMBER_SNIPPET = """<p class="note"><button onclick="localStorage.setItem('fpl_team_id','{tid}');this.textContent='Remembered on this device ✓';this.disabled=true"
@@ -851,7 +898,7 @@ draw();
 </div>"""
 
 
-def squad_plan_html(entries, m, stored=None):
+def squad_plan_html(entries, m, stored=None, bank=0.0):
     """Interactive 4-week plan for a specific squad: per-week squads, weekly XI
     and captain, and the optimal transfer path from here."""
     import html as _h
@@ -882,14 +929,17 @@ def squad_plan_html(entries, m, stored=None):
     if len(ids) != 15:
         return ('<div class="card"><h2 style="font-size:16px">4-week plan</h2>'
                 '<p class="note">Needs a full 15-player squad to plan transfers.</p></div>')
-    if ids in _plan_cache:
-        return render(*_plan_cache[ids])
+    ckey = (ids, round(bank, 1))
+    if ckey in _plan_cache:
+        return render(*_plan_cache[ckey])
     try:
         import plan4
         src = open('model.py', encoding='utf-8').read().split('# --- SCORES-END ---')[0]
         ns = {}
         exec(compile(src, 'model.py', 'exec'), ns)
-        budget = sum(e['price'] for e in entries)
+        # the plan may spend what is in the bank, not just recycle the squad's
+        # own value - otherwise every suggested move is like-for-like or cheaper
+        budget = sum(e['price'] for e in entries) + bank
         plan = plan4.solve_plan(ns['players'], n_gw=len(gwl), budget=budget,
                                 initial_ids=list(ids), time_limit=25)
         if not plan:
@@ -913,7 +963,7 @@ def squad_plan_html(entries, m, stored=None):
             'in': [{'n': pool[i]['name'], 't': m['teams'][pool[i]['team']]} for i in mv['in']],
             'hits': mv['hits']} for mv in plan['transfers']]
         total = round(sum(totals) - 4 * sum(t['hits'] for t in transfers), 1)
-        _plan_cache[ids] = (weeks, totals, transfers, total)
+        _plan_cache[ckey] = (weeks, totals, transfers, total)
         return render(weeks, totals, transfers, total)
     except Exception as exc:  # noqa: BLE001
         return (f'<div class="card"><h2 style="font-size:16px">4-week plan</h2>'
