@@ -60,5 +60,27 @@
   "reason": "Signed from AVL and registered 21 Aug with ZERO pre-season minutes for Arsenal; predicted GW1 XI is White-Mosquera-Gabriel-Calafiori. Last season 34 starts at Villa, which the baseline was reading as nailed-starter evidence at his new club. Ramp is a judgement on integration, not observed data: bench in GW1, first start likely GW2-3 given Saliba is absent.",
   "added": "2026-08-21",
   "review": "GW1 team sheet, then any league start - once he completes 70+ league minutes replace this with a flat xmins near 80"
+ },
+ "Rice|ARS": {
+  "ramp": [
+   70,
+   78,
+   81,
+   81
+  ],
+  "reason": "Arteta 20 Aug: Rice and Saka 'ready to be involved' after both featured OFF THE BENCH in the Community Shield (Rice 45 min). Rice played 69 games for club and country last season and had been expected to miss a small chunk of the start as precaution over persistent hamstring neural pain; England went to the WC semi-final (15 Jul) and third-place playoff (18 Jul), so barely any pre-season. Baseline gave a flat 81 off last season’s 35 starts, which is his settled level rather than his GW1 level. Predicted XIs do start him, so this is a managed-minutes haircut, not a benching. Judgement, not observed data.",
+  "added": "2026-08-21",
+  "review": "GW1 team sheet, then any 70+ minute league appearance - at which point delete this entry and let the baseline stand"
+ },
+ "Saka|ARS": {
+  "ramp": [
+   55,
+   63,
+   67,
+   67
+  ],
+  "reason": "Arteta 20 Aug: Rice and Saka 'ready to be involved' after both featured OFF THE BENCH in the Community Shield (Rice 45 min). Rice played 69 games for club and country last season and had been expected to miss a small chunk of the start as precaution over persistent hamstring neural pain; England went to the WC semi-final (15 Jul) and third-place playoff (18 Jul), so barely any pre-season. Same evidence, same treatment. His baseline 67 already carries an injury-regression haircut, so this ramp converges back to that rather than to a full 90. Judgement, not observed data.",
+  "added": "2026-08-21",
+  "review": "GW1 team sheet, then any 70+ minute league appearance - at which point delete this entry and let the baseline stand"
  }
 }
