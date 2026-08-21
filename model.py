@@ -175,8 +175,10 @@ for e in d['elements']:
             return (appearance + goals + assists + cs + saves + defcon
                     + bonus + pen - gc - yc_pen)
 
-        xpts = _pts(att_adj, xgc)
         gws = [sum(_pts(a, g) for a, g in ev_adjs[ev]) for ev in HORIZON_EVENTS]
+        # headline xPts is the mean of the actual fixtures, so bookmaker odds
+        # reach the value tables too (it used to use the FDR average only)
+        xpts = sum(gws) / len(gws) if gws else _pts(att_adj, xgc)
     elif xmins_mode == 'out':
         xpts = 0.0
         gws = [0.0] * HORIZON
@@ -193,8 +195,8 @@ for e in d['elements']:
             cs = math.exp(-xgc_v) * CS_VAL[pos] * frac if pos <= 3 else 0
             return appearance + cs + 0.10 * price * frac * att * sent + dc_prior + pen
 
-        xpts = _prior(att_adj, xgc)
         gws = [sum(_prior(a, g) for a, g in ev_adjs[ev]) for ev in HORIZON_EVENTS]
+        xpts = sum(gws) / len(gws) if gws else _prior(att_adj, xgc)
 
     players.append({
         'id': e['id'], 'name': e['web_name'], 'team': e['team'], 'pos': pos,
