@@ -63,8 +63,10 @@ def refresh_data(build=True, use_api=False):
             json.loads(data)  # only overwrite with valid JSON
             with open(fn, 'wb') as f:
                 f.write(data)
-        if build:
-            subprocess.run([sys.executable, 'dashboard.py'], check=True, timeout=240)
+        # odds BEFORE the build: the container filesystem is ephemeral, so on a
+        # cold boot there is no odds cache yet, and building first would publish
+        # a dashboard whose fixture model had no market prices to calibrate
+        # against until the next rebuild came round.
         try:
             import odds as odds_mod
             # hourly: the free CSV only (api entries carry forward). The Odds API
@@ -74,6 +76,8 @@ def refresh_data(build=True, use_api=False):
                   f"(api added {op.get('api_added', 0)}, quota {op.get('api', {})})")
         except Exception as exc:  # noqa: BLE001
             print('odds fetch skipped:', exc)
+        if build:
+            subprocess.run([sys.executable, 'dashboard.py'], check=True, timeout=240)
         try:
             import momentum as mom
             boot = json.load(open('bootstrap.json', encoding='utf-8'))
