@@ -27,8 +27,8 @@ ALIAS = {
     "Nott'm Forest": "Nott'm Forest", 'Nottingham': "Nott'm Forest",
     'Tottenham': 'Spurs', 'Spurs': 'Spurs', 'Newcastle': 'Newcastle',
     'Wolves': 'Wolves', 'Sheffield United': 'Sheffield Utd',
-    'Leeds': 'Leeds', 'Ipswich': 'Ipswich', 'Coventry': 'Coventry',
-    'Hull': 'Hull', 'Brighton': 'Brighton', 'West Ham': 'West Ham',
+    'Leeds': 'Leeds', 'Ipswich': 'Ipswich Town', 'Coventry': 'Coventry City',
+    'Hull': 'Hull City', 'Brighton': 'Brighton', 'West Ham': 'West Ham',
     'Crystal Palace': 'Crystal Palace', 'Aston Villa': 'Aston Villa',
 }
 
@@ -81,9 +81,19 @@ def fetch(fixtures_path='fixtures.json', bootstrap_path='bootstrap.json',
             pair2event[(id2short[f['team_h']], id2short[f['team_a']])] = f['event']
 
     def short(name):
+        """Map a bookmaker's club name to an FPL short code. The sheet uses
+        shorter forms than FPL ('Coventry' vs 'Coventry City'), so fall back to
+        a prefix match rather than dropping the fixture."""
         name = (name or '').strip()
         mapped = ALIAS.get(name, name)
-        return fpl_names.get(mapped, mapped if mapped in id2short.values() else None)
+        if mapped in fpl_names:
+            return fpl_names[mapped]
+        if mapped in id2short.values():
+            return mapped
+        for full, code in fpl_names.items():
+            if full.lower().startswith(mapped.lower()) and len(mapped) >= 4:
+                return code
+        return None
 
     out_fx, teams = [], {}
     for r in rows:
