@@ -82,6 +82,11 @@ try:
 except Exception:
     ODDS = None
 
+# our own continuous fixture model, calibrated against whatever the bookmakers
+# have quoted; it replaces FPL's 1-5 difficulty rating for unquoted fixtures
+FIXMAP, FIXMETA = {}, {}
+_PLACEHOLDER_SENT_ = True
+
 # season-expectation sentiment: predicted vs last-season league points per club
 # (betting-market/Elo based), sqrt-dampened, applied to attack rates and
 # inversely to team xGC. Promoted clubs (no 'last') stay at 1.0.
@@ -91,6 +96,33 @@ if os.path.exists('team_sentiment.json'):
         if short.startswith('_') or short not in short2id or 'last' not in v:
             continue
         SENT[short2id[short]] = min(max((v['pred'] / v['last']) ** 0.5, 0.87), 1.15)
+
+# team attack for the FIXTURE model: total expected goals per match of the
+# current squad. Far more discriminating than a per-player average (2.15 for
+# City vs 0.69 for Fulham), but promoted clubs have no PL history at all, so
+# they get a weak-but-real prior instead of ~0.
+PROMOTED_XG_PRIOR = 1.05
+_tot_xg = {}
+for _e in d['elements']:
+    _c = teams[_e['team']]
+    _tot_xg[_c] = _tot_xg.get(_c, 0.0) + float(_e['expected_goals'])
+TEAM_XG_PM = {c: v / 38 for c, v in _tot_xg.items()}
+for _c, _v in list(TEAM_XG_PM.items()):
+    if _v < 0.45:                      # no meaningful PL sample
+        TEAM_XG_PM[_c] = PROMOTED_XG_PRIOR
+
+try:
+    import fixmodel
+    _sent_short = {teams[t]: v for t, v in SENT.items()}
+    _xgc_short = {teams[t]: v for t, v in team_xgc90.items()}
+    _med_xgc = sorted(_xgc_short.values())[len(_xgc_short) // 2]
+    _med_xg = sorted(TEAM_XG_PM.values())[len(TEAM_XG_PM) // 2]
+    FIXMAP, FIXMETA = fixmodel.build(
+        fx, teams, TEAM_XG_PM, _xgc_short, _sent_short, _med_xg, _med_xgc,
+        (ODDS or {}).get('teams') or {}, set(HORIZON_EVENTS),
+        med_xg_base=_med_xg)
+except Exception as _fe:
+    FIXMAP, FIXMETA = {}, {'error': str(_fe)[:80]}
 
 players = []
 for e in d['elements']:
@@ -107,12 +139,16 @@ for e in d['elements']:
     # Bookmaker odds, where available, replace the coarse 1-5 difficulty rating:
     # the market's expected goals for/against a team is continuous, and its
     # 'against' figure feeds clean sheets and the concession penalty directly.
-    _odds_team = (ODDS['teams'].get(teams[e['team']]) or {}) if ODDS else {}
+    _fix_team = FIXMAP.get(teams[e['team']]) or {}
     ev_adjs = {}
     for ev in HORIZON_EVENTS:
-        o = _odds_team.get(str(ev))
+        o = _fix_team.get(str(ev))
         if o:
-            att = min(max(math.sqrt(o['gf'] / 1.45), 0.75), 1.35)
+            # a player's xG/90 is an average-fixture rate, so scale it by how
+            # this fixture compares with THEIR OWN average fixture — linear,
+            # not square-rooted, which is what kept week-to-week swings flat
+            own_avg = (FIXMETA.get('avg_gf') or {}).get(teams[e['team']]) or 1.3
+            att = min(max(o['gf'] / own_avg, 0.5), 1.7)
             ev_adjs[ev] = [(att, max(o['ga'], 0.25))]
         else:
             ev_adjs[ev] = [(1 + 0.16 * (3 - fd), base_xgc * (1 + 0.26 * (fd - 3)))
