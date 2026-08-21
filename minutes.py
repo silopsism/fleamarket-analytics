@@ -50,14 +50,19 @@ def expected_minutes(d):
         base = min(e['minutes'] / 38, CAP)
         src = f'last season ({e["starts"]} starts)'
 
-        # injury regression: a currently-fit regular's past absences are only
-        # partially predictive — regress availability toward a 90% healthy
-        # baseline, floored at actual so durable players aren't dragged down
-        if e['status'] == 'a' and e['minutes'] >= 1000 and e['starts'] >= 10:
+        # injury regression: a currently-fit player's past absences are only
+        # partially predictive, so regress availability toward a healthy
+        # baseline, floored at actual so durable players aren't dragged down.
+        # Eligibility is a STARTER'S PROFILE (they finish the games they start),
+        # not a minutes total — the old >=1000-minute gate excluded exactly the
+        # injury-wrecked players who need this most.
+        mps = e['minutes'] / e['starts'] if e['starts'] else 0
+        starter_shape = e['starts'] >= 5 and 70 <= mps <= 95
+        if e['status'] == 'a' and (starter_shape
+                                   or (e['minutes'] >= 1000 and e['starts'] >= 10)):
             avail = e['minutes'] / (38 * 90)
-            adj = max(avail, 0.6 * avail + 0.4 * 0.90)
-            mps = min(e['minutes'] / e['starts'], 90)
-            cand = min(adj * mps, CAP)
+            adj = max(avail, 0.55 * avail + 0.45 * 0.88)
+            cand = min(adj * min(mps or 90, 90), CAP)
             if cand > base:
                 base = cand
                 src = f'last season, injury-regressed ({avail:.0%}→{adj:.0%} avail)'
@@ -98,7 +103,7 @@ if __name__ == '__main__':
     for e in d['elements']:
         sel = float(e['selected_by_percent'])
         m = xm[e['id']]['xmins']
-        if sel >= 8 and m < 45:  # crowd owns him, model says he barely plays
+        if sel >= 4 and m < 50:  # crowd owns him, model says he barely plays
             rows.append((sel, e['web_name'], teams[e['team']], m, xm[e['id']]['src']))
     for sel, n, t, m, src in sorted(rows, reverse=True)[:15]:
         print(f'{sel:5.1f}% owned  {n:18} {t:4} xmins={m:4.0f}  ({src})')
