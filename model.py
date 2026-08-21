@@ -30,12 +30,15 @@ fdr = defaultdict(list)
 next_event = min(e['id'] for e in d['events'] if not e['finished'])
 HORIZON_EVENTS = list(range(next_event, next_event + HORIZON))
 ev_fdr = defaultdict(lambda: defaultdict(list))
+ev_opp = defaultdict(lambda: defaultdict(list))
 for f in fx:
     if f['event'] and f['event'] in HORIZON_EVENTS:
         fdr[f['team_h']].append(f['team_h_difficulty'])
         fdr[f['team_a']].append(f['team_a_difficulty'])
         ev_fdr[f['team_h']][f['event']].append(f['team_h_difficulty'])
         ev_fdr[f['team_a']][f['event']].append(f['team_a_difficulty'])
+        ev_opp[f['team_h']][f['event']].append(f['team_a'])
+        ev_opp[f['team_a']][f['event']].append(f['team_h'])
 avg_fdr = {t: sum(v) / len(v) for t, v in fdr.items()}
 
 # team defensive context: minutes-weighted mean xGC/90 of current squad members
@@ -48,6 +51,7 @@ for e in d['elements']:
 team_xgc90 = {t: (v[0] / v[1] if v[1] else 1.4) for t, v in tw.items()}
 for t in teams:
     team_xgc90.setdefault(t, 1.7)  # promoted sides with no data: weak prior
+med_xgc90 = sorted(team_xgc90.values())[len(team_xgc90) // 2]
 
 XMINS = expected_minutes(d)
 
@@ -135,24 +139,31 @@ for e in d['elements']:
     att_adj = 1 + 0.10 * (3 - avg_fdr[e['team']])
     xgc = base_xgc * (1 + 0.18 * (avg_fdr[e['team']] - 3))
     p_cs = math.exp(-xgc)
-    # per-fixture adjustments for each horizon event.
-    # Bookmaker odds, where available, replace the coarse 1-5 difficulty rating:
-    # the market's expected goals for/against a team is continuous, and its
-    # 'against' figure feeds clean sheets and the concession penalty directly.
+    # per-fixture adjustments for each horizon event, and deliberately TWO of
+    # them: a fixture is not one difficulty number. The attack side comes from
+    # how leaky the opponent is, the defensive side from how dangerous they are,
+    # and those routinely disagree — a promoted side may be easy to score past
+    # and still carry enough threat to spoil a clean sheet.
     _fix_team = FIXMAP.get(teams[e['team']]) or {}
     ev_adjs = {}
     for ev in HORIZON_EVENTS:
         o = _fix_team.get(str(ev))
         if o:
-            # a player's xG/90 is an average-fixture rate, so scale it by how
-            # this fixture compares with THEIR OWN average fixture — linear,
-            # not square-rooted, which is what kept week-to-week swings flat
-            own_avg = (FIXMETA.get('avg_gf') or {}).get(teams[e['team']]) or 1.3
-            att = min(max(o['gf'] / own_avg, 0.5), 1.7)
-            ev_adjs[ev] = [(att, max(o['ga'], 0.25))]
+            # af is already this fixture's expected goals relative to the team's
+            # OWN season average, which is the right denominator: a player's
+            # xG/90 is an average-fixture rate. ga stays absolute because clean
+            # sheets and the concession penalty are levels, not ratios.
+            ev_adjs[ev] = [(min(max(o['af'], 0.5), 1.7), max(o['ga'], 0.25))]
         else:
-            ev_adjs[ev] = [(1 + 0.16 * (3 - fd), base_xgc * (1 + 0.26 * (fd - 3)))
-                           for fd in ev_fdr[e['team']].get(ev, [])]
+            # fixmodel unavailable: still split the two directions rather than
+            # leaning on FPL's single rating, which conflates them
+            adjs = []
+            for _opp in ev_opp[e['team']].get(ev, []):
+                leaky = (team_xgc90[_opp] / med_xgc90) ** 0.6      # good for us
+                threat = (team_att[_opp] / med_att) ** 0.8         # bad for us
+                adjs.append((min(max(leaky, 0.6), 1.6),
+                             base_xgc * min(max(threat, 0.55), 1.7)))
+            ev_adjs[ev] = adjs
 
     xmins = XMINS[e['id']]['xmins']   # availability already applied inside
     xmins_src = XMINS[e['id']]['src']

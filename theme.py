@@ -40,7 +40,9 @@ TOKENS = """
  --glow:rgba(91,43,217,.10);
  --up:#12833c;--down:#c81e4a;--warn:#b45309;
  --def:#2a78d6;--mid:#eb6834;--fwd:#1baf7a;--gkp:#7d867f;
- --h2:#cde2fb;--h3:#86b6ef;--h4:#3987e5;--h5:#104281}
+ --h2:#cde2fb;--h3:#86b6ef;--h4:#3987e5;--h5:#104281;
+ --f1:#157f45;--f1i:#fff;--f2:#a7dcb9;--f2i:#08210f;--f3:#e6eae7;--f3i:#39423b;
+ --f4:#f4b8c3;--f4i:#2b0a11;--f5:#bf1b3a;--f5i:#fff}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
  --bg:#0b100d;--surface:#141b16;--sunk:#101710;
  --ink:#f1f5f1;--ink2:#b6c1b8;--muted:#7f8a81;
@@ -48,7 +50,9 @@ TOKENS = """
  --accent:#a98bff;--accent-soft:#231a3d;--lime:#c8f53c;--lime-ink:#0b100d;
  --glow:rgba(169,139,255,.16);
  --up:#3ecf6a;--down:#ff5c7a;--warn:#fbbf24;
- --def:#3987e5;--mid:#ff7a45;--fwd:#25c78b;--gkp:#7f8a81}}
+ --def:#3987e5;--mid:#ff7a45;--fwd:#25c78b;--gkp:#7f8a81;
+ --f1:#1e7a48;--f1i:#eafff1;--f2:#24503a;--f2i:#cfeadb;--f3:#212a24;--f3i:#b6c1b8;
+ --f4:#56212f;--f4i:#ffd7de;--f5:#a3153a;--f5i:#ffe9ee}}
 :root[data-theme="dark"]{color-scheme:dark;
  --bg:#0b100d;--surface:#141b16;--sunk:#101710;
  --ink:#f1f5f1;--ink2:#b6c1b8;--muted:#7f8a81;
@@ -56,7 +60,9 @@ TOKENS = """
  --accent:#a98bff;--accent-soft:#231a3d;--lime:#c8f53c;--lime-ink:#0b100d;
  --glow:rgba(169,139,255,.16);
  --up:#3ecf6a;--down:#ff5c7a;--warn:#fbbf24;
- --def:#3987e5;--mid:#ff7a45;--fwd:#25c78b;--gkp:#7f8a81}
+ --def:#3987e5;--mid:#ff7a45;--fwd:#25c78b;--gkp:#7f8a81;
+ --f1:#1e7a48;--f1i:#eafff1;--f2:#24503a;--f2i:#cfeadb;--f3:#212a24;--f3i:#b6c1b8;
+ --f4:#56212f;--f4i:#ffd7de;--f5:#a3153a;--f5i:#ffe9ee}
 """
 
 BASE = """
@@ -171,6 +177,22 @@ th.gwsel:hover{color:var(--accent)}
  font:700 11px/1.5 Archivo;letter-spacing:.03em;padding:5px 4px}
 .d2{background:var(--h2);color:#08121f}.d3{background:var(--h3);color:#08121f}
 .d4{background:var(--h4);color:#fff}.d5{background:var(--h5);color:#fff}
+/* two-directional fixture cells: f1 kindest .. f5 harshest, applied to the
+   attacking read and the defensive read independently */
+.f1{background:var(--f1);color:var(--f1i)}.f2{background:var(--f2);color:var(--f2i)}
+.f3{background:var(--f3);color:var(--f3i)}.f4{background:var(--f4);color:var(--f4i)}
+.f5{background:var(--f5);color:var(--f5i)}
+.cell{position:relative}
+.cell.f0{background:var(--sunk);color:var(--ink2)}
+.cell .cn{display:block;font:700 10px/1.35 Archivo;opacity:.78;letter-spacing:0}
+.cell .bars{display:flex;gap:2px;margin-top:4px}
+.cell .bars i{flex:1;height:6px;border-radius:2px}
+.cell.odds:before{content:"";position:absolute;top:3px;right:3px;width:4px;height:4px;
+ border-radius:50%;background:currentColor;opacity:.5}
+.hmkey{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin:12px 0 2px;
+ font:700 10.5px/1 Archivo;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.hmkey .sc{display:flex;gap:3px}
+.hmkey .sc i{width:17px;height:9px;border-radius:2px}
 .teamlab{font:700 12px/1 Archivo;letter-spacing:.06em;padding-right:10px;text-transform:uppercase}
 
 /* movement + mini lists */

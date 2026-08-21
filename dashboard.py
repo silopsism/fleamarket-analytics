@@ -60,13 +60,26 @@ for p in pts:
 gw_labels = ns['HORIZON_EVENTS']
 
 fx = json.load(open('fixtures.json', encoding='utf-8'))
+# fixture runs carry BOTH directions: 'a' is the attacking read (expected goals
+# for, against that team's own average) and 'd' the defensive one (expected
+# goals against). FPL's single 1-5 rating is kept only as a fallback label.
+FIXMAP = ns.get('FIXMAP') or {}
 runs = defaultdict(dict)
 for f in fx:
-    if f['event'] and f['event'] <= 6:
-        runs[teams[f['team_h']]][f['event']] = {'o': teams[f['team_a']], 'd': f['team_h_difficulty'], 'h': 1}
-        runs[teams[f['team_a']]][f['event']] = {'o': teams[f['team_h']], 'd': f['team_a_difficulty'], 'h': 0}
-order = sorted(runs, key=lambda t: sum(g['d'] for g in runs[t].values()))
+    if not f['event'] or f['event'] > 6:
+        continue
+    for side, opp, home, fdr in ((f['team_h'], f['team_a'], 1, f['team_h_difficulty']),
+                                 (f['team_a'], f['team_h'], 0, f['team_a_difficulty'])):
+        c = teams[side]
+        v = (FIXMAP.get(c) or {}).get(str(f['event'])) or {}
+        runs[c][f['event']] = {
+            'o': teams[opp], 'h': home, 'fdr': fdr,
+            'a': v.get('af'), 'd': v.get('df'), 'gf': v.get('gf'),
+            'ga': v.get('ga'), 'cs': v.get('cs'), 'q': 1 if v.get('src') == 'odds' else 0}
+order = sorted(runs, key=lambda t: -sum(g['a'] or 1 for g in runs[t].values()))
 heat = [{'team': t, 'gws': [runs[t].get(gw) for gw in range(1, 7)]} for t in order]
+fixmeta = {k: v for k, v in (ns.get('FIXMETA') or {}).items()
+           if k not in ('avg_gf', 'avg_ga')}
 
 squad_rows = []
 for name, club in V4_XI + V4_BENCH:
@@ -192,8 +205,21 @@ __VALUEBANDS__
 <div class="tabpane" data-tab="fixtures">
 <section class="card">
  <h2>Opening fixtures — GW1–6</h2>
- <p class="note">Sorted easiest run first. Darker = harder (FPL difficulty rating). Uppercase = home.</p>
+ <p class="note">A fixture is two different things at once. Coventry at home is a gift for
+ attackers and a gift for your defenders; Fulham v Chelsea is a good week to own a Fulham
+ forward and a bad one to own their back four. So each cell is scored twice — never
+ collapsed into one difficulty number.</p>
+ <div class="chips" id="hmview">
+  <button class="chip" data-v="both" aria-pressed="true">Both</button>
+  <button class="chip" data-v="att" aria-pressed="false">Attacking returns</button>
+  <button class="chip" data-v="def" aria-pressed="false">Clean sheets</button>
+ </div>
  <div class="scroll hm"><table id="heatmap"></table></div>
+ <div class="hmkey">
+  <span>Kind <span class="sc"><i class="f1"></i><i class="f2"></i><i class="f3"></i><i class="f4"></i><i class="f5"></i></span> Hostile</span>
+  <span>Uppercase = home</span><span>Dot = priced by bookmakers</span>
+ </div>
+ <p class="note" id="hmnote" style="margin-top:10px"></p>
 </section>
 </div>
 
@@ -355,9 +381,46 @@ function radios(id, fn){
 }
 radios('chips2', drawDiff);
 radios('chips3', drawFrontier);
+// fixture grid, scored in two directions and never collapsed into one. Both
+// bands are absolute expected goals so the colours mean the same thing in every
+// row; the multiplier against that team's own average — which is what the xPts
+// model actually applies — rides along in the tooltip.
 const ht=document.getElementById('heatmap');
-ht.innerHTML='<tr><th></th>'+[1,2,3,4,5,6].map(g=>`<th class="num" style="text-align:center">GW${g}</th>`).join('')+'</tr>'+
- HEAT.map(r=>'<tr><td class="teamlab">'+r.team+'</td>'+r.gws.map(g=>g?`<td><div class="cell d${g.d}">${g.h?g.o.toUpperCase():g.o.toLowerCase()}</div></td>`:'<td></td>').join('')+'</tr>').join('');
+const aBand=v=>v==null?0:v>=1.90?1:v>=1.60?2:v>=1.30?3:v>=1.05?4:5;
+const dBand=v=>v==null?0:v<=0.85?1:v<=1.10?2:v<=1.40?3:v<=1.75?4:5;
+const aTip=g=>g.gf==null?'':`xGF ${g.gf.toFixed(2)} — ×${g.a.toFixed(2)} their average`;
+const dTip=g=>g.ga==null?'':`xGA ${g.ga.toFixed(2)}, clean sheet ${Math.round(g.cs*100)}% — ×${g.d.toFixed(2)} their average`;
+function hmCell(g,view){
+ const lab=g.h?g.o.toUpperCase():g.o.toLowerCase(), q=g.q?' odds':'';
+ if(view==='att')
+  return `<div class="cell f${aBand(g.gf)}${q}" title="${aTip(g)}">${lab}<span class="cn">${g.gf==null?'':g.gf.toFixed(2)}</span></div>`;
+ if(view==='def')
+  return `<div class="cell f${dBand(g.ga)}${q}" title="${dTip(g)}">${lab}<span class="cn">${g.cs==null?'':Math.round(g.cs*100)+'%'}</span></div>`;
+ return `<div class="cell f0${q}" title="${aTip(g)}\n${dTip(g)}">${lab}<span class="bars">`+
+        `<i class="f${aBand(g.gf)}"></i><i class="f${dBand(g.ga)}"></i></span></div>`;
+}
+function drawHeat(view){
+ const rank=r=>view==='def'
+   ? r.gws.reduce((s,g)=>s+(g&&g.ga!=null?g.ga:1.4),0)                 // fewest conceded first
+   : -r.gws.reduce((s,g)=>s+(g&&g.gf!=null?g.gf:1.35),0);              // most scored first
+ const rows=[...HEAT].sort((x,y)=>rank(x)-rank(y));
+ ht.innerHTML='<tr><th></th>'+[1,2,3,4,5,6].map(g=>`<th class="num" style="text-align:center">GW${g}</th>`).join('')+'</tr>'+
+  rows.map(r=>'<tr><td class="teamlab">'+r.team+'</td>'+
+   r.gws.map(g=>g?'<td>'+hmCell(g,view)+'</td>':'<td></td>').join('')+'</tr>').join('');
+ const note=document.getElementById('hmnote');
+ if(note)note.textContent=view==='att'
+  ? 'Most expected goals first. Cells show expected goals for, set by how leaky the opponent is — hover for the multiplier against that club’s own average, which is what the projection applies to a player’s xG/90.'
+  : view==='def'
+  ? 'Tightest run first. Cells show clean-sheet probability from expected goals against, set by how dangerous the opponent is — a different question from whether the fixture looks winnable.'
+  : 'Two bars per fixture: left is attacking returns, right is clean sheets. Where they disagree — a leaky opponent who still carries a threat — one difficulty number could never have told you both. Sorted by attacking run.';
+}
+let hmView='both';
+drawHeat(hmView);
+document.querySelectorAll('#hmview .chip').forEach(b=>b.onclick=()=>{
+ hmView=b.dataset.v;
+ document.querySelectorAll('#hmview .chip').forEach(o=>o.setAttribute('aria-pressed',o===b));
+ drawHeat(hmView);
+});
 // Overview panels driven by the squad saved on this device
 function squadPanels(rows){
  const sec=document.getElementById('mysec');
@@ -757,6 +820,10 @@ try:
                   if _n_odds else 'fixture difficulty from FPL ratings (no odds posted yet)')
 except Exception:
     _odds_note = 'fixture difficulty from FPL ratings'
+if fixmeta.get('k_att') is not None:
+    _odds_note += (f" · fixture model k(attack)={fixmeta['k_att']:.2f}, "
+                   f"k(opponent defence)={fixmeta['k_def']:.2f}, "
+                   f"home ×{fixmeta['home_adv']:.2f}, rmse {fixmeta.get('rmse')}")
 
 # Overview: market movements from snapshot history, and the top news stories
 _moves_html, _move_win, _stories_html = '', '', ''
