@@ -14,3 +14,4 @@ odds_cache.json
 .notify.env
 transfers_cache.json
 wt.json
+.odds.env

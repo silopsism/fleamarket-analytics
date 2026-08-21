@@ -63,7 +63,7 @@ def _lambda_from_over(p_over, line=2.5):
 
 
 def fetch(fixtures_path='fixtures.json', bootstrap_path='bootstrap.json',
-          out='odds_cache.json', div='E0'):
+          out='odds_cache.json', div='E0', use_api=True):
     """Pull the odds sheet and translate it into per-team expected goals by
     gameweek. Returns the payload (also written to `out`)."""
     req = urllib.request.Request(URL, headers=UA)
@@ -80,20 +80,8 @@ def fetch(fixtures_path='fixtures.json', bootstrap_path='bootstrap.json',
         if f['event']:
             pair2event[(id2short[f['team_h']], id2short[f['team_a']])] = f['event']
 
-    def short(name):
-        """Map a bookmaker's club name to an FPL short code. The sheet uses
-        shorter forms than FPL ('Coventry' vs 'Coventry City'), so fall back to
-        a prefix match rather than dropping the fixture."""
-        name = (name or '').strip()
-        mapped = ALIAS.get(name, name)
-        if mapped in fpl_names:
-            return fpl_names[mapped]
-        if mapped in id2short.values():
-            return mapped
-        for full, code in fpl_names.items():
-            if full.lower().startswith(mapped.lower()) and len(mapped) >= 4:
-                return code
-        return None
+    import clubs
+    short = clubs.resolver(boot)      # one resolver for every source
 
     out_fx, teams = [], {}
     for r in rows:
@@ -123,9 +111,47 @@ def fetch(fixtures_path='fixtures.json', bootstrap_path='bootstrap.json',
             teams.setdefault(h, {})[str(ev)] = {'gf': rec['lh'], 'ga': rec['la'], 'home': 1}
             teams.setdefault(a, {})[str(ev)] = {'gf': rec['la'], 'ga': rec['lh'], 'home': 0}
 
+    for f in out_fx:
+        f['src'] = 'csv'
+    for c in teams.values():
+        for v in c.values():
+            v.setdefault('src', 'csv')
+
+    # The free CSV only lists imminent fixtures; The Odds API quotes further out.
+    # Merge it in for anything the CSV hasn't covered (CSV wins on overlap: it
+    # carries an explicit Asian handicap rather than an inferred supremacy).
+    prev = load(out) or {}
+    api_rows = []
+    if use_api:
+        try:
+            import oddsapi
+            api_rows, api_meta = oddsapi.fetch(short)
+        except Exception as exc:  # noqa: BLE001
+            api_rows, api_meta = [], {'error': str(exc)[:80]}
+    else:
+        api_meta = {'skipped': 'slow-cycle only'}
+        for f in (prev.get('fixtures') or []):
+            if str(f.get('src', '')).startswith('api'):
+                api_rows.append({'home': f['home'], 'away': f['away'],
+                                 'gf_h': f['lh'], 'gf_a': f['la'],
+                                 'src': f['src'], 'commence': ''})
+    added = 0
+    for r in api_rows:
+        ev = pair2event.get((r['home'], r['away']))
+        if not ev or str(ev) in (teams.get(r['home']) or {}):
+            continue
+        teams.setdefault(r['home'], {})[str(ev)] = {
+            'gf': r['gf_h'], 'ga': r['gf_a'], 'home': 1, 'src': r['src']}
+        teams.setdefault(r['away'], {})[str(ev)] = {
+            'gf': r['gf_a'], 'ga': r['gf_h'], 'home': 0, 'src': r['src']}
+        out_fx.append({'event': ev, 'home': r['home'], 'away': r['away'],
+                       'lh': r['gf_h'], 'la': r['gf_a'],
+                       'total': round(r['gf_h'] + r['gf_a'], 2), 'src': r['src']})
+        added += 1
+
     payload = {'ts': datetime.now(timezone.utc).isoformat(timespec='minutes'),
                'league_avg': LEAGUE_AVG_GOALS, 'fixtures': out_fx, 'teams': teams,
-               'rows_seen': len(rows)}
+               'rows_seen': len(rows), 'api_added': added, 'api': api_meta}
     json.dump(payload, open(out, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     return payload
 

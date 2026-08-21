@@ -52,7 +52,7 @@ def rebuild_dashboard():
         print('dashboard rebuild failed:', exc)
 
 
-def refresh_data(build=True):
+def refresh_data(build=True, use_api=False):
     """Pull fresh FPL data (and optionally rebuild the dashboard). Failures
     leave the previous files in place, so the app serves slightly-stale data."""
     try:
@@ -67,8 +67,11 @@ def refresh_data(build=True):
             subprocess.run([sys.executable, 'dashboard.py'], check=True, timeout=240)
         try:
             import odds as odds_mod
-            op = odds_mod.fetch()
-            print(f"odds: {len(op['fixtures'])} fixtures priced")
+            # hourly: the free CSV only (api entries carry forward). The Odds API
+            # costs quota, so it is refreshed on the slow cycle instead.
+            op = odds_mod.fetch(use_api=use_api)
+            print(f"odds: {len(op['fixtures'])} fixtures priced "
+                  f"(api added {op.get('api_added', 0)}, quota {op.get('api', {})})")
         except Exception as exc:  # noqa: BLE001
             print('odds fetch skipped:', exc)
         try:
@@ -89,15 +92,16 @@ def _refresh_forever():
     # first pass builds the dashboard immediately, so the site is complete within
     # seconds of a deploy (optimal_squad.json is generated, not shipped); the
     # slow news sweep follows and triggers a rebuild to fold its stories in
-    refresh_data(build=True)
+    refresh_data(build=True, use_api=True)
     run_news_sweep()
     rebuild_dashboard()
     cycle = 0
     while True:
         time.sleep(SNAPSHOT_HOURS * 3600)
         cycle += 1
-        refresh_data(build=False)          # hourly: prices, ownership, snapshot
-        if cycle % NEWS_EVERY == 0:
+        refresh_data(build=False, use_api=(cycle % NEWS_EVERY == 0))
+        slow = cycle % NEWS_EVERY == 0
+        if slow:
             run_news_sweep()               # six-hourly: the press
             refresh_transfers()            # and the transfer ledger
         rebuild_dashboard()                # so Overview movements stay current

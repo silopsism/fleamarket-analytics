@@ -61,7 +61,10 @@ def _fee(cell):
     return val, (txt[:40] or 'Undisclosed')
 
 
-def fetch(out='transfers_cache.json'):
+def fetch(out='transfers_cache.json', bootstrap_path='bootstrap.json'):
+    import clubs
+    _boot = json.load(open(bootstrap_path, encoding='utf-8'))
+    _res = clubs.resolver(_boot)
     url = API % PAGE
     raw = urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=30).read()
     wt = json.loads(raw)['parse']['wikitext']
@@ -88,7 +91,7 @@ def fetch(out='transfers_cache.json'):
             continue
         rows_seen += 1
         val, label = _fee(feecell)
-        ca, cb = CLUBS.get(a), CLUBS.get(b)
+        ca, cb = _res(a), _res(b)
         loan = 'loan' in label.lower()
         if cb:
             clubs[cb]['in'].append({'name': name, 'other': a, 'fee': val,
