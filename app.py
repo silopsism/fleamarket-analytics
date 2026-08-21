@@ -5,6 +5,7 @@ that squad analyzed against the xPts model. Run:  uvicorn app:app --host
 0.0.0.0 --port 8000
 """
 import difflib
+import html
 import json
 import os
 import re
@@ -1240,19 +1241,43 @@ def news_page(refresh: str = ''):
     return render(title='Player news', body=body)
 
 
+def locked_gw(m):
+    """The latest gameweek whose squads are public: the highest one whose
+    deadline has passed. FPL's own is_current/finished flags lag the deadline,
+    so they are the wrong test - a squad locks the moment the deadline does."""
+    now = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+    return max((e['id'] for e in m['events'] if e['deadline_time'] <= now), default=None)
+
+
+def fetch_picks(team_id, gw, tries=3):
+    """(picks, reason). reason is None on success, otherwise why not - so a
+    network failure is never reported to the user as 'private'."""
+    if not gw:
+        return None, 'no-deadline-yet'
+    last = None
+    for _ in range(tries):
+        try:
+            picks = fpl_get(f'https://fantasy.premierleague.com/api/entry/{team_id}/event/{gw}/picks/')
+            if 'picks' in picks:
+                return picks, None
+            last = 'no-picks-in-response'
+        except Exception as exc:  # noqa: BLE001
+            last = str(exc)[:80]
+    return None, last or 'unknown'
+
+
 @app.get('/api/team/{team_id}')
 def api_team(team_id: int, request: Request):
     """Latest LOCKED gameweek picks for any FPL team, as squad lines + roles.
     Used by the Squads page to auto-sync ⭐/🕵 squads after each deadline."""
     m = model_data()
-    now = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
-    locked = [e['id'] for e in m['events'] if e['deadline_time'] <= now]
+    gw_locked = locked_gw(m)
     try:
         entry = fpl_get(f'https://fantasy.premierleague.com/api/entry/{team_id}/')
     except Exception:
         return {'error': 'team not found'}
     name = entry.get('name', f'Team {team_id}')
-    if not locked:
+    if not gw_locked:
         # localhost-only pre-deadline preview: serve the user's entered team
         # from my_team_preview.json; real locked picks supersede it after GW1
         if (request.client and request.client.host in ('127.0.0.1', '::1')
@@ -1262,11 +1287,9 @@ def api_team(team_id: int, request: Request):
                 return {'name': name, 'gw': 1, 'simulated': True,
                         'lines': pv['lines'], 'roles': pv['roles']}
         return {'name': name, 'gw': None, 'error': 'no locked gameweek yet'}
-    gw = max(locked)
-    try:
-        picks = fpl_get(f'https://fantasy.premierleague.com/api/entry/{team_id}/event/{gw}/picks/')
-        assert 'picks' in picks
-    except Exception:
+    gw = gw_locked
+    picks, why = fetch_picks(team_id, gw)
+    if picks is None:
         return {'name': name, 'gw': None, 'error': f'no picks for GW{gw}'}
     lines, roles = [], ''
     for pk in picks['picks']:
@@ -1500,20 +1523,22 @@ def team(team_id: int):
                            '<p class="sub">Check the ID and try again.</p>' + FORM)
     name = entry.get('name', '?')
     manager = f"{entry.get('player_first_name', '')} {entry.get('player_last_name', '')}".strip()
-    gw = next((e['id'] for e in m['events'] if e['is_current']), None) \
-        or max((e['id'] for e in m['events'] if e['finished']), default=None)
-
-    picks = None
-    if gw:
-        try:
-            picks = fpl_get(f'https://fantasy.premierleague.com/api/entry/{team_id}/event/{gw}/picks/')
-        except Exception:
-            picks = None
-    if not picks or 'picks' not in picks:
+    gw = locked_gw(m)
+    picks, why = fetch_picks(team_id, gw)
+    if picks is None:
+        # distinguish "not published yet" from "we could not reach FPL" - a
+        # timeout dressed up as privacy sent me hunting the wrong bug once
+        if why == 'no-deadline-yet':
+            msg = ('Picks are private until the gameweek deadline passes — FPL only '
+                   'publishes each squad once it locks. Check back after the deadline, '
+                   'or <a href="/paste">build your squad manually</a> to analyze it now.')
+        else:
+            msg = (f'FPL did not return this squad for GW{gw} just now '
+                   f'(<code>{html.escape(str(why))}</code>). Their API is often '
+                   'overloaded right after a deadline — reload in a minute, or '
+                   '<a href="/paste">build the squad manually</a>.')
         body = (f'<h1>{name}</h1><p class="sub">{manager}</p>'
-                '<div class="card"><p>Picks are private until the gameweek deadline passes — '
-                'FPL only publishes each squad once it locks. Check back after the deadline, '
-                'or <a href="/paste">build your squad manually</a> to analyze it now.</p></div>'
+                f'<div class="card"><p>{msg}</p></div>'
                 + REMEMBER_SNIPPET.format(tid=team_id))
         return render(title=name, body=body)
 

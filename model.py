@@ -21,6 +21,17 @@ DEFCON_THRESH = {2: 10, 3: 12, 4: 12}
 
 d = json.load(open('bootstrap.json', encoding='utf-8'))
 fx = json.load(open('fixtures.json', encoding='utf-8'))
+
+# bootstrap-static holds only the CURRENT season, and FPL zeroes every stat at
+# the rollover - which broke this model outright at 2026/27's first deadline.
+# history.json carries the prior season, keyed by the cross-season `code`, and
+# merge() blends it with whatever the new season has accumulated so far.
+HIST_META = {}
+try:
+    import history as _history
+    HIST_META = _history.merge(d)
+except Exception as _he:  # noqa: BLE001 - a missing snapshot must not be fatal
+    HIST_META = {'error': str(_he)[:80]}
 teams = {t['id']: t['short_name'] for t in d['teams']}
 pos_name = {1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD'}
 
@@ -63,7 +74,13 @@ for e in d['elements']:
         ta[e['team']][0] += float(e['expected_goal_involvements_per_90']) * e['minutes']
         ta[e['team']][1] += e['minutes']
 team_att = {t: (v[0] / v[1] if v[1] else 0) for t, v in ta.items()}
-med_att = sorted(x for x in team_att.values() if x)[len(team_att) // 2]
+_att_vals = sorted(x for x in team_att.values() if x)
+# an empty list here means every stat is zero, i.e. history.json is missing at a
+# season rollover. Fail loudly rather than with an IndexError six lines later.
+if not _att_vals:
+    raise SystemExit('no attacking data for any club - is history.json missing? '
+                     'run: python history.py build bootstrap_old.json')
+med_att = _att_vals[min(len(team_att) // 2, len(_att_vals) - 1)]
 for t in teams:
     if not team_att.get(t):
         team_att[t] = med_att * 0.7   # promoted sides: weak attack prior
