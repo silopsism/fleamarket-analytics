@@ -29,7 +29,8 @@ POOL_TOP = {1: 8, 2: 22, 3: 28, 4: 16}
 
 
 def solve_plan(players, n_gw=4, budget=100.0, max_hits=4, time_limit=90,
-               initial_ids=None, force_ids=None, ft_value=FT_VALUE, initial_ft=1):
+               initial_ids=None, force_ids=None, ft_value=FT_VALUE, initial_ft=1,
+               transfer_before_first=False, sell_prices=None):
     """Best squad + weekly XI/captain + transfer plan over the horizon.
 
     initial_ids: fix the first gameweek's 15 to an existing squad, turning this
@@ -38,6 +39,13 @@ def solve_plan(players, n_gw=4, budget=100.0, max_hits=4, time_limit=90,
     without to price what keeping a particular player costs.
     ft_value: points charged for each free transfer spent (see FT_VALUE).
     initial_ft: free transfers already banked at the first opportunity.
+    transfer_before_first: allow transfers INTO the first horizon gameweek. The
+        default answers "what should this squad do from here", holding the first
+        week fixed; True answers "it is between gameweeks, what do I do now",
+        which is what a season-long tracked entry needs each week.
+    sell_prices: {player_id: selling price} for an owned squad. FPL sells a
+        risen player at purchase price plus half the rise, so squad value is not
+        the sum of current prices. Ignored for players not owned.
     """
     pool = {}
     for pos, top in POOL_TOP.items():
@@ -57,15 +65,25 @@ def solve_plan(players, n_gw=4, budget=100.0, max_hits=4, time_limit=90,
     sq = {(p['id'], g): pulp.LpVariable(f"s{p['id']}_{g}", cat='Binary') for p in P for g in G}
     xi = {(p['id'], g): pulp.LpVariable(f"x{p['id']}_{g}", cat='Binary') for p in P for g in G}
     cp = {(p['id'], g): pulp.LpVariable(f"c{p['id']}_{g}", cat='Binary') for p in P for g in G}
-    tin = {(p['id'], g): pulp.LpVariable(f"i{p['id']}_{g}", cat='Binary') for p in P for g in G[1:]}
-    tout = {(p['id'], g): pulp.LpVariable(f"o{p['id']}_{g}", cat='Binary') for p in P for g in G[1:]}
-    ft = {g: pulp.LpVariable(f'ft{g}', lowBound=0, upBound=FT_BANK_MAX) for g in G[1:]}
-    hits = {g: pulp.LpVariable(f'h{g}', lowBound=0, upBound=max_hits, cat='Integer') for g in G[1:]}
+    TG = list(G) if (initial_ids and transfer_before_first) else list(G[1:])
+    tin = {(p['id'], g): pulp.LpVariable(f"i{p['id']}_{g}", cat='Binary') for p in P for g in TG}
+    tout = {(p['id'], g): pulp.LpVariable(f"o{p['id']}_{g}", cat='Binary') for p in P for g in TG}
+    ft = {g: pulp.LpVariable(f'ft{g}', lowBound=0, upBound=FT_BANK_MAX) for g in TG}
+    hits = {g: pulp.LpVariable(f'h{g}', lowBound=0, upBound=max_hits, cat='Integer') for g in TG}
+
+    owned0 = set(initial_ids or [])
+
+    def cost(p, g):
+        """What this player counts against the budget in gameweek g: his selling
+        price while still owned from the start, his market price once bought."""
+        if g == 0 and sell_prices and p['id'] in sell_prices:
+            return sell_prices[p['id']]
+        return p['price']
 
     for g in G:
         for pos, n in POS_QUOTA.items():
             prob += pulp.lpSum(sq[p['id'], g] for p in P if p['pos'] == pos) == n
-        prob += pulp.lpSum(p['price'] * sq[p['id'], g] for p in P) <= budget
+        prob += pulp.lpSum(cost(p, g) * sq[p['id'], g] for p in P) <= budget
         clubs = {}
         for p in P:
             clubs.setdefault(p['team'], []).append(p)
@@ -81,10 +99,14 @@ def solve_plan(players, n_gw=4, budget=100.0, max_hits=4, time_limit=90,
             prob += xi[p['id'], g] <= sq[p['id'], g]
             prob += cp[p['id'], g] <= xi[p['id'], g]
 
-    if initial_ids:
-        owned = set(initial_ids)
+    if initial_ids and 0 in TG:
+        # between gameweeks: the squad may change on the way into week 0
         for p in P:
-            prob += sq[p['id'], 0] == (1 if p['id'] in owned else 0)
+            prob += (sq[p['id'], 0] == (1 if p['id'] in owned0 else 0)
+                     + tin[p['id'], 0] - tout[p['id'], 0])
+    elif initial_ids:
+        for p in P:
+            prob += sq[p['id'], 0] == (1 if p['id'] in owned0 else 0)
 
     for pid in (force_ids or []):
         if pid in pool:
@@ -94,6 +116,8 @@ def solve_plan(players, n_gw=4, budget=100.0, max_hits=4, time_limit=90,
     for g in G[1:]:
         for p in P:
             prob += sq[p['id'], g] == sq[p['id'], g - 1] + tin[p['id'], g] - tout[p['id'], g]
+
+    for i, g in enumerate(TG):
         # like-for-like: transfers balance within each position
         for pos in POS_QUOTA:
             prob += (pulp.lpSum(tin[p['id'], g] for p in P if p['pos'] == pos)
@@ -101,16 +125,18 @@ def solve_plan(players, n_gw=4, budget=100.0, max_hits=4, time_limit=90,
         n_g = pulp.lpSum(tin[p['id'], g] for p in P)
         prob += hits[g] >= n_g - ft[g]
         prob += hits[g] <= n_g
-        if g == 1:
+        if i == 0:
             prob += ft[g] == initial_ft
         else:
             # '<=' rather than '==' so hitting the bank cap forfeits the surplus,
             # as the real rules do, instead of making the program infeasible
-            prob += ft[g] <= ft[g - 1] - (pulp.lpSum(tin[p['id'], g - 1] for p in P) - hits[g - 1]) + 1
+            prev = TG[i - 1]
+            prob += ft[g] <= ft[prev] - (pulp.lpSum(tin[p['id'], prev] for p in P)
+                                         - hits[prev]) + 1
     prob += pulp.lpSum(hits.values()) <= max_hits
 
     # free transfers spent = transfers made, less the ones taken as hits
-    ft_spent = pulp.lpSum(tin[p['id'], g] for p in P for g in G[1:]) - pulp.lpSum(hits.values())
+    ft_spent = pulp.lpSum(tin[p['id'], g] for p in P for g in TG) - pulp.lpSum(hits.values())
     prob += (pulp.lpSum(p['gws'][g] * (xi[p['id'], g] + cp[p['id'], g]) for p in P for g in G)
              - 4 * pulp.lpSum(hits.values())
              - ft_value * ft_spent)
@@ -130,8 +156,9 @@ def solve_plan(players, n_gw=4, budget=100.0, max_hits=4, time_limit=90,
                 squad.append({'id': p['id'], 'xi': val(xi[p['id'], g]) > 0.5,
                               'cap': val(cp[p['id'], g]) > 0.5})
         gws_out.append(squad)
-        if g > 0:
-            moves = {'in': [p['id'] for p in P if val(tin[p['id'], g]) > 0.5],
+        if g in TG:
+            moves = {'gw_index': g,
+                     'in': [p['id'] for p in P if val(tin[p['id'], g]) > 0.5],
                      'out': [p['id'] for p in P if val(tout[p['id'], g]) > 0.5],
                      'hits': int(round(val(hits[g])))}
             transfers.append(moves)

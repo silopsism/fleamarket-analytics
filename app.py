@@ -92,6 +92,64 @@ def refresh_data(build=True, use_api=False):
         print(f'data refresh failed (serving previous data): {exc}')
 
 
+# how close to a deadline the tracked entry makes its move. A manager transfers
+# late, on the freshest news, so the entry does too rather than deciding the
+# moment the previous gameweek ends.
+ENTRY_LOCK_HOURS = 4
+
+
+def run_entry():
+    """Keep the season-long model entry moving: decide before each deadline,
+    score once a finished gameweek has had its bonus points confirmed."""
+    try:
+        import paper
+        boot = json.load(open('bootstrap.json', encoding='utf-8'))
+        state = paper.load()
+        if not state:
+            # Auto-freeze, but ONLY at the very start of the season. The state
+            # file lives on the persistent volume; if it ever went missing
+            # mid-season we must not silently restart the entry and lose its
+            # history, so anything past GW1 refuses and says so.
+            first = min(e['id'] for e in boot['events'] if not e['finished'])
+            if first != 1:
+                return f'no entry and GW{first} is past GW1 - refusing to restart it'
+            if not os.path.exists('optimal_squad.json'):
+                return 'no entry yet; waiting for the first optimum to be built'
+            src = open('model.py', encoding='utf-8').read().split('# --- SCORES-END ---')[0]
+            ns = {'__name__': 'entry'}
+            exec(compile(src, 'model.py', 'exec'), ns)
+            state = paper.init(ns['players'], boot)
+            print(f"entry: froze GW{state['start_gw']} from the model optimum")
+        out = []
+
+        # score any locked gameweek that has finished and been data-checked;
+        # bonus is not final until data_checked, so scoring earlier undercounts
+        done = {e['id'] for e in boot['events'] if e['finished'] and e.get('data_checked')}
+        for h in state['history']:
+            if h['points'] is None and h['gw'] in done:
+                _, entry = paper.score(h['gw'])
+                out.append(f"GW{entry['gw']} scored {entry['points']}")
+
+        nxt = next((e for e in boot['events'] if not e['finished']), None)
+        if nxt and paper.load().get('locked_gw') != nxt['id']:
+            dl = datetime.fromisoformat(nxt['deadline_time'].replace('Z', '+00:00'))
+            hrs = (dl - datetime.now(timezone.utc)).total_seconds() / 3600
+            if hrs <= ENTRY_LOCK_HOURS:
+                src = open('model.py', encoding='utf-8').read().split('# --- SCORES-END ---')[0]
+                ns = {'__name__': 'entry'}
+                exec(compile(src, 'model.py', 'exec'), ns)
+                st, move = paper.advance(ns['players'], boot, gw=nxt['id'])
+                if move is not None:
+                    h = st['history'][-1]
+                    out.append(f"GW{h['gw']} locked: {len(move['in'])} transfer(s), "
+                               f"{move['hits']} hit(s), projected {h['projected']}")
+            else:
+                out.append(f"GW{nxt['id']} in {hrs:.1f}h, decides inside {ENTRY_LOCK_HOURS}h")
+        return '; '.join(out) or 'nothing to do'
+    except Exception as exc:  # noqa: BLE001 - never take the site down for this
+        return f'entry skipped: {exc}'
+
+
 def _refresh_forever():
     # first pass builds the dashboard immediately, so the site is complete within
     # seconds of a deploy (optimal_squad.json is generated, not shipped); the
@@ -99,6 +157,7 @@ def _refresh_forever():
     refresh_data(build=True, use_api=True)
     run_news_sweep()
     rebuild_dashboard()
+    print('entry:', run_entry())
     cycle = 0
     while True:
         time.sleep(SNAPSHOT_HOURS * 3600)
@@ -109,6 +168,7 @@ def _refresh_forever():
             run_news_sweep()               # six-hourly: the press
             refresh_transfers()            # and the transfer ledger
         rebuild_dashboard()                # so Overview movements stay current
+        print('entry:', run_entry())
         try:
             import notify
             boot = json.load(open('bootstrap.json', encoding='utf-8'))
@@ -1351,6 +1411,77 @@ def me(request: Request):
     return render(title='Not available',
                        body='<h1>Not available here</h1><p class="sub">The personal '
                             'dashboard is only served on localhost.</p>')
+
+
+@app.get('/entry', response_class=HTMLResponse)
+def entry_page(request: Request, key: str = ''):
+    """The season-long model entry's ledger. Private by the same rule as the
+    notify hook: localhost, or the NOTIFY_KEY, so it never appears publicly."""
+    local = bool(request.client and request.client.host in ('127.0.0.1', '::1'))
+    want = os.environ.get('NOTIFY_KEY')
+    if not local and not (want and key == want):
+        return render(title='Not available',
+                      body='<h1>Not available here</h1><p class="sub">This page is '
+                           'private.</p>')
+    import paper
+    state = paper.load()
+    if not state:
+        return render(title='Model entry',
+                      body='<h1>Model entry</h1><p class="sub">Not started yet. It '
+                           'freezes itself from the model optimum at GW1.</p>')
+    m = model_data()
+    names = {p['id']: p for p in state['squad']}
+    boot = json.load(open('bootstrap.json', encoding='utf-8'))
+    now = {e['id']: e['now_cost'] for e in boot['elements']}
+    sm = paper.summary()
+
+    rows = ''
+    for h in reversed(state['history']):
+        moves = ' · '.join(f"{o} → {i}" for o, i in
+                           zip(h['transfers']['out'], h['transfers']['in'])) or 'held'
+        hit = f" <span class=\"low\">−{h['transfers']['hits'] * 4}</span>" if h['transfers']['hits'] else ''
+        act = '—' if h['points'] is None else f"<b>{h['points']}</b>"
+        rows += (f"<tr><td>GW{h['gw']}</td><td class='num'>{h['projected']}</td>"
+                 f"<td class='num'>{act}</td><td class='num'>£{h['value'] / 10:.1f}m</td>"
+                 f"<td>{moves}{hit}</td></tr>")
+
+    sq = ''
+    for p in sorted(state['squad'], key=lambda x: (x['pos'], -x['buy'])):
+        role = ('C' if p['id'] == state['cap'] else 'V' if p['id'] == state['vice']
+                else 'XI' if p['id'] in state['xi'] else 'bench')
+        cur = now.get(p['id'], p['buy'])
+        sell = paper.sell_price(p['buy'], cur)
+        delta = (f" <span class='{'up' if cur > p['buy'] else 'down'}'>"
+                 f"{(cur - p['buy']) / 10:+.1f}</span>" if cur != p['buy'] else '')
+        sq += (f"<tr><td>{'●' if role in ('C', 'V', 'XI') else ''} {p['name']}"
+               f" <span class='mut'>{p['club']}</span></td><td>{role}</td>"
+               f"<td class='num'>£{p['buy'] / 10:.1f}{delta}</td>"
+               f"<td class='num'>£{sell / 10:.1f}</td></tr>")
+
+    body = (f"<h1>Model entry</h1><p class=\"sub\">One squad, frozen at GW"
+            f"{state['start_gw']} from the model optimum and played out under the real "
+            f"rules: one free transfer a week banked up to five, −4 a hit, selling "
+            f"prices rather than market prices, autosubs and the captain applied. A "
+            f"benchmark that could actually have been played, unlike a fresh optimum "
+            f"every week.</p>"
+            f"<div class='tiles'>"
+            f"<div class='tile'><div class='tl'>Points</div><div class='tv'>{sm['points']}</div>"
+            f"<div class='ts'>{sm['gws']} gameweek(s) scored</div></div>"
+            f"<div class='tile'><div class='tl'>Squad value</div>"
+            f"<div class='tv'>£{(sm['value'] or 1000) / 10:.1f}m</div>"
+            f"<div class='ts'>£{sm['bank'] / 10:.1f}m in the bank</div></div>"
+            f"<div class='tile'><div class='tl'>Free transfers</div><div class='tv'>{sm['ft']}</div>"
+            f"<div class='ts'>points lost to hits: {sm['hits']}</div></div>"
+            f"<div class='tile'><div class='tl'>Locked for</div><div class='tv'>GW{sm['locked_gw']}</div>"
+            f"<div class='ts'>decides inside {ENTRY_LOCK_HOURS}h of a deadline</div></div>"
+            f"</div>"
+            f"<div class='card'><h2>Gameweek by gameweek</h2><div class='scroll'><table>"
+            f"<tr><th>GW</th><th class='num'>Projected</th><th class='num'>Actual</th>"
+            f"<th class='num'>Value</th><th>Transfers</th></tr>{rows}</table></div></div>"
+            f"<div class='card'><h2>Current squad</h2><div class='scroll'><table>"
+            f"<tr><th>Player</th><th>Role</th><th class='num'>Bought</th>"
+            f"<th class='num'>Sells for</th></tr>{sq}</table></div></div>")
+    return render(title='Model entry', body=body)
 
 
 @app.get('/team', response_class=HTMLResponse)
