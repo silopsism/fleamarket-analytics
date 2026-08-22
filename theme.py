@@ -225,13 +225,16 @@ th.gwsel:hover{color:var(--accent)}
 .pcard .shirt{display:block;width:100%;height:auto;margin:0 0 4px}
 /* two lines rather than an ellipsis: "Calvert-Lewin" and "B.Fernandes" both
    clip at card width, and a fixed two-line box keeps every card the same height */
+/* One line, not two. Reserving a second line for wrapping cost 17px of dead
+   space under EVERY name, and measured in the DOM nothing wraps at this size -
+   not even Calvert-Lewin. The clamp stays as a backstop for a freak name. */
 .pcard .pn{font:700 13px/1.2 Archivo;letter-spacing:.01em;
  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
- overflow:hidden;overflow-wrap:anywhere;min-height:2.4em}
+ overflow:hidden;overflow-wrap:anywhere;min-height:1.2em}
 /* one column per gameweek: the projection, and under it the opponent that
    projection is against. Uppercase = home, lowercase = away, the same
    convention as the fixtures grid. */
-.pcard .px{display:flex;gap:3px;justify-content:center;margin-top:4px}
+.pcard .px{display:flex;gap:3px;justify-content:center;margin-top:2px}
 .pcard .px .c{flex:1;display:flex;flex-direction:column;border-radius:4px;overflow:hidden}
 .pcard .px b{font:700 11px/1.45 Archivo;background:rgba(255,255,255,.16)}
 .pcard .px i{font:700 9px/1.45 Archivo;letter-spacing:.05em;font-style:normal;
@@ -313,7 +316,11 @@ th.gwsel:hover{color:var(--accent)}
  gap:12px;flex-wrap:wrap;margin-bottom:6px}
 @media (max-width:560px){
  .pcard{width:78px}
- .pcard .pn{font-size:11.5px;min-height:2.4em}
+ /* a 66px content box cannot hold "Calvert-Lewin" on one line at any readable
+    size, and letting it wrap made card heights uneven across a row - so on
+    small screens the name truncates instead */
+ .pcard .pn{font-size:11.5px;min-height:1.2em;display:block;white-space:nowrap;
+  text-overflow:ellipsis}
  /* three-letter codes in a 20px cell: 9px with letter-spacing clipped NEW
     and BOU, so drop the size and the tracking on small screens */
  .pcard .px i{font-size:8px;letter-spacing:0}
