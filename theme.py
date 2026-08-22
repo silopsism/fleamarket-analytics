@@ -200,6 +200,63 @@ th.gwsel:hover{color:var(--accent)}
  color:var(--warn);border:1px solid var(--warn);border-radius:4px;padding:2px 4px;
  white-space:nowrap;vertical-align:1px}
 
+/* squad on a pitch: mown stripes, markings, one card per player */
+.pitch{position:relative;border-radius:14px;overflow:hidden;padding:16px 8px 12px;
+ background:
+  repeating-linear-gradient(0deg,#1f7a3f 0 34px,#1c6f39 34px 68px);
+ box-shadow:inset 0 0 60px rgba(0,0,0,.28)}
+.pitch:before{content:"";position:absolute;inset:8px;border:2px solid rgba(255,255,255,.28);
+ border-radius:6px;pointer-events:none}
+.pitch:after{content:"";position:absolute;left:50%;top:8px;width:104px;height:104px;
+ transform:translate(-50%,-52px);border:2px solid rgba(255,255,255,.28);border-radius:50%;
+ pointer-events:none}
+.pitch .goalbox{position:absolute;left:50%;transform:translateX(-50%);
+ border:2px solid rgba(255,255,255,.26);border-top:0;pointer-events:none}
+.pitch .goalbox.b18{top:8px;width:min(58%,340px);height:74px;border-radius:0 0 4px 4px}
+.pitch .goalbox.b6{top:8px;width:min(28%,168px);height:34px;border-radius:0 0 4px 4px}
+.pline{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;
+ position:relative;z-index:1;margin:10px 0}
+
+.pcard{width:92px;background:rgba(10,20,14,.62);border:1px solid rgba(255,255,255,.16);
+ border-radius:10px;padding:6px 5px 5px;text-align:center;color:#fff;
+ backdrop-filter:blur(2px);position:relative}
+.pcard .shirt{display:block;margin:0 auto 3px}
+/* two lines rather than an ellipsis: "Calvert-Lewin" and "B.Fernandes" both
+   clip at card width, and a fixed two-line box keeps every card the same height */
+.pcard .pn{font:700 11.5px/1.2 Archivo;letter-spacing:.01em;
+ display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+ overflow:hidden;overflow-wrap:anywhere;min-height:2.4em}
+.pcard .pc{font:700 9px/1.3 Archivo;letter-spacing:.11em;text-transform:uppercase;
+ color:rgba(255,255,255,.68)}
+.pcard .px{display:flex;gap:3px;justify-content:center;margin-top:4px}
+.pcard .px b{flex:1;font:700 11px/1.5 Archivo;background:rgba(255,255,255,.16);
+ border-radius:4px}
+.pcard .px b:first-child{background:var(--lime);color:var(--lime-ink)}
+.pcard .badge{position:absolute;top:-6px;right:-6px;width:19px;height:19px;border-radius:50%;
+ font:700 10px/19px Archivo;background:var(--lime);color:var(--lime-ink);
+ box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.pcard .badge.v{background:#fff;color:#111}
+.pcard.movein{border-color:var(--lime);box-shadow:0 0 0 1px var(--lime)}
+.pcard.movein:after{content:"IN";position:absolute;left:-6px;top:-6px;padding:0 4px;
+ border-radius:4px;font:700 9px/16px Archivo;letter-spacing:.06em;
+ background:var(--lime);color:var(--lime-ink)}
+
+.benchstrip{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;
+ margin-top:10px;padding:12px 8px;border-radius:12px;background:var(--sunk);
+ border:1px solid var(--ring)}
+.benchstrip .pcard{background:var(--surface);border-color:var(--ring);color:var(--ink)}
+.benchstrip .pcard .pc{color:var(--muted)}
+.benchstrip .pcard .px b{background:var(--bg);color:var(--ink)}
+.benchstrip .pcard .px b:first-child{background:var(--accent-soft);color:var(--accent)}
+.pitchhead{display:flex;justify-content:space-between;align-items:baseline;
+ gap:12px;flex-wrap:wrap;margin-bottom:6px}
+@media (max-width:560px){
+ .pcard{width:74px}
+ .pcard .pn{font-size:10.5px;min-height:2.4em}
+ .pline{gap:5px;margin:7px 0}
+ .pitch{padding:12px 4px 8px}
+}
+
 /* movement + mini lists */
 .up,.mvup{color:var(--up);font-weight:700}
 .down,.mvdn{color:var(--down);font-weight:700}

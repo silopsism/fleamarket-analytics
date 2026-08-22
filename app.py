@@ -705,9 +705,11 @@ function dupTinker(){
                 stored = json.load(open('optimal_squad.json', encoding='utf-8'))
             except Exception:
                 stored = None
+        # pitch and planner first: the visual read is what you want on opening a
+        # squad, and the row-by-row table is the detail you scroll down for
         body = (f'<h1>{title}</h1><p class="sub">{intro}</p>'
-                + table
                 + squad_plan_html(entries, m, stored=stored, bank=bank_val or 0.0)
+                + table
                 + prob_html
                 + transfers_html(owned, bank_val or 0.0, m,
                                  bank_known=bank_val is not None, editable=False)
@@ -810,8 +812,8 @@ document.getElementById('subq').addEventListener('input',()=>{
     body = (f'<h1>{title}</h1>'
             f'<p class="sub">{intro}'
             f'Use ⇄ on any row to substitute a player. <a href="/squads">← All squads</a></p>'
-            + table + save_btn
             + squad_plan_html(entries, m, bank=bank_val or 0.0)
+            + table + save_btn
             + prob_html
             + transfers_html(owned, bank_val or 0.0, m,
                              bank_known=bank_val is not None, editable=True)
@@ -890,6 +892,19 @@ def api_optimal():
 
 
 PLAN_TABLE = """<div class="card">
+<div class="pitchhead">
+ <h2 style="font-size:16px;margin:0">Squad &mdash; GW<span id="pgw"></span></h2>
+ <div class="chips" id="pgwchips" style="margin:0"></div>
+</div>
+<p class="note" id="pnote" style="margin:6px 0 12px"></p>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs id="kitdefs"></defs></svg>
+<div class="pitch" id="pitch">
+ <div class="goalbox b18"></div><div class="goalbox b6"></div>
+</div>
+<div class="benchstrip" id="pbench"></div>
+</div>
+
+<div class="card">
 <h2 style="font-size:16px">4-week plan for this squad</h2>
 <p class="note">Best legal path from here: one free transfer a week, bankable up to five;
 hits cost 4 points. A free transfer is not treated as free — the plan charges __FTVALUE__ points
@@ -911,12 +926,80 @@ gameweeks__GAP__.</p>
 </style>
 <script>(function(){
 const W=__WEEKS__, GWL=__GWL__, HEAT=__HEAT__, TOT=__TOTALS__, TR=__TRANSFERS__;
+const KITS=__KITS__;
 const POS={GKP:0,DEF:1,MID:2,FWD:3};
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
 let sel=0;
 const memb=W.map(w=>new Set(w.map(r=>r.n+'|'+r.t)));
 const opp=t=>{const g=(HEAT[t]||{})[GWL[sel]];return g?g[0]+' ('+(g[1]?'H':'A')+')':'—'};
+// a jersey at thumbnail size: body, then either vertical stripes through a
+// pattern or a contrasting sleeve, which is enough to separate twenty clubs
+const SHIRT='M12 3 L8 1 L2 6 L6 11 L9 8.6 L9 31 L31 31 L31 8.6 L34 11 L38 6 L32 1 L28 3 '+
+            'C26 6.4 14 6.4 12 3 Z';
+const SLEEVE_L='M8 1 L2 6 L6 11 L9 8.6 L9 2.4 Z', SLEEVE_R='M32 1 L38 6 L34 11 L31 8.6 L31 2.4 Z';
+const kitDefs=new Set();
+function kitOf(c){return KITS[c]||KITS['_']}
+function shirtSvg(club,w){
+ const k=kitOf(club), body=k[0], trim=k[1], pat=k[3];
+ let fill=body, extra='';
+ if(pat==='stripe'){
+  const id='kit_'+club;
+  if(!kitDefs.has(id)){
+   kitDefs.add(id);
+   document.getElementById('kitdefs').insertAdjacentHTML('beforeend',
+    `<pattern id="${id}" width="7" height="7" patternUnits="userSpaceOnUse">`+
+    `<rect width="7" height="7" fill="${body}"/><rect width="3.5" height="7" fill="${trim}"/></pattern>`);
+  }
+  fill='url(#'+id+')';
+ } else if(pat==='sleeve'){
+  extra=`<path d="${SLEEVE_L}" fill="${trim}"/><path d="${SLEEVE_R}" fill="${trim}"/>`;
+ }
+ return `<svg class="shirt" viewBox="0 0 40 34" width="${w}" height="${Math.round(w*0.85)}" `+
+        `role="img" aria-label="${club} shirt"><path d="${SHIRT}" fill="${fill}" `+
+        `stroke="rgba(0,0,0,.35)" stroke-width="1"/>${extra}`+
+        `<path d="${SHIRT}" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="1"/></svg>`;
+}
+
+function pcard(r,inSet,small){
+ const key=r.n+'|'+r.t;
+ // the selected gameweek plus the two after it: what this player is worth over
+ // the next three weeks, not a season average
+ const nxt=r.gws.slice(sel,sel+3);
+ const badge=r.cap?'<span class="badge" title="captain">C</span>':'';
+ const g=(HEAT[r.t]||{})[GWL[sel]];
+ const oppTxt=g?g[0]+' ('+(g[1]?'H':'A')+')':'—';
+ return `<div class="pcard${inSet.has(key)?' movein':''}" title="${esc(r.n)} · ${esc(r.t)} `+
+   `· £${r.price.toFixed(1)}m · vs ${esc(oppTxt)}">${badge}`+
+   shirtSvg(r.t,small?26:34)+
+   `<div class="pn">${esc(r.n)}</div>`+
+   `<div class="pc">${esc(r.t)} · ${esc(oppTxt)}</div>`+
+   `<div class="px">${nxt.map(v=>`<b>${v.toFixed(1)}</b>`).join('')}</div></div>`;
+}
+
+function drawPitch(){
+ const inSet=new Set(sel>0&&TR[sel-1]?TR[sel-1]['in'].map(x=>x.n+'|'+x.t):[]);
+ const xi=W[sel].filter(r=>r.xi), bench=W[sel].filter(r=>!r.xi);
+ const lines=['GKP','DEF','MID','FWD'].map(p=>xi.filter(r=>r.pos===p));
+ document.getElementById('pitch').innerHTML =
+  '<div class="goalbox b18"></div><div class="goalbox b6"></div>' +
+  lines.map(row=>'<div class="pline">'+row.map(r=>pcard(r,inSet,false)).join('')+'</div>').join('');
+ // bench in the plan's own order, keeper first, which is the autosub order
+ const bo=[...bench].sort((a,b)=>(a.pos==='GKP'?0:1)-(b.pos==='GKP'?0:1));
+ document.getElementById('pbench').innerHTML=bo.map(r=>pcard(r,inSet,true)).join('');
+ document.getElementById('pgw').textContent=GWL[sel];
+ const cap=xi.find(r=>r.cap);
+ document.getElementById('pnote').innerHTML=
+  `Each card shows the next three gameweeks&rsquo; projected points, `+
+  `starting with GW${GWL[sel]} (highlighted). Captain: <b>${cap?esc(cap.n):'—'}</b>. `+
+  (sel===0?'Your fifteen, with the XI <b>the plan would pick</b> — which can differ from '+
+           'the one you have set.'
+          :'The squad <b>after</b> the plan&rsquo;s transfers up to GW'+GWL[sel]+'.');
+ document.getElementById('pgwchips').innerHTML=GWL.map((g,k)=>
+  `<button class="chip" data-gw="${k}" aria-pressed="${k===sel}">GW${g}</button>`).join('');
+}
+
 function draw(){
+ drawPitch();
  const rows=[...W[sel]].sort((a,b)=>(a.xi?0:1)-(b.xi?0:1)||POS[a.pos]-POS[b.pos]);
  const inSet=new Set(sel>0&&TR[sel-1]?TR[sel-1]['in'].map(x=>x.n+'|'+x.t):[]);
  const prev=new Map(sel>0?W[sel-1].map(r=>[r.n+'|'+r.t,r.xi]):[]);
@@ -954,6 +1037,9 @@ function draw(){
 document.getElementById('plantab').addEventListener('click',e=>{
  const th=e.target.closest('th[data-gw]'); if(th){sel=+th.dataset.gw;draw()}
 });
+document.getElementById('pgwchips').addEventListener('click',e=>{
+ const b=e.target.closest('button[data-gw]'); if(b){sel=+b.dataset.gw;draw()}
+});
 draw();
 })()</script>
 </div>"""
@@ -973,6 +1059,7 @@ def squad_plan_html(entries, m, stored=None, bank=0.0):
         except Exception:
             gap = ''
         return (PLAN_TABLE
+                .replace('__KITS__', json.dumps(__import__('kits').as_dict()))
                 .replace('__WEEKS__', json.dumps(weeks, ensure_ascii=False))
                 .replace('__GWL__', json.dumps(gwl))
                 .replace('__HEAT__', json.dumps(m.get('heat') or {}, ensure_ascii=False))
