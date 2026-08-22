@@ -58,23 +58,27 @@ def as_dict():
 # The shirt is drawn as the TOP HALF of a jersey - cropped at the chest, wider
 # than it is tall - so it can fill the card's width without towering over the
 # numbers below it. 52x26 units, scaled by CSS rather than a fixed pixel size.
-VIEWBOX = '0 0 52 26'
-# The cuff runs VERTICAL - parallel to the armhole - and the underarm is flat,
-# so the sleeve is a clean trapezoid with a right angle at its outer-bottom
-# corner. Cutting the cuff perpendicular to the arm instead (which is what a
-# real sleeve does) skewed the quad into a rhomboid at this size.
-BODY = ('M12 4 L22 4 Q26 9.5 30 4 L40 4 L48 7 L48 16 L40 16 '
-        'L40 26 L12 26 L12 16 L4 16 L4 7 Z')
-SLEEVE_L = 'M12 4 L4 7 L4 16 L12 16 Z'
-SLEEVE_R = 'M40 4 L48 7 L48 16 L40 16 Z'
-NECK = 'M22 4 Q26 9.5 30 4'
-# Chest plate for striped kits, where white letters would otherwise cross a
-# white stripe. Sized to contain the text's FULL EM BOX, not just its cap
-# height: at 9.5 units the em box runs 12.68 to 23.08, so a plate clipped to the
-# capitals looked shorter than the type it was meant to sit behind.
+# Traced from a photograph of a real tee rather than drawn from description,
+# after five attempts from words all failed in different ways. Two things every
+# one of those got wrong:
+#   - the hem is ~60% of the armhole length, not ~32%, which is what made the
+#     sleeves read as cones
+#   - the hem's INNER end is the lowest point of the sleeve; the armpit sits
+#     slightly above it and inboard, so the underarm seam runs up-and-in
+# Proportions are the photograph's, so the box is 54x39 rather than 52x26 - a
+# real tee cropped at the chest is not twice as wide as it is tall.
+VIEWBOX = '-1 0 54 39'
+BODY = ('M10.1 6.5 L20.98 2.18 Q25.95 6.25 30.93 2.0 L41.9 6.5 '
+        'L52 19.5 L43.7 27.0 L41.0 25.0 L41.0 39 '
+        'L11.0 39 L11.0 25.0 L8.3 27.0 L0 19.5 Z')
+SLEEVE_L = 'M10.1 6.5 L0 19.5 L8.3 27.0 L11.0 25.0 Z'
+SLEEVE_R = 'M41.9 6.5 L52 19.5 L43.7 27.0 L41.0 25.0 Z'
+NECK = 'M20.98 2.18 Q25.95 6.25 30.93 2.0'
+# Chest print, clear of the sleeves: they end at y27, the code's em box runs
+# 16.7 to 27.1 but sits between the armpits at x11 and x41, so nothing collides.
 CODE_SIZE = 9.5
-CODE_BASELINE = 21.5
-PLATE = {'x': 13, 'y': 12.6, 'width': 26, 'height': 11.6, 'rx': 2.2}
+CODE_BASELINE = 25.0
+PLATE = {'x': 13, 'y': 16.1, 'width': 26, 'height': 11.6, 'rx': 2.2}
 
 
 def geometry():
