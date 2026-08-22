@@ -214,10 +214,15 @@ th.gwsel:hover{color:var(--accent)}
  border:2px solid rgba(255,255,255,.26);border-top:0;pointer-events:none}
 .pitch .goalbox.b18{top:8px;width:min(58%,340px);height:74px;border-radius:0 0 4px 4px}
 .pitch .goalbox.b6{top:8px;width:min(28%,168px);height:34px;border-radius:0 0 4px 4px}
-.pline{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;
+/* A legal XI can put FIVE defenders or midfielders in one row, which used to
+   wrap on a phone and break the alignment. Rows never wrap now - the cards
+   share the width and shrink only as far as they must, capped so a three-card
+   row does not stretch into something silly. */
+.pline{display:flex;justify-content:center;gap:8px;flex-wrap:nowrap;
  position:relative;z-index:1;margin:10px 0}
+.pline .pcard{flex:1 1 0;min-width:0}
 
-.pcard{width:104px;background:rgba(10,20,14,.62);border:1px solid rgba(255,255,255,.16);
+.pcard{width:104px;max-width:104px;background:rgba(10,20,14,.62);border:1px solid rgba(255,255,255,.16);
  border-radius:10px;padding:6px 5px 5px;text-align:center;color:#fff;
  backdrop-filter:blur(2px);position:relative}
 /* edge to edge in the card, so the shirt is exactly as wide as the numbers
@@ -266,7 +271,7 @@ th.gwsel:hover{color:var(--accent)}
  .squadside .gwtile .gs{grid-column:2;grid-row:1 / span 2;white-space:normal;
   align-self:center}
  /* the pitch gets taller rather than wider, which is the shape of a pitch */
- .squadmain .pcard{width:112px}
+ .squadmain .pcard{width:112px;max-width:112px}
 }
 
 /* one tile per gameweek: the plan's XI total and what it does that week.
@@ -304,10 +309,11 @@ th.gwsel:hover{color:var(--accent)}
 .psugg button{margin-left:8px;background:var(--accent);color:#fff;border:0;border-radius:7px;
  padding:5px 11px;font:600 12.5px system-ui;cursor:pointer}
 
-.benchstrip{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;
+.benchstrip{display:flex;justify-content:center;gap:8px;flex-wrap:nowrap;
  margin-top:10px;padding:12px 8px;border-radius:12px;background:var(--sunk);
  border:1px solid var(--ring)}
-.benchstrip .pcard{background:var(--surface);border-color:var(--ring);color:var(--ink)}
+.benchstrip .pcard{background:var(--surface);border-color:var(--ring);color:var(--ink);
+ flex:1 1 0;min-width:0}
 .benchstrip .pcard .px b{background:var(--bg);color:var(--ink)}
 .benchstrip .pcard .px i{background:var(--sunk);color:var(--muted)}
 .benchstrip .pcard .px .c:first-child b{background:var(--accent-soft);color:var(--accent)}
@@ -315,7 +321,15 @@ th.gwsel:hover{color:var(--accent)}
 .pitchhead{display:flex;justify-content:space-between;align-items:baseline;
  gap:12px;flex-wrap:wrap;margin-bottom:6px}
 @media (max-width:560px){
- .pcard{width:78px}
+ .pcard{width:78px;max-width:78px;padding:6px 3px 5px}
+ .pline{gap:3px}
+ /* Two gameweeks, not three. At five across the card is ~54px, which leaves a
+    14px cell - and a three-letter opponent code needs 6.5px type to fit that,
+    which is unreadable. Dropping the third column lets the number AND the
+    opponent get BIGGER than they were. The other weeks are a tap away on the
+    gameweek strip. */
+ .pcard .px .c:nth-child(3){display:none}
+ .pcard .px{gap:2px}
  /* a 66px content box cannot hold "Calvert-Lewin" on one line at any readable
     size, and letting it wrap made card heights uneven across a row - so on
     small screens the name truncates instead */
@@ -323,8 +337,8 @@ th.gwsel:hover{color:var(--accent)}
   text-overflow:ellipsis}
  /* three-letter codes in a 20px cell: 9px with letter-spacing clipped NEW
     and BOU, so drop the size and the tracking on small screens */
- .pcard .px i{font-size:8px;letter-spacing:0}
- .pcard .px b{font-size:10.5px}
+ .pcard .px i{font-size:9px;letter-spacing:0}
+ .pcard .px b{font-size:11px}
  .pline{gap:5px;margin:7px 0}
  .pitch{padding:12px 4px 8px}
 }
