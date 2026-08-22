@@ -225,15 +225,19 @@ th.gwsel:hover{color:var(--accent)}
 .pcard .shirt{display:block;width:100%;height:auto;margin:0 0 4px}
 /* two lines rather than an ellipsis: "Calvert-Lewin" and "B.Fernandes" both
    clip at card width, and a fixed two-line box keeps every card the same height */
-.pcard .pn{font:700 11.5px/1.2 Archivo;letter-spacing:.01em;
+.pcard .pn{font:700 13px/1.2 Archivo;letter-spacing:.01em;
  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
  overflow:hidden;overflow-wrap:anywhere;min-height:2.4em}
-.pcard .pc{font:700 9px/1.3 Archivo;letter-spacing:.11em;text-transform:uppercase;
- color:rgba(255,255,255,.68)}
+/* one column per gameweek: the projection, and under it the opponent that
+   projection is against. Uppercase = home, lowercase = away, the same
+   convention as the fixtures grid. */
 .pcard .px{display:flex;gap:3px;justify-content:center;margin-top:4px}
-.pcard .px b{flex:1;font:700 11px/1.5 Archivo;background:rgba(255,255,255,.16);
- border-radius:4px}
-.pcard .px b:first-child{background:var(--lime);color:var(--lime-ink)}
+.pcard .px .c{flex:1;display:flex;flex-direction:column;border-radius:4px;overflow:hidden}
+.pcard .px b{font:700 11px/1.45 Archivo;background:rgba(255,255,255,.16)}
+.pcard .px i{font:700 9px/1.45 Archivo;letter-spacing:.05em;font-style:normal;
+ background:rgba(255,255,255,.08);color:rgba(255,255,255,.72)}
+.pcard .px .c:first-child b{background:var(--lime);color:var(--lime-ink)}
+.pcard .px .c:first-child i{background:rgba(168,214,0,.24);color:#eaf7bb}
 .pcard .badge{position:absolute;top:-6px;right:-6px;width:19px;height:19px;border-radius:50%;
  font:700 10px/19px Archivo;background:var(--lime);color:var(--lime-ink);
  box-shadow:0 1px 4px rgba(0,0,0,.4)}
@@ -301,14 +305,19 @@ th.gwsel:hover{color:var(--accent)}
  margin-top:10px;padding:12px 8px;border-radius:12px;background:var(--sunk);
  border:1px solid var(--ring)}
 .benchstrip .pcard{background:var(--surface);border-color:var(--ring);color:var(--ink)}
-.benchstrip .pcard .pc{color:var(--muted)}
 .benchstrip .pcard .px b{background:var(--bg);color:var(--ink)}
-.benchstrip .pcard .px b:first-child{background:var(--accent-soft);color:var(--accent)}
+.benchstrip .pcard .px i{background:var(--sunk);color:var(--muted)}
+.benchstrip .pcard .px .c:first-child b{background:var(--accent-soft);color:var(--accent)}
+.benchstrip .pcard .px .c:first-child i{background:var(--accent-soft);color:var(--ink2)}
 .pitchhead{display:flex;justify-content:space-between;align-items:baseline;
  gap:12px;flex-wrap:wrap;margin-bottom:6px}
 @media (max-width:560px){
  .pcard{width:78px}
- .pcard .pn{font-size:10.5px;min-height:2.4em}
+ .pcard .pn{font-size:11.5px;min-height:2.4em}
+ /* three-letter codes in a 20px cell: 9px with letter-spacing clipped NEW
+    and BOU, so drop the size and the tracking on small screens */
+ .pcard .px i{font-size:8px;letter-spacing:0}
+ .pcard .px b{font-size:10.5px}
  .pline{gap:5px;margin:7px 0}
  .pitch{padding:12px 4px 8px}
 }

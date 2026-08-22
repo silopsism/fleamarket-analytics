@@ -923,6 +923,12 @@ function shirtSvg(club){
         `font-weight="700" letter-spacing=".2" fill="${codeInk}">${club}</text></svg>`;
 }
 function oppOf(t){const g=(HEAT[t]||{})[GWL[sel]];return g?g[0]+' ('+(g[1]?'H':'A')+')':'\u2014'}
+// opponent for a specific horizon week, cased for venue: SHOUTING is home
+function oppAt(t,k){
+ const g=(HEAT[t]||{})[GWL[k]];
+ if(!g)return '\u2014';
+ return g[1]?String(g[0]).toUpperCase():String(g[0]).toLowerCase();
+}
 
 function pcard(r,inSet,small){
  const key=(r.rawn||r.n)+'|'+r.t;
@@ -937,8 +943,9 @@ function pcard(r,inSet,small){
    `vs ${esc(oppOf(r.t))}${click?' \u00b7 click to change':''}">${badge}`+
    shirtSvg(r.t)+
    `<div class="pn">${esc(r.n)}</div>`+
-   `<div class="pc">${esc(r.t)} \u00b7 ${esc(oppOf(r.t))}</div>`+
-   `<div class="px">${nxt.map(v=>`<b>${v.toFixed(1)}</b>`).join('')}</div></div>`;
+   `<div class="px">${nxt.map((v,i)=>
+      `<span class="c"><b>${v.toFixed(1)}</b>`+
+      `<i>${esc(oppAt(r.t,sel+i))}</i></span>`).join('')}</div></div>`;
 }
 
 function xiTotal(rows,k){

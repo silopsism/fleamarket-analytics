@@ -73,20 +73,23 @@ def as_dict():
 # Dialled in with the interactive editor rather than described in words. Five
 # attempts from written descriptions each failed differently; handing over
 # sliders settled it in two passes. These are the editor's exact numbers.
-VIEWBOX = '-1 0 54 44'
-BODY = ('M10 6.5 L21 2.1 Q26 6.25 31 2.1 L42 6.5 '
-        'L52 19.5 L43.5 27 L41 25 L41 44 '
-        'L11 44 L11 25 L8.5 27 L0 19.5 Z')
-SLEEVE_L = 'M10 6.5 L0 19.5 L8.5 27 L11 25 Z'
-SLEEVE_R = 'M42 6.5 L52 19.5 L43.5 27 L41 25 Z'
-NECK = 'M21 2.1 Q26 6.25 31 2.1'
-# Code sized to the chest rather than left at the old 9.5.
+# Dialled in with the interactive editor rather than described in words. Five
+# attempts from written descriptions each failed differently; sliders settled it.
+VIEWBOX = '-1 0 54 37'
+BODY = ('M11.5 4 L20.5 2.1 Q26 6.5 31.5 2.1 L40.5 4 '
+        'L52 15 L44 24 L41.5 22 L41.5 37 '
+        'L10.5 37 L10.5 22 L8 24 L0 15 Z')
+SLEEVE_L = 'M11.5 4 L0 15 L8 24 L10.5 22 Z'
+SLEEVE_R = 'M40.5 4 L52 15 L44 24 L41.5 22 Z'
+NECK = 'M20.5 2.1 Q26 6.5 31.5 2.1'
 CODE_SIZE = 12.0
-CODE_BASELINE = 39.20
-# The plate spans the FULL chest (x11 to x41, between the armpits) rather than
-# being computed from an estimated text width. Measured in the DOM, the codes
-# run 26.4 to 29.1 units wide at this size - a formula-derived 27.4 clipped BHA.
-PLATE = {'x': 11.0, 'y': 28.04, 'width': 30.0, 'height': 14.94, 'rx': 3}
+CODE_BASELINE = 27.70
+# Full chest width, x10.5 to x41.5 between the armpits. The editor derives this
+# from an ESTIMATED 1.86 units of text per size unit, which came out at 27.42 -
+# but measured in the DOM the codes run 26.4 to 29.1 wide at size 12, so that
+# estimate clipped BHA. Spanning the chest is correct for every club and reads
+# as a sponsor band rather than a tag.
+PLATE = {'x': 10.5, 'y': 16.54, 'width': 31.0, 'height': 14.94, 'rx': 3}
 
 
 def geometry():
