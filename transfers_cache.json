@@ -1,7 +1,214 @@
 {
- "ts": "2026-08-20T06:37+00:00",
+ "ts": "2026-08-22T14:53+00:00",
  "source": "Wikipedia: List of English football transfers summer 2026",
  "clubs": {
+  "NFO": {
+   "in": [
+    {
+     "name": "Ousmane Diomande",
+     "other": "Sporting CP",
+     "fee": 34000000,
+     "label": "£34m",
+     "loan": false
+    },
+    {
+     "name": "rowspan=\"6\" |23 June 2026",
+     "other": "Yahya Bamba",
+     "fee": null,
+     "label": "Newport County",
+     "loan": false
+    },
+    {
+     "name": "Darius Lipsiuc",
+     "other": "Stoke City",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "James Gibbons",
+     "other": "Cambridge United",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Callum Roberts",
+     "other": "Scunthorpe United",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Max Sanders",
+     "other": "Crewe Alexandra",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "rowspan=\"15\" |17 July 2026",
+     "other": "Danny Anisjko",
+     "fee": null,
+     "label": "Chesterfield",
+     "loan": false
+    },
+    {
+     "name": "Matt Baker",
+     "other": "Newport County",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "rowspan=\"9\" |23 July 2026",
+     "other": "Elliot Anderson",
+     "fee": null,
+     "label": "Manchester City",
+     "loan": false
+    },
+    {
+     "name": "Xaver Schlager",
+     "other": "RB Leipzig",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Jack Evans",
+     "other": "Harrogate Town",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Luka Smyth",
+     "other": "VPS",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Dean Campbell",
+     "other": "Northampton Town",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "rowspan=\"5\" |17 August 2026",
+     "other": "Taiwo Awoniyi",
+     "fee": null,
+     "label": "Coventry City",
+     "loan": false
+    }
+   ],
+   "out": [
+    {
+     "name": "Ollie Norburn",
+     "other": "Oldham Athletic",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Christian Doidge",
+     "other": "Newport County",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Matthew Dennis",
+     "other": "Burton Albion",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Angus Gunn",
+     "other": "San Jose Earthquakes",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Alassana Jatta",
+     "other": "Casa Pia",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    }
+   ],
+   "spend": 34000000,
+   "received": 0,
+   "net": 34000000
+  },
+  "LIV": {
+   "in": [
+    {
+     "name": "Jérémy Jacquet",
+     "other": "Rennes",
+     "fee": 55000000,
+     "label": "£55m",
+     "loan": false
+    },
+    {
+     "name": "Víctor Muñoz",
+     "other": "Osasuna",
+     "fee": 34500000,
+     "label": "£34.5m",
+     "loan": false
+    },
+    {
+     "name": "rowspan=\"2\" |27 February 2026",
+     "other": "Trent Koné-Doherty",
+     "fee": null,
+     "label": "Molde",
+     "loan": false
+    }
+   ],
+   "out": [
+    {
+     "name": "Curtis Jones",
+     "other": "Inter Milan",
+     "fee": 30000000,
+     "label": "£30m",
+     "loan": false
+    },
+    {
+     "name": "Ibrahima Konaté",
+     "other": "Real Madrid",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Andy Robertson",
+     "other": "Tottenham Hotspur",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Luca Stephenson",
+     "other": "Bolton Wanderers",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Mohamed Salah",
+     "other": "Trabzonspor",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    }
+   ],
+   "spend": 89500000,
+   "received": 30000000,
+   "net": 59500000
+  },
   "BRE": {
    "in": [
     {
@@ -61,11 +268,176 @@
      "fee": null,
      "label": "Undisclosed",
      "loan": false
+    },
+    {
+     "name": "rowspan=\"8\" |18 August 2026",
+     "other": "Wigan Athletic",
+     "fee": null,
+     "label": "Bromley",
+     "loan": false
     }
    ],
    "spend": 12000000,
    "received": 0,
    "net": 12000000
+  },
+  "FUL": {
+   "in": [
+    {
+     "name": "Gonzalo García",
+     "other": "Real Madrid",
+     "fee": 34000000,
+     "label": "£34m",
+     "loan": false
+    },
+    {
+     "name": "Shea Charles",
+     "other": "Southampton",
+     "fee": 26000000,
+     "label": "£26m",
+     "loan": false
+    },
+    {
+     "name": "César Palacios",
+     "other": "Real Madrid",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "rowspan=\"9\" |19 August 2026",
+     "other": "Harvey Araujo",
+     "fee": null,
+     "label": "Burton Albion",
+     "loan": false
+    }
+   ],
+   "out": [
+    {
+     "name": "Raúl Jiménez",
+     "other": "Wolverhampton Wanderers",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Olly Sanderson",
+     "other": "Stevenage",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Harry Wilson",
+     "other": "Leeds United",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Issa Diop",
+     "other": "Ipswich Town",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Saša Lukić",
+     "other": "Ipswich Town",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    }
+   ],
+   "spend": 60000000,
+   "received": 0,
+   "net": 60000000
+  },
+  "EVE": {
+   "in": [
+    {
+     "name": "Tyrique George",
+     "other": "Chelsea",
+     "fee": 18000000,
+     "label": "£18m",
+     "loan": false
+    },
+    {
+     "name": "Merlin Röhl",
+     "other": "Freiburg",
+     "fee": 17300000,
+     "label": "£17.3m",
+     "loan": false
+    },
+    {
+     "name": "Hayden Hackney",
+     "other": "Middlesbrough",
+     "fee": 16000000,
+     "label": "£16m",
+     "loan": false
+    },
+    {
+     "name": "Christian Nørgaard",
+     "other": "Arsenal",
+     "fee": 7000000,
+     "label": "£7m",
+     "loan": false
+    },
+    {
+     "name": "Brennan Johnson",
+     "other": "Crystal Palace",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    }
+   ],
+   "out": [
+    {
+     "name": "Isaac Heath",
+     "other": "Cambridge United",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Francis Okoronkwo",
+     "other": "Doncaster Rovers",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Reece Welch",
+     "other": "Bradford City",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Tyler Onyango",
+     "other": "Sheffield Wednesday",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Roman Dixon",
+     "other": "Walsall",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Dwight McNeil",
+     "other": "Crystal Palace",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    }
+   ],
+   "spend": 58300000,
+   "received": 0,
+   "net": 58300000
   },
   "TOT": {
    "in": [
@@ -195,6 +567,306 @@
    "received": 128800000,
    "net": 100700000
   },
+  "HUL": {
+   "in": [
+    {
+     "name": "Konstantinos Tzolakis",
+     "other": "Olympiacos",
+     "fee": 20000000,
+     "label": "£20m",
+     "loan": false
+    },
+    {
+     "name": "Jack Butland",
+     "other": "Rangers",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Óscar Zambrano",
+     "other": "Maribor",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Matt Targett",
+     "other": "Newcastle United",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Hidemasa Morita",
+     "other": "Sporting CP",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Jens Hjertø-Dahl",
+     "other": "Tromsø",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Elliot Stroud",
+     "other": "Mjällby",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "rowspan=\"4\" |10 August 2026",
+     "other": "Abu Kamara",
+     "fee": null,
+     "label": "Portsmouth",
+     "loan": false
+    },
+    {
+     "name": "Lucas Herrington",
+     "other": "Colorado Rapids",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Nobel Mendy",
+     "other": "Rayo Vallecano",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Joe Gelhardt",
+     "other": "Leeds United",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Lucas Gourna-Douath",
+     "other": "Red Bull Salzburg",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    }
+   ],
+   "out": [
+    {
+     "name": "Ivor Pandur",
+     "other": "Rangers",
+     "fee": 6000000,
+     "label": "£6m",
+     "loan": false
+    },
+    {
+     "name": "Aidon Shehu",
+     "other": "Panathinaikos",
+     "fee": 2500000,
+     "label": "£2.5m",
+     "loan": false
+    },
+    {
+     "name": "Akin Famewo",
+     "other": "Bolton Wanderers",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Kasey Palmer",
+     "other": "Luton Town",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Kyle Joseph",
+     "other": "Middlesbrough",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Enis Destan",
+     "other": "Konyaspor",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    }
+   ],
+   "spend": 20000000,
+   "received": 8500000,
+   "net": 11500000
+  },
+  "MUN": {
+   "in": [
+    {
+     "name": "Andrey Santos",
+     "other": "Chelsea",
+     "fee": 48000000,
+     "label": "£48m",
+     "loan": false
+    },
+    {
+     "name": "Youri Tielemans",
+     "other": "Aston Villa",
+     "fee": 35000000,
+     "label": "£35m",
+     "loan": false
+    },
+    {
+     "name": "Tynan Thompson",
+     "other": "Tottenham Hotspur",
+     "fee": 8000000,
+     "label": "£8m",
+     "loan": false
+    },
+    {
+     "name": "rowspan=\"5\" |29 June 2026",
+     "other": "Rasmus Højlund",
+     "fee": null,
+     "label": "Napoli",
+     "loan": false
+    },
+    {
+     "name": "Karl Darlow",
+     "other": "Leeds United",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "rowspan=\"9\" |7 August 2026",
+     "other": "Sonny Aljofree",
+     "fee": null,
+     "label": "Rotherham United",
+     "loan": false
+    }
+   ],
+   "out": [
+    {
+     "name": "Casemiro",
+     "other": "Inter Miami",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Tyler Fredricson",
+     "other": "Lausanne-Sport",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Radek Vítek",
+     "other": "Middlesbrough",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Ethan Williams",
+     "other": "Peterborough United",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Ethan Ennis",
+     "other": "Stockport County",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    }
+   ],
+   "spend": 91000000,
+   "received": 0,
+   "net": 91000000
+  },
+  "LEE": {
+   "in": [
+    {
+     "name": "James Trafford",
+     "other": "Manchester City",
+     "fee": 45000000,
+     "label": "£45m",
+     "loan": false
+    },
+    {
+     "name": "Tarik Muharemović",
+     "other": "Sassuolo",
+     "fee": 34100000,
+     "label": "£34.1m",
+     "loan": false
+    },
+    {
+     "name": "Nico Elvedi",
+     "other": "Borussia Mönchengladbach",
+     "fee": 8500000,
+     "label": "£8.5m",
+     "loan": false
+    },
+    {
+     "name": "Harry Wilson",
+     "other": "Fulham",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    }
+   ],
+   "out": [
+    {
+     "name": "Pascal Struijk",
+     "other": "Brighton & Hove Albion",
+     "fee": 20000000,
+     "label": "£20m",
+     "loan": false
+    },
+    {
+     "name": "Illan Meslier",
+     "other": "Arsenal",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Karl Darlow",
+     "other": "Manchester United",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Isaac Schmidt",
+     "other": "Young Boys",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Jack Harrison",
+     "other": "New England Revolution",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Joe Gelhardt",
+     "other": "Hull City",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    }
+   ],
+   "spend": 87600000,
+   "received": 20000000,
+   "net": 67600000
+  },
   "NEW": {
    "in": [
     {
@@ -288,6 +960,512 @@
    "received": 161800000,
    "net": -22600000
   },
+  "CHE": {
+   "in": [
+    {
+     "name": "Morgan Rogers",
+     "other": "Aston Villa",
+     "fee": 117000000,
+     "label": "£117m",
+     "loan": false
+    },
+    {
+     "name": "Maxence Lacroix",
+     "other": "Crystal Palace",
+     "fee": 52000000,
+     "label": "£52m",
+     "loan": false
+    },
+    {
+     "name": "Marco Palestra",
+     "other": "Atalanta",
+     "fee": 43000000,
+     "label": "£43m",
+     "loan": false
+    },
+    {
+     "name": "Geovany Quenda",
+     "other": "Sporting CP",
+     "fee": 40000000,
+     "label": "£40m",
+     "loan": false
+    },
+    {
+     "name": "Valentín Barco",
+     "other": "Strasbourg",
+     "fee": 34000000,
+     "label": "£34m",
+     "loan": false
+    },
+    {
+     "name": "Emmanuel Emegha",
+     "other": "Strasbourg",
+     "fee": 22000000,
+     "label": "£22m",
+     "loan": false
+    },
+    {
+     "name": "Pep Chavarría",
+     "other": "Rayo Vallecano",
+     "fee": 16300000,
+     "label": "£16.3m",
+     "loan": false
+    },
+    {
+     "name": "Danny Welbeck",
+     "other": "Brighton & Hove Albion",
+     "fee": 5000000,
+     "label": "£5m",
+     "loan": false
+    },
+    {
+     "name": "Dastan Satpayev",
+     "other": "FC Kairat",
+     "fee": 3400000,
+     "label": "£3.4m",
+     "loan": false
+    },
+    {
+     "name": "Charlie McCann",
+     "other": "Barrow",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Jordan Shipley",
+     "other": "Port Vale",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Pierce Sweeney",
+     "other": "Exeter City",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Joe Tomlinson",
+     "other": "Milton Keynes Dons",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Shaun McWilliams",
+     "other": "Rotherham United",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Wyll Stanway",
+     "other": "Barrow",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Harrison Bettoni",
+     "other": "Wigan Athletic",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Jordan Henderson",
+     "other": "Brentford",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "rowspan=\"3\" |9 August 2026",
+     "other": "Trevoh Chalobah",
+     "fee": null,
+     "label": "Como",
+     "loan": false
+    },
+    {
+     "name": "Andreas Weimann",
+     "other": "Derby County",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Alfie Osbourne",
+     "other": "Heart of Midlothian",
+     "fee": null,
+     "label": "Free<ref>{{Cite web |title=Alfie Osborne",
+     "loan": false
+    }
+   ],
+   "out": [
+    {
+     "name": "Andrey Santos",
+     "other": "Manchester United",
+     "fee": 48000000,
+     "label": "£48m",
+     "loan": false
+    },
+    {
+     "name": "Marc Cucurella",
+     "other": "Real Madrid",
+     "fee": 47500000,
+     "label": "£47.5m",
+     "loan": false
+    },
+    {
+     "name": "Tyrique George",
+     "other": "Everton",
+     "fee": 18000000,
+     "label": "£18m",
+     "loan": false
+    },
+    {
+     "name": "Jimmy-Jay Morgan",
+     "other": "West Bromwich Albion",
+     "fee": 4000000,
+     "label": "£4m",
+     "loan": false
+    },
+    {
+     "name": "Jett Murphy",
+     "other": "West Ham United",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Arkell Jude-Boyd",
+     "other": "Shrewsbury Town",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Frankie Runham",
+     "other": "Ipswich Town",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Joseph Wheeler-Henry",
+     "other": "Brentford",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Jimi Tauriainen",
+     "other": "Horsens",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Christopher Atherton",
+     "other": "Ipswich Town",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Jordan Thomas",
+     "other": "Doncaster Rovers",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    }
+   ],
+   "spend": 332700000,
+   "received": 117500000,
+   "net": 215200000
+  },
+  "AVL": {
+   "in": [
+    {
+     "name": "Johan Manzambi",
+     "other": "Freiburg",
+     "fee": 52000000,
+     "label": "£52m",
+     "loan": false
+    },
+    {
+     "name": "João Gomes",
+     "other": "Wolverhampton Wanderers",
+     "fee": 38000000,
+     "label": "£38m",
+     "loan": false
+    },
+    {
+     "name": "Zion Suzuki",
+     "other": "Parma",
+     "fee": 30000000,
+     "label": "£30m",
+     "loan": false
+    },
+    {
+     "name": "Matteo Ruggeri",
+     "other": "Atlético Madrid",
+     "fee": 17000000,
+     "label": "£17m",
+     "loan": false
+    },
+    {
+     "name": "Modou Kéba Cissé",
+     "other": "LASK",
+     "fee": 4000000,
+     "label": "£4m",
+     "loan": false
+    }
+   ],
+   "out": [
+    {
+     "name": "Morgan Rogers",
+     "other": "Chelsea",
+     "fee": 117000000,
+     "label": "£117m",
+     "loan": false
+    },
+    {
+     "name": "Ezri Konsa",
+     "other": "Arsenal",
+     "fee": 51000000,
+     "label": "£51m",
+     "loan": false
+    },
+    {
+     "name": "Youri Tielemans",
+     "other": "Manchester United",
+     "fee": 35000000,
+     "label": "£35m",
+     "loan": false
+    },
+    {
+     "name": "Donyell Malen",
+     "other": "Roma",
+     "fee": 21600000,
+     "label": "£21.6m",
+     "loan": false
+    },
+    {
+     "name": "Enzo Barrenechea",
+     "other": "Benfica",
+     "fee": 10400000,
+     "label": "£10.4m",
+     "loan": false
+    },
+    {
+     "name": "Lewis Dobbin",
+     "other": "Southampton",
+     "fee": 9000000,
+     "label": "£9m",
+     "loan": false
+    },
+    {
+     "name": "Lucas Digne",
+     "other": "Paris Saint-Germain",
+     "fee": 8500000,
+     "label": "£8.5m",
+     "loan": false
+    },
+    {
+     "name": "Sil Swinkels",
+     "other": "Sheffield Wednesday",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Louie Barry",
+     "other": "Sheffield Wednesday",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Yeimar Mosquera",
+     "other": "Vitória",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Kerr Smith",
+     "other": "Inverness Caledonian Thistle",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    }
+   ],
+   "spend": 141000000,
+   "received": 252500000,
+   "net": -111500000
+  },
+  "COV": {
+   "in": [
+    {
+     "name": "Caleb Yirenkyi",
+     "other": "Nordsjælland",
+     "fee": 23100000,
+     "label": "£23.1m",
+     "loan": false
+    },
+    {
+     "name": "Carl Rushworth",
+     "other": "Brighton & Hove Albion",
+     "fee": 22000000,
+     "label": "£22m",
+     "loan": false
+    },
+    {
+     "name": "Frank Onyeka",
+     "other": "Brentford",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "rowspan=\"7\" |11 July 2026",
+     "other": "Bradley Collins",
+     "fee": null,
+     "label": "Bristol City",
+     "loan": false
+    },
+    {
+     "name": "Loum Tchaouna",
+     "other": "Burnley",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Gustavo Hamer",
+     "other": "Sheffield United",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Sidiki Cherif",
+     "other": "Fenerbahçe",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    }
+   ],
+   "out": [],
+   "spend": 45100000,
+   "received": 0,
+   "net": 45100000
+  },
+  "ARS": {
+   "in": [
+    {
+     "name": "Ezri Konsa",
+     "other": "Aston Villa",
+     "fee": 51000000,
+     "label": "£51m",
+     "loan": false
+    },
+    {
+     "name": "Piero Hincapié",
+     "other": "Bayer Leverkusen",
+     "fee": 34500000,
+     "label": "£34.5m",
+     "loan": false
+    },
+    {
+     "name": "Christos Tzolis",
+     "other": "Club Brugge",
+     "fee": 34000000,
+     "label": "£34m",
+     "loan": false
+    },
+    {
+     "name": "Illan Meslier",
+     "other": "Leeds United",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    }
+   ],
+   "out": [
+    {
+     "name": "Leandro Trossard",
+     "other": "Beşiktaş",
+     "fee": 15300000,
+     "label": "£15.3m",
+     "loan": false
+    },
+    {
+     "name": "Christian Nørgaard",
+     "other": "Everton",
+     "fee": 7000000,
+     "label": "£7m",
+     "loan": false
+    },
+    {
+     "name": "Karl Hein",
+     "other": "Werder Bremen",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    }
+   ],
+   "spend": 119500000,
+   "received": 22300000,
+   "net": 97200000
+  },
+  "BOU": {
+   "in": [
+    {
+     "name": "Álvaro Rodríguez",
+     "other": "Elche",
+     "fee": 25700000,
+     "label": "£25.7m",
+     "loan": false
+    },
+    {
+     "name": "António Silva",
+     "other": "Benfica",
+     "fee": 25700000,
+     "label": "£25.7m",
+     "loan": false
+    }
+   ],
+   "out": [
+    {
+     "name": "Marcos Senesi",
+     "other": "Tottenham Hotspur",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Archie Harris",
+     "other": "Wigan Athletic",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Enes Ünal",
+     "other": "Getafe",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    }
+   ],
+   "spend": 51400000,
+   "received": 0,
+   "net": 51400000
+  },
   "CRY": {
    "in": [
     {
@@ -359,815 +1537,6 @@
    "spend": 32100000,
    "received": 52000000,
    "net": -19900000
-  },
-  "LIV": {
-   "in": [
-    {
-     "name": "Jérémy Jacquet",
-     "other": "Rennes",
-     "fee": 55000000,
-     "label": "£55m",
-     "loan": false
-    },
-    {
-     "name": "Víctor Muñoz",
-     "other": "Osasuna",
-     "fee": 34500000,
-     "label": "£34.5m",
-     "loan": false
-    },
-    {
-     "name": "rowspan=\"2\" |27 February 2026",
-     "other": "Trent Koné-Doherty",
-     "fee": null,
-     "label": "Molde",
-     "loan": false
-    }
-   ],
-   "out": [
-    {
-     "name": "Ibrahima Konaté",
-     "other": "Real Madrid",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    },
-    {
-     "name": "Andy Robertson",
-     "other": "Tottenham Hotspur",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    },
-    {
-     "name": "Luca Stephenson",
-     "other": "Bolton Wanderers",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Mohamed Salah",
-     "other": "Trabzonspor",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    }
-   ],
-   "spend": 89500000,
-   "received": 0,
-   "net": 89500000
-  },
-  "MUN": {
-   "in": [
-    {
-     "name": "Andrey Santos",
-     "other": "Chelsea",
-     "fee": 48000000,
-     "label": "£48m",
-     "loan": false
-    },
-    {
-     "name": "Youri Tielemans",
-     "other": "Aston Villa",
-     "fee": 35000000,
-     "label": "£35m",
-     "loan": false
-    },
-    {
-     "name": "Tynan Thompson",
-     "other": "Tottenham Hotspur",
-     "fee": 8000000,
-     "label": "£8m",
-     "loan": false
-    },
-    {
-     "name": "rowspan=\"5\" |29 June 2026",
-     "other": "Rasmus Højlund",
-     "fee": null,
-     "label": "Napoli",
-     "loan": false
-    },
-    {
-     "name": "Karl Darlow",
-     "other": "Leeds United",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    },
-    {
-     "name": "rowspan=\"9\" |7 August 2026",
-     "other": "Sonny Aljofree",
-     "fee": null,
-     "label": "Rotherham United",
-     "loan": false
-    }
-   ],
-   "out": [
-    {
-     "name": "Casemiro",
-     "other": "Inter Miami",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    },
-    {
-     "name": "Tyler Fredricson",
-     "other": "Lausanne-Sport",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Radek Vítek",
-     "other": "Middlesbrough",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Ethan Williams",
-     "other": "Peterborough United",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Ethan Ennis",
-     "other": "Stockport County",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    }
-   ],
-   "spend": 91000000,
-   "received": 0,
-   "net": 91000000
-  },
-  "AVL": {
-   "in": [
-    {
-     "name": "Johan Manzambi",
-     "other": "Freiburg",
-     "fee": 52000000,
-     "label": "£52m",
-     "loan": false
-    },
-    {
-     "name": "João Gomes",
-     "other": "Wolverhampton Wanderers",
-     "fee": 38000000,
-     "label": "£38m",
-     "loan": false
-    },
-    {
-     "name": "Zion Suzuki",
-     "other": "Parma",
-     "fee": 30000000,
-     "label": "£30m",
-     "loan": false
-    },
-    {
-     "name": "Matteo Ruggeri",
-     "other": "Atlético Madrid",
-     "fee": 17000000,
-     "label": "£17m",
-     "loan": false
-    },
-    {
-     "name": "Modou Kéba Cissé",
-     "other": "LASK",
-     "fee": 4000000,
-     "label": "£4m",
-     "loan": false
-    }
-   ],
-   "out": [
-    {
-     "name": "Morgan Rogers",
-     "other": "Chelsea",
-     "fee": 117000000,
-     "label": "£117m",
-     "loan": false
-    },
-    {
-     "name": "Youri Tielemans",
-     "other": "Manchester United",
-     "fee": 35000000,
-     "label": "£35m",
-     "loan": false
-    },
-    {
-     "name": "Donyell Malen",
-     "other": "Roma",
-     "fee": 21600000,
-     "label": "£21.6m",
-     "loan": false
-    },
-    {
-     "name": "Enzo Barrenechea",
-     "other": "Benfica",
-     "fee": 10400000,
-     "label": "£10.4m",
-     "loan": false
-    },
-    {
-     "name": "Lewis Dobbin",
-     "other": "Southampton",
-     "fee": 9000000,
-     "label": "£9m",
-     "loan": false
-    },
-    {
-     "name": "Lucas Digne",
-     "other": "Paris Saint-Germain",
-     "fee": 8500000,
-     "label": "£8.5m",
-     "loan": false
-    },
-    {
-     "name": "Sil Swinkels",
-     "other": "Sheffield Wednesday",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Louie Barry",
-     "other": "Sheffield Wednesday",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Yeimar Mosquera",
-     "other": "Vitória",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Kerr Smith",
-     "other": "Inverness Caledonian Thistle",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    }
-   ],
-   "spend": 141000000,
-   "received": 201500000,
-   "net": -60500000
-  },
-  "NFO": {
-   "in": [
-    {
-     "name": "Ousmane Diomande",
-     "other": "Sporting CP",
-     "fee": 34000000,
-     "label": "£34m",
-     "loan": false
-    },
-    {
-     "name": "rowspan=\"15\" |17 July 2026",
-     "other": "Danny Anisjko",
-     "fee": null,
-     "label": "Chesterfield",
-     "loan": false
-    },
-    {
-     "name": "rowspan=\"9\" |23 July 2026",
-     "other": "Elliot Anderson",
-     "fee": null,
-     "label": "Manchester City",
-     "loan": false
-    },
-    {
-     "name": "Xaver Schlager",
-     "other": "RB Leipzig",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    },
-    {
-     "name": "rowspan=\"5\" |17 August 2026",
-     "other": "Taiwo Awoniyi",
-     "fee": null,
-     "label": "Coventry City",
-     "loan": false
-    }
-   ],
-   "out": [
-    {
-     "name": "Angus Gunn",
-     "other": "San Jose Earthquakes",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    }
-   ],
-   "spend": 34000000,
-   "received": 0,
-   "net": 34000000
-  },
-  "BHA": {
-   "in": [
-    {
-     "name": "Luka Vušković",
-     "other": "Tottenham Hotspur",
-     "fee": 46000000,
-     "label": "£46m",
-     "loan": false
-    },
-    {
-     "name": "Zadok Yohanna",
-     "other": "AIK",
-     "fee": 21500000,
-     "label": "£21.5m",
-     "loan": false
-    },
-    {
-     "name": "Pascal Struijk",
-     "other": "Leeds United",
-     "fee": 20000000,
-     "label": "£20m",
-     "loan": false
-    },
-    {
-     "name": "Costinha",
-     "other": "Olympiacos",
-     "fee": 11000000,
-     "label": "£11m",
-     "loan": false
-    },
-    {
-     "name": "Michael Svoboda",
-     "other": "Venezia",
-     "fee": 4300000,
-     "label": "£4.3m",
-     "loan": false
-    }
-   ],
-   "out": [
-    {
-     "name": "Jan Paul van Hecke",
-     "other": "Tottenham Hotspur",
-     "fee": 52000000,
-     "label": "£52m",
-     "loan": false
-    },
-    {
-     "name": "Carl Rushworth",
-     "other": "Coventry City",
-     "fee": 22000000,
-     "label": "£22m",
-     "loan": false
-    },
-    {
-     "name": "Danny Welbeck",
-     "other": "Chelsea",
-     "fee": 5000000,
-     "label": "£5m",
-     "loan": false
-    },
-    {
-     "name": "Jeremy Sarmiento",
-     "other": "Middlesbrough",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Zane Albarus",
-     "other": "Gillingham",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    },
-    {
-     "name": "Jacob Slater",
-     "other": "Tranmere Rovers",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    },
-    {
-     "name": "Diego Coppola",
-     "other": "Paris FC",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Joël Veltman",
-     "other": "West Ham United",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    }
-   ],
-   "spend": 102800000,
-   "received": 79000000,
-   "net": 23800000
-  },
-  "ARS": {
-   "in": [
-    {
-     "name": "Piero Hincapié",
-     "other": "Bayer Leverkusen",
-     "fee": 34500000,
-     "label": "£34.5m",
-     "loan": false
-    },
-    {
-     "name": "Christos Tzolis",
-     "other": "Club Brugge",
-     "fee": 34000000,
-     "label": "£34m",
-     "loan": false
-    },
-    {
-     "name": "Illan Meslier",
-     "other": "Leeds United",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    }
-   ],
-   "out": [
-    {
-     "name": "Leandro Trossard",
-     "other": "Beşiktaş",
-     "fee": 15300000,
-     "label": "£15.3m",
-     "loan": false
-    },
-    {
-     "name": "Christian Nørgaard",
-     "other": "Everton",
-     "fee": 7000000,
-     "label": "£7m",
-     "loan": false
-    },
-    {
-     "name": "Karl Hein",
-     "other": "Werder Bremen",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    }
-   ],
-   "spend": 68500000,
-   "received": 22300000,
-   "net": 46200000
-  },
-  "MCI": {
-   "in": [
-    {
-     "name": "Jeremy Monga",
-     "other": "Leicester City",
-     "fee": 10000000,
-     "label": "£10m",
-     "loan": false
-    },
-    {
-     "name": "Gerónimo Rulli",
-     "other": "Marseille",
-     "fee": 1700000,
-     "label": "£1.7m",
-     "loan": false
-    },
-    {
-     "name": "rowspan=\"14\" |3 July 2026",
-     "other": "Nathan Aké",
-     "fee": null,
-     "label": "Fenerbahçe",
-     "loan": false
-    },
-    {
-     "name": "Pierce Charles",
-     "other": "Sheffield Wednesday",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    }
-   ],
-   "out": [
-    {
-     "name": "Rodri",
-     "other": "Barcelona",
-     "fee": 65000000,
-     "label": "£65m",
-     "loan": false
-    },
-    {
-     "name": "Tijjani Reijnders",
-     "other": "Al Qadsiah",
-     "fee": 52000000,
-     "label": "£52m",
-     "loan": false
-    },
-    {
-     "name": "James Trafford",
-     "other": "Leeds United",
-     "fee": 45000000,
-     "label": "£45m",
-     "loan": false
-    },
-    {
-     "name": "Reigan Heskey",
-     "other": "1. FC Köln",
-     "fee": 8000000,
-     "label": "£8m",
-     "loan": false
-    },
-    {
-     "name": "Bernardo Silva",
-     "other": "Real Madrid",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    },
-    {
-     "name": "Isaac Smith",
-     "other": "Barnsley",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Jahmai Simpson-Pusey",
-     "other": "1. FC Köln",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Matty Warhurst",
-     "other": "Northampton Town",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "John Stones",
-     "other": "Inter Milan",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    },
-    {
-     "name": "Finley Burns",
-     "other": "Wigan Athletic",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    }
-   ],
-   "spend": 11700000,
-   "received": 170000000,
-   "net": -158300000
-  },
-  "CHE": {
-   "in": [
-    {
-     "name": "Morgan Rogers",
-     "other": "Aston Villa",
-     "fee": 117000000,
-     "label": "£117m",
-     "loan": false
-    },
-    {
-     "name": "Maxence Lacroix",
-     "other": "Crystal Palace",
-     "fee": 52000000,
-     "label": "£52m",
-     "loan": false
-    },
-    {
-     "name": "Marco Palestra",
-     "other": "Atalanta",
-     "fee": 43000000,
-     "label": "£43m",
-     "loan": false
-    },
-    {
-     "name": "Geovany Quenda",
-     "other": "Sporting CP",
-     "fee": 40000000,
-     "label": "£40m",
-     "loan": false
-    },
-    {
-     "name": "Valentín Barco",
-     "other": "Strasbourg",
-     "fee": 34000000,
-     "label": "£34m",
-     "loan": false
-    },
-    {
-     "name": "Emmanuel Emegha",
-     "other": "Strasbourg",
-     "fee": 22000000,
-     "label": "£22m",
-     "loan": false
-    },
-    {
-     "name": "Pep Chavarría",
-     "other": "Rayo Vallecano",
-     "fee": 16300000,
-     "label": "£16.3m",
-     "loan": false
-    },
-    {
-     "name": "Danny Welbeck",
-     "other": "Brighton & Hove Albion",
-     "fee": 5000000,
-     "label": "£5m",
-     "loan": false
-    },
-    {
-     "name": "Dastan Satpayev",
-     "other": "FC Kairat",
-     "fee": 3400000,
-     "label": "£3.4m",
-     "loan": false
-    },
-    {
-     "name": "Harrison Bettoni",
-     "other": "Wigan Athletic",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Jordan Henderson",
-     "other": "Brentford",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    },
-    {
-     "name": "rowspan=\"3\" |9 August 2026",
-     "other": "Trevoh Chalobah",
-     "fee": null,
-     "label": "Como",
-     "loan": false
-    },
-    {
-     "name": "Alfie Osbourne",
-     "other": "Heart of Midlothian",
-     "fee": null,
-     "label": "Free<ref>{{Cite web |title=Alfie Osborne",
-     "loan": false
-    }
-   ],
-   "out": [
-    {
-     "name": "Andrey Santos",
-     "other": "Manchester United",
-     "fee": 48000000,
-     "label": "£48m",
-     "loan": false
-    },
-    {
-     "name": "Marc Cucurella",
-     "other": "Real Madrid",
-     "fee": 47500000,
-     "label": "£47.5m",
-     "loan": false
-    },
-    {
-     "name": "Tyrique George",
-     "other": "Everton",
-     "fee": 18000000,
-     "label": "£18m",
-     "loan": false
-    },
-    {
-     "name": "Jimmy-Jay Morgan",
-     "other": "West Bromwich Albion",
-     "fee": 4000000,
-     "label": "£4m",
-     "loan": false
-    },
-    {
-     "name": "Frankie Runham",
-     "other": "Ipswich Town",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Joseph Wheeler-Henry",
-     "other": "Brentford",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Jimi Tauriainen",
-     "other": "Horsens",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    },
-    {
-     "name": "Christopher Atherton",
-     "other": "Ipswich Town",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    }
-   ],
-   "spend": 332700000,
-   "received": 117500000,
-   "net": 215200000
-  },
-  "EVE": {
-   "in": [
-    {
-     "name": "Tyrique George",
-     "other": "Chelsea",
-     "fee": 18000000,
-     "label": "£18m",
-     "loan": false
-    },
-    {
-     "name": "Merlin Röhl",
-     "other": "Freiburg",
-     "fee": 17300000,
-     "label": "£17.3m",
-     "loan": false
-    },
-    {
-     "name": "Hayden Hackney",
-     "other": "Middlesbrough",
-     "fee": 16000000,
-     "label": "£16m",
-     "loan": false
-    },
-    {
-     "name": "Christian Nørgaard",
-     "other": "Arsenal",
-     "fee": 7000000,
-     "label": "£7m",
-     "loan": false
-    },
-    {
-     "name": "Brennan Johnson",
-     "other": "Crystal Palace",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    }
-   ],
-   "out": [
-    {
-     "name": "Isaac Heath",
-     "other": "Cambridge United",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    },
-    {
-     "name": "Francis Okoronkwo",
-     "other": "Doncaster Rovers",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    },
-    {
-     "name": "Reece Welch",
-     "other": "Bradford City",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    },
-    {
-     "name": "Tyler Onyango",
-     "other": "Sheffield Wednesday",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    },
-    {
-     "name": "Roman Dixon",
-     "other": "Walsall",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    },
-    {
-     "name": "Dwight McNeil",
-     "other": "Crystal Palace",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    }
-   ],
-   "spend": 58300000,
-   "received": 0,
-   "net": 58300000
   },
   "IPS": {
    "in": [
@@ -1312,263 +1681,125 @@
      "fee": null,
      "label": "Undisclosed",
      "loan": false
+    },
+    {
+     "name": "George Hirst",
+     "other": "Stoke City",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
     }
    ],
    "spend": 30000000,
    "received": 0,
    "net": 30000000
   },
-  "LEE": {
+  "MCI": {
    "in": [
     {
+     "name": "Jeremy Monga",
+     "other": "Leicester City",
+     "fee": 10000000,
+     "label": "£10m",
+     "loan": false
+    },
+    {
+     "name": "Gerónimo Rulli",
+     "other": "Marseille",
+     "fee": 1700000,
+     "label": "£1.7m",
+     "loan": false
+    },
+    {
+     "name": "rowspan=\"14\" |3 July 2026",
+     "other": "Nathan Aké",
+     "fee": null,
+     "label": "Fenerbahçe",
+     "loan": false
+    },
+    {
+     "name": "Pierce Charles",
+     "other": "Sheffield Wednesday",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    }
+   ],
+   "out": [
+    {
+     "name": "Rodri",
+     "other": "Barcelona",
+     "fee": 65000000,
+     "label": "£65m",
+     "loan": false
+    },
+    {
+     "name": "Tijjani Reijnders",
+     "other": "Al Qadsiah",
+     "fee": 52000000,
+     "label": "£52m",
+     "loan": false
+    },
+    {
      "name": "James Trafford",
-     "other": "Manchester City",
+     "other": "Leeds United",
      "fee": 45000000,
      "label": "£45m",
      "loan": false
     },
     {
-     "name": "Tarik Muharemović",
-     "other": "Sassuolo",
-     "fee": 34100000,
-     "label": "£34.1m",
+     "name": "Reigan Heskey",
+     "other": "1. FC Köln",
+     "fee": 8000000,
+     "label": "£8m",
      "loan": false
     },
     {
-     "name": "Nico Elvedi",
-     "other": "Borussia Mönchengladbach",
-     "fee": 8500000,
-     "label": "£8.5m",
-     "loan": false
-    },
-    {
-     "name": "Harry Wilson",
-     "other": "Fulham",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    }
-   ],
-   "out": [
-    {
-     "name": "Pascal Struijk",
-     "other": "Brighton & Hove Albion",
-     "fee": 20000000,
-     "label": "£20m",
-     "loan": false
-    },
-    {
-     "name": "Illan Meslier",
-     "other": "Arsenal",
+     "name": "Bernardo Silva",
+     "other": "Real Madrid",
      "fee": null,
      "label": "Free",
      "loan": false
     },
     {
-     "name": "Karl Darlow",
-     "other": "Manchester United",
+     "name": "Isaac Smith",
+     "other": "Barnsley",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Jahmai Simpson-Pusey",
+     "other": "1. FC Köln",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "Matty Warhurst",
+     "other": "Northampton Town",
+     "fee": null,
+     "label": "Undisclosed",
+     "loan": false
+    },
+    {
+     "name": "John Stones",
+     "other": "Inter Milan",
      "fee": null,
      "label": "Free",
      "loan": false
     },
     {
-     "name": "Isaac Schmidt",
-     "other": "Young Boys",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Jack Harrison",
-     "other": "New England Revolution",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Joe Gelhardt",
-     "other": "Hull City",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    }
-   ],
-   "spend": 87600000,
-   "received": 20000000,
-   "net": 67600000
-  },
-  "COV": {
-   "in": [
-    {
-     "name": "Caleb Yirenkyi",
-     "other": "Nordsjælland",
-     "fee": 23100000,
-     "label": "£23.1m",
-     "loan": false
-    },
-    {
-     "name": "Carl Rushworth",
-     "other": "Brighton & Hove Albion",
-     "fee": 22000000,
-     "label": "£22m",
-     "loan": false
-    },
-    {
-     "name": "Frank Onyeka",
-     "other": "Brentford",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "rowspan=\"7\" |11 July 2026",
-     "other": "Bradley Collins",
-     "fee": null,
-     "label": "Bristol City",
-     "loan": false
-    },
-    {
-     "name": "Loum Tchaouna",
-     "other": "Burnley",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Gustavo Hamer",
-     "other": "Sheffield United",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Sidiki Cherif",
-     "other": "Fenerbahçe",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    }
-   ],
-   "out": [],
-   "spend": 45100000,
-   "received": 0,
-   "net": 45100000
-  },
-  "BOU": {
-   "in": [
-    {
-     "name": "Álvaro Rodríguez",
-     "other": "Elche",
-     "fee": 25700000,
-     "label": "£25.7m",
-     "loan": false
-    },
-    {
-     "name": "António Silva",
-     "other": "Benfica",
-     "fee": 25700000,
-     "label": "£25.7m",
-     "loan": false
-    }
-   ],
-   "out": [
-    {
-     "name": "Marcos Senesi",
-     "other": "Tottenham Hotspur",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    },
-    {
-     "name": "Archie Harris",
+     "name": "Finley Burns",
      "other": "Wigan Athletic",
      "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Enes Ünal",
-     "other": "Getafe",
-     "fee": null,
      "label": "Free",
      "loan": false
     }
    ],
-   "spend": 51400000,
-   "received": 0,
-   "net": 51400000
-  },
-  "FUL": {
-   "in": [
-    {
-     "name": "Gonzalo García",
-     "other": "Real Madrid",
-     "fee": 34000000,
-     "label": "£34m",
-     "loan": false
-    },
-    {
-     "name": "Shea Charles",
-     "other": "Southampton",
-     "fee": 26000000,
-     "label": "£26m",
-     "loan": false
-    },
-    {
-     "name": "César Palacios",
-     "other": "Real Madrid",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "rowspan=\"9\" |19 August 2026",
-     "other": "Harvey Araujo",
-     "fee": null,
-     "label": "Burton Albion",
-     "loan": false
-    }
-   ],
-   "out": [
-    {
-     "name": "Raúl Jiménez",
-     "other": "Wolverhampton Wanderers",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    },
-    {
-     "name": "Olly Sanderson",
-     "other": "Stevenage",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    },
-    {
-     "name": "Harry Wilson",
-     "other": "Leeds United",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    },
-    {
-     "name": "Issa Diop",
-     "other": "Ipswich Town",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Saša Lukić",
-     "other": "Ipswich Town",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    }
-   ],
-   "spend": 60000000,
-   "received": 0,
-   "net": 60000000
+   "spend": 11700000,
+   "received": 170000000,
+   "net": -158300000
   },
   "SUN": {
    "in": [
@@ -1649,142 +1880,114 @@
    "received": 22000000,
    "net": -22000000
   },
-  "HUL": {
+  "BHA": {
    "in": [
     {
-     "name": "Konstantinos Tzolakis",
-     "other": "Olympiacos",
+     "name": "Luka Vušković",
+     "other": "Tottenham Hotspur",
+     "fee": 46000000,
+     "label": "£46m",
+     "loan": false
+    },
+    {
+     "name": "Zadok Yohanna",
+     "other": "AIK",
+     "fee": 21500000,
+     "label": "£21.5m",
+     "loan": false
+    },
+    {
+     "name": "Pascal Struijk",
+     "other": "Leeds United",
      "fee": 20000000,
      "label": "£20m",
      "loan": false
     },
     {
-     "name": "Jack Butland",
-     "other": "Rangers",
-     "fee": null,
-     "label": "Undisclosed",
+     "name": "Costinha",
+     "other": "Olympiacos",
+     "fee": 11000000,
+     "label": "£11m",
      "loan": false
     },
     {
-     "name": "Óscar Zambrano",
-     "other": "Maribor",
-     "fee": null,
-     "label": "Undisclosed",
+     "name": "Michael Svoboda",
+     "other": "Venezia",
+     "fee": 4300000,
+     "label": "£4.3m",
      "loan": false
     },
     {
-     "name": "Matt Targett",
-     "other": "Newcastle United",
+     "name": "rowspan=\"3\" |2 July 2026",
+     "other": "30 June 2027",
      "fee": null,
-     "label": "Free",
-     "loan": false
-    },
-    {
-     "name": "Hidemasa Morita",
-     "other": "Sporting CP",
-     "fee": null,
-     "label": "Free",
-     "loan": false
-    },
-    {
-     "name": "Jens Hjertø-Dahl",
-     "other": "Tromsø",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Elliot Stroud",
-     "other": "Mjällby",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "rowspan=\"4\" |10 August 2026",
-     "other": "Abu Kamara",
-     "fee": null,
-     "label": "Portsmouth",
-     "loan": false
-    },
-    {
-     "name": "Lucas Herrington",
-     "other": "Colorado Rapids",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Nobel Mendy",
-     "other": "Rayo Vallecano",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Joe Gelhardt",
-     "other": "Leeds United",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Lucas Gourna-Douath",
-     "other": "Red Bull Salzburg",
-     "fee": null,
-     "label": "Undisclosed",
+     "label": "Leicester City",
      "loan": false
     }
    ],
    "out": [
     {
-     "name": "Ivor Pandur",
-     "other": "Rangers",
-     "fee": 6000000,
-     "label": "£6m",
+     "name": "Jan Paul van Hecke",
+     "other": "Tottenham Hotspur",
+     "fee": 52000000,
+     "label": "£52m",
      "loan": false
     },
     {
-     "name": "Aidon Shehu",
-     "other": "Panathinaikos",
-     "fee": 2500000,
-     "label": "£2.5m",
+     "name": "Carl Rushworth",
+     "other": "Coventry City",
+     "fee": 22000000,
+     "label": "£22m",
      "loan": false
     },
     {
-     "name": "Akin Famewo",
-     "other": "Bolton Wanderers",
-     "fee": null,
-     "label": "Undisclosed",
+     "name": "Danny Welbeck",
+     "other": "Chelsea",
+     "fee": 5000000,
+     "label": "£5m",
      "loan": false
     },
     {
-     "name": "Kasey Palmer",
-     "other": "Luton Town",
-     "fee": null,
-     "label": "Undisclosed",
-     "loan": false
-    },
-    {
-     "name": "Kyle Joseph",
+     "name": "Jeremy Sarmiento",
      "other": "Middlesbrough",
      "fee": null,
      "label": "Undisclosed",
      "loan": false
     },
     {
-     "name": "Enis Destan",
-     "other": "Konyaspor",
+     "name": "Zane Albarus",
+     "other": "Gillingham",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Jacob Slater",
+     "other": "Tranmere Rovers",
+     "fee": null,
+     "label": "Free",
+     "loan": false
+    },
+    {
+     "name": "Diego Coppola",
+     "other": "Paris FC",
      "fee": null,
      "label": "Undisclosed",
      "loan": false
+    },
+    {
+     "name": "Joël Veltman",
+     "other": "West Ham United",
+     "fee": null,
+     "label": "Free",
+     "loan": false
     }
    ],
-   "spend": 20000000,
-   "received": 8500000,
-   "net": 11500000
+   "spend": 102800000,
+   "received": 79000000,
+   "net": 23800000
   }
  },
- "rows_seen": 649,
- "unmatched": 450
+ "rows_seen": 661,
+ "unmatched": 434
 }

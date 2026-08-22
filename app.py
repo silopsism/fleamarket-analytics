@@ -170,12 +170,18 @@ def _refresh_forever():
             refresh_transfers()            # and the transfer ledger
         rebuild_dashboard()                # so Overview movements stay current
         print('entry:', run_entry())
+        # digests on the slow cycle only. Hourly was far too often even before
+        # the dedupe was fixed: four a day is plenty for ownership drift.
         try:
+            if not slow:
+                raise StopIteration('slow cycle only')
             import notify
             boot = json.load(open('bootstrap.json', encoding='utf-8'))
             els = {e['id']: e for e in boot['elements']}
             tms = {t['id']: t['short_name'] for t in boot['teams']}
             print('notify:', notify.maybe_notify(els, tms, news_payload()))
+        except StopIteration:
+            pass
         except Exception as exc:  # noqa: BLE001
             print('notify skipped:', exc)
 
