@@ -241,6 +241,41 @@ th.gwsel:hover{color:var(--accent)}
  border-radius:4px;font:700 9px/16px Archivo;letter-spacing:.06em;
  background:var(--lime);color:var(--lime-ink)}
 
+/* one tile per gameweek: the plan's XI total and what it does that week.
+   Replaces both the chip row and the old table footer. */
+.gwstrip{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px;
+ margin-top:14px}
+.gwtile{text-align:left;background:var(--surface);border:1px solid var(--ring);
+ border-radius:10px;padding:9px 11px;cursor:pointer;font:inherit;color:var(--ink);
+ transition:border-color .12s,background .12s}
+.gwtile:hover{border-color:var(--axis)}
+.gwtile[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.gwtile .gl{font:700 10px/1 Archivo;letter-spacing:.13em;text-transform:uppercase;
+ color:var(--muted)}
+.gwtile .gv{font:400 22px/1.1 Anton,Impact,sans-serif;margin-top:5px}
+.gwtile .gs{font-size:11.5px;color:var(--ink2);margin-top:2px;
+ overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gwtile[aria-pressed="true"] .gv{color:var(--accent)}
+
+/* the action menu that replaces the old role dropdown and ⇄ column */
+/* fixed, not absolute: .card is position:relative AND overflow:hidden, so an
+   absolutely-placed menu is both mis-anchored and clipped at the card edge */
+#pmenu{position:fixed;z-index:40;background:var(--surface);border:1px solid var(--ring);
+ border-radius:10px;padding:6px;box-shadow:0 8px 26px -10px rgba(0,0,0,.5);min-width:172px}
+#pmenu b{display:block;font:700 10.5px/1 Archivo;letter-spacing:.09em;text-transform:uppercase;
+ color:var(--muted);padding:4px 8px 6px}
+#pmenu button{display:block;width:100%;text-align:left;background:none;border:0;
+ color:var(--ink);font:600 13px system-ui;padding:7px 9px;border-radius:7px;cursor:pointer}
+#pmenu button:hover{background:var(--sunk)}
+#pmenu button[disabled]{opacity:.4;cursor:default}
+.pcard.clickable{cursor:pointer}
+.pcard.clickable:hover{border-color:var(--lime)}
+.pcard .badge.x{background:#fff;color:#111}
+.psugg{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--accent-soft);
+ border:1px solid var(--accent);font-size:13.5px}
+.psugg button{margin-left:8px;background:var(--accent);color:#fff;border:0;border-radius:7px;
+ padding:5px 11px;font:600 12.5px system-ui;cursor:pointer}
+
 .benchstrip{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;
  margin-top:10px;padding:12px 8px;border-radius:12px;background:var(--sunk);
  border:1px solid var(--ring)}

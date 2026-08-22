@@ -248,70 +248,20 @@ def pick_best_xi(entries):
     return set(xi[:11])
 
 
-def squad_table_html(entries, gwl, interactive=False):
-    """Rich squad table: per-GW projections, totals, Starting XI footer.
-    entries: dicts with n, t, pos, price, g (per-GW list), tt, xi, cap.
-    interactive=True renders the role as an XI/C/VC/Bench selector with
-    live-updating footer totals (captain doubled)."""
-    head = ('<tr><th>Role</th><th>Player</th><th>Team</th><th>Pos</th><th class="num">£m</th>'
-            + ''.join(f'<th class="num">GW{g}</th>' for g in gwl)
-            + '<th class="num">Total</th></tr>')
-    rows = ''
-    ordered = sorted(entries, key=lambda r: (not r['xi'], r['pos']))
-    bench_marked = False
-    for r in ordered:
-        bs = ''
-        if not r['xi'] and not bench_marked:
-            bench_marked, bs = True, ' class="benchstart"'
-        low = r['xi'] and r['tt'] < 10
-        if interactive:
-            role = 'C' if (r.get('cap') and r['xi']) else ('XI' if r['xi'] else 'Bench')
-            opts = ''.join(f"<option{' selected' if o == role else ''}>{o}</option>"
-                           for o in ('XI', 'C', 'VC', 'Bench'))
-            rawn = r.get('rawn', r['n'])
-            role_cell = (f"<select class='role' data-i='{r.get('_i', '')}' data-g='{json.dumps(r['g'])}' "
-                         f"style='background:var(--bg);color:var(--ink);border:1px solid var(--grid);"
-                         f"border-radius:6px;padding:3px 6px;font:600 12px system-ui'>{opts}</select>"
-                         f" <button type='button' class='subbtn' title='substitute this player' "
-                         f"data-n=\"{rawn}\" data-t=\"{r['t']}\" data-p=\"{POS_NAME[r['pos']]}\" "
-                         f"style='border:1px solid var(--grid);background:none;color:var(--ink2);"
-                         f"border-radius:6px;padding:3px 7px;cursor:pointer;font-size:12px'>⇄</button>")
-        else:
-            role_cell = ('XI' if r['xi'] else 'bench') + (' (C)' if r.get('cap') else '')
-        rows += (f"<tr{bs}><td style='white-space:nowrap'>{role_cell}</td><td><b>{r['n']}</b></td>"
-                 f"<td>{r['t']}</td><td>{POS_NAME[r['pos']]}</td><td class='num'>{r['price']:.1f}</td>"
-                 + ''.join(f"<td class='num'>{v:.1f}</td>" for v in r['g'])
-                 + f"<td class='num {'low' if low else ''}'><b>{r['tt']:.1f}</b></td></tr>")
-    xi = [r for r in entries if r['xi']]
-    sums = [sum(r['g'][k] * (2 if r.get('cap') else 1) for r in xi) for k in range(len(gwl))]
-    foot = ('<tr><th colspan="5" style="text-align:left">Starting XI (C doubled)'
-            '<span id="xiwarn" style="color:var(--warn)"></span></th>'
-            + ''.join(f"<th class='num' id='xf{k}'>{v:.1f}</th>" for k, v in enumerate(sums))
-            + f"<th class='num' id='xft' style='color:var(--accent)'>{sum(sums):.1f}</th></tr>")
-    script = ''
-    if interactive:
-        script = """<script>(function(){
- const sel=[...document.querySelectorAll('select.role')];
- function recompute(ev){
-  if(ev){const t=ev.target;
-   ['C','VC'].forEach(u=>{if(t.value===u)sel.forEach(s=>{if(s!==t&&s.value===u)s.value='XI'})});
-  }
-  const n=%d; const sums=Array(n).fill(0); let starters=0;
-  sel.forEach(s=>{
-   if(s.value==='Bench')return;
-   starters++;
-   const g=JSON.parse(s.dataset.g), m=s.value==='C'?2:1;
-   g.forEach((v,k)=>sums[k]+=v*m);
-  });
-  sums.forEach((v,k)=>document.getElementById('xf'+k).textContent=v.toFixed(1));
-  document.getElementById('xft').textContent=sums.reduce((a,b)=>a+b,0).toFixed(1);
-  document.getElementById('xiwarn').textContent=starters===11?'':' — '+starters+' starters (need 11)';
- }
- sel.forEach(s=>s.addEventListener('change',recompute));
- recompute();
-})()</script>""" % len(gwl)
-    return (f'<div class="card"><div style="overflow-x:auto"><table>{head}{rows}{foot}</table></div>'
-            f'{script}</div>')
+def my_rows(entries):
+    """Our own squad in the pitch's row shape, carrying the real lineup.
+
+    Role is one char per squad line so it round-trips with the `roles` string
+    the rest of the app already stores: C captain, V vice, X starter, B bench.
+    """
+    out = []
+    for i, r in enumerate(entries):
+        role = ('C' if r.get('cap') else 'V' if r.get('vice')
+                else 'X' if r.get('xi') else 'B')
+        out.append({'n': r['n'], 'rawn': r.get('rawn', r['n']), 't': r['t'],
+                    'pos': POS_NAME[r['pos']], 'price': r['price'],
+                    'gws': r['g'], 'role': role, 'i': i})
+    return out
 
 
 PAGE = """<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -643,13 +593,13 @@ def paste(squad: str = '', mode: str = '', src: str = '', name: str = '',
         for i, r in enumerate(entries):
             r['xi'] = roles[i] in 'XCV'
             r['cap'] = roles[i] == 'C'
+            r['vice'] = roles[i] == 'V'
     else:
         xi_idx = pick_best_xi(entries)
         for i, r in enumerate(entries):
             r['xi'] = i in xi_idx
     for i, r in enumerate(entries):
         r['_i'] = i
-    table = squad_table_html(entries, m['gwl'], interactive=not locked) if entries else ''
     # legality check (catches the free-text path, which the picker pre-enforces)
     limits = {1: 2, 2: 5, 3: 5, 4: 3}
     for pos, cap_n in limits.items():
@@ -709,7 +659,6 @@ function dupTinker(){
         # squad, and the row-by-row table is the detail you scroll down for
         body = (f'<h1>{title}</h1><p class="sub">{intro}</p>'
                 + squad_plan_html(entries, m, stored=stored, bank=bank_val or 0.0)
-                + table
                 + prob_html
                 + transfers_html(owned, bank_val or 0.0, m,
                                  bank_known=bank_val is not None, editable=False)
@@ -730,12 +679,9 @@ const LINES=__LINES__, PIDX2=__PIDX2__, SID=__SID__, DNAME=__DNAME__;
 const nrm2=s=>s.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');
 function loadSquads(){try{return JSON.parse(localStorage.getItem('fpl_squads_v1'))||[]}catch(e){return[]}}
 function currentRoles(){
- const arr=Array(LINES.length).fill('B');
- document.querySelectorAll('select.role').forEach(s=>{
-  const i=+s.dataset.i;
-  arr[i]={XI:'X',C:'C',VC:'V',Bench:'B'}[s.value]||'B';
- });
- return arr.join('');
+ // the pitch owns the lineup now; the old role dropdowns are gone
+ if(window.__pitchRoles)return window.__pitchRoles();
+ return Array(LINES.length).fill('B').join('');
 }
 function persist(lines,roles){
  if(!SID)return;
@@ -749,9 +695,6 @@ function saveGo(lines){
  location='/paste?squad='+encodeURIComponent(lines.join('\\n'))
   +(SID?'&sid='+SID+'&type=tinker&name='+encodeURIComponent(DNAME):'');
 }
-document.addEventListener('change',e=>{
- if(e.target.matches('select.role')&&SID)persist(LINES,currentRoles());
-});
 function saveAsNew(){
  const n=prompt('Name this squad:', DNAME||'My squad');
  if(!n)return;
@@ -812,8 +755,8 @@ document.getElementById('subq').addEventListener('input',()=>{
     body = (f'<h1>{title}</h1>'
             f'<p class="sub">{intro}'
             f'Use ⇄ on any row to substitute a player. <a href="/squads">← All squads</a></p>'
-            + squad_plan_html(entries, m, bank=bank_val or 0.0)
-            + table + save_btn
+            + squad_plan_html(entries, m, bank=bank_val or 0.0, editable=not locked)
+            + save_btn
             + prob_html
             + transfers_html(owned, bank_val or 0.0, m,
                              bank_known=bank_val is not None, editable=True)
@@ -894,30 +837,25 @@ def api_optimal():
 PLAN_TABLE = """<div class="card">
 <div class="pitchhead">
  <h2 style="font-size:16px;margin:0">Squad &mdash; GW<span id="pgw"></span></h2>
- <div class="chips" id="pgwchips" style="margin:0"></div>
+ <button type="button" class="chip" id="tabtog" aria-pressed="false">Show the full grid</button>
 </div>
-<p class="note" id="pnote" style="margin:6px 0 12px"></p>
+<p class="note" id="pnote" style="margin:6px 0 10px"></p>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs id="kitdefs"></defs></svg>
-<div class="pitch" id="pitch">
- <div class="goalbox b18"></div><div class="goalbox b6"></div>
-</div>
+<div class="pitch" id="pitch"></div>
 <div class="benchstrip" id="pbench"></div>
+<div id="psugg"></div>
+<div class="gwstrip" id="gwstrip"></div>
+<p class="note" id="ppath" style="margin:12px 0 0"></p>
+<div id="tabwrap" hidden>
+ <p class="note" style="margin:16px 0 6px">Every player against every gameweek &mdash; the one read a
+ pitch cannot give you: scan a column for a thin week, or a row for dead weight. Dimmed means the
+ player is not in the squad that week.</p>
+ <div style="overflow-x:auto"><table id="plantab"></table></div>
 </div>
-
-<div class="card">
-<h2 style="font-size:16px">4-week plan for this squad</h2>
-<p class="note">Best legal path from here: one free transfer a week, bankable up to five;
-hits cost 4 points. A free transfer is not treated as free — the plan charges __FTVALUE__ points
-for spending one, so it only moves for a gain that beats keeping the transfer in hand. That is a
-planning cost, not a deduction: it is excluded from every total shown here. <b>Click a GW column header</b> to show that week's squad — the shaded column belongs
-to the displayed squad, dimmed scores mean that player isn't in the squad that week, and the
-footer always shows the plan's true weekly XI + captain totals.
-⇄ transferred in · <span style="color:#0ca30c">↑</span> promoted ·
-<span style="color:#d03b3b">↓</span> benched.</p>
-<div style="overflow-x:auto"><table id="plantab"></table></div>
-<p class="note" id="plantr" style="margin:10px 0 0"></p>
-<p class="note" style="margin:6px 0 0">Projected <b>__TOTAL__</b> over the next __N__
-gameweeks__GAP__.</p>
+<p class="note" style="margin:12px 0 0">Projected <b>__TOTAL__</b> over the next __N__
+gameweeks__GAP__. The plan charges __FTVALUE__ points to spend a free transfer &mdash; a planning
+cost, not a deduction, and excluded from every total here.</p>
+<div id="pmenu" hidden></div>
 <style>
 #plantab th.gwsel{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
 #plantab .selcol{background:color-mix(in srgb, var(--accent) 10%, transparent)}
@@ -926,21 +864,28 @@ gameweeks__GAP__.</p>
 </style>
 <script>(function(){
 const W=__WEEKS__, GWL=__GWL__, HEAT=__HEAT__, TOT=__TOTALS__, TR=__TRANSFERS__;
-const KITS=__KITS__;
+const KITS=__KITS__, MY=__MY__, EDIT=__EDITABLE__;
 const POS={GKP:0,DEF:1,MID:2,FWD:3};
-const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 let sel=0;
-const memb=W.map(w=>new Set(w.map(r=>r.n+'|'+r.t)));
-const opp=t=>{const g=(HEAT[t]||{})[GWL[sel]];return g?g[0]+' ('+(g[1]?'H':'A')+')':'—'};
-// a jersey at thumbnail size: body, then either vertical stripes through a
-// pattern or a contrasting sleeve, which is enough to separate twenty clubs
+// roles for OUR squad, one char per squad line: X starter, C captain, V vice, B bench
+let ROLES=MY.map(r=>r.role);
+window.__pitchRoles=()=>ROLES.join('');
+
+// week 1 is OUR squad with OUR lineup; later weeks are the plan's, read-only
+function myWeek(){
+ return MY.map((r,i)=>Object.assign({}, r, {xi:ROLES[i]!=='B', cap:ROLES[i]==='C',
+                                            vice:ROLES[i]==='V'}));
+}
+function weekSquad(k){return k===0?myWeek():W[k]}
+function isMine(){return sel===0}
+
 const SHIRT='M12 3 L8 1 L2 6 L6 11 L9 8.6 L9 31 L31 31 L31 8.6 L34 11 L38 6 L32 1 L28 3 '+
             'C26 6.4 14 6.4 12 3 Z';
 const SLEEVE_L='M8 1 L2 6 L6 11 L9 8.6 L9 2.4 Z', SLEEVE_R='M32 1 L38 6 L34 11 L31 8.6 L31 2.4 Z';
 const kitDefs=new Set();
-function kitOf(c){return KITS[c]||KITS['_']}
 function shirtSvg(club,w){
- const k=kitOf(club), body=k[0], trim=k[1], pat=k[3];
+ const k=KITS[club]||KITS['_'], body=k[0], trim=k[1], pat=k[3];
  let fill=body, extra='';
  if(pat==='stripe'){
   const id='kit_'+club;
@@ -959,93 +904,195 @@ function shirtSvg(club,w){
         `stroke="rgba(0,0,0,.35)" stroke-width="1"/>${extra}`+
         `<path d="${SHIRT}" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="1"/></svg>`;
 }
+function oppOf(t){const g=(HEAT[t]||{})[GWL[sel]];return g?g[0]+' ('+(g[1]?'H':'A')+')':'\u2014'}
 
 function pcard(r,inSet,small){
- const key=r.n+'|'+r.t;
- // the selected gameweek plus the two after it: what this player is worth over
- // the next three weeks, not a season average
+ const key=(r.rawn||r.n)+'|'+r.t;
+ // the selected gameweek and the two after it, not a season average
  const nxt=r.gws.slice(sel,sel+3);
- const badge=r.cap?'<span class="badge" title="captain">C</span>':'';
- const g=(HEAT[r.t]||{})[GWL[sel]];
- const oppTxt=g?g[0]+' ('+(g[1]?'H':'A')+')':'—';
- return `<div class="pcard${inSet.has(key)?' movein':''}" title="${esc(r.n)} · ${esc(r.t)} `+
-   `· £${r.price.toFixed(1)}m · vs ${esc(oppTxt)}">${badge}`+
+ let badge='';
+ if(r.cap)badge='<span class="badge" title="captain">C</span>';
+ else if(r.vice)badge='<span class="badge v" title="vice-captain">V</span>';
+ const click=(EDIT&&isMine())?' clickable':'';
+ return `<div class="pcard${inSet.has(key)?' movein':''}${click}" data-i="${r.i==null?'':r.i}" `+
+   `title="${esc(r.n)} \u00b7 ${esc(r.t)} \u00b7 \u00a3${r.price.toFixed(1)}m \u00b7 `+
+   `vs ${esc(oppOf(r.t))}${click?' \u00b7 click to change':''}">${badge}`+
    shirtSvg(r.t,small?26:34)+
    `<div class="pn">${esc(r.n)}</div>`+
-   `<div class="pc">${esc(r.t)} · ${esc(oppTxt)}</div>`+
+   `<div class="pc">${esc(r.t)} \u00b7 ${esc(oppOf(r.t))}</div>`+
    `<div class="px">${nxt.map(v=>`<b>${v.toFixed(1)}</b>`).join('')}</div></div>`;
 }
 
+function xiTotal(rows,k){
+ return rows.filter(r=>r.xi).reduce((a,r)=>a+r.gws[k]*(r.cap?2:1),0);
+}
+
 function drawPitch(){
+ const rows=weekSquad(sel);
  const inSet=new Set(sel>0&&TR[sel-1]?TR[sel-1]['in'].map(x=>x.n+'|'+x.t):[]);
- const xi=W[sel].filter(r=>r.xi), bench=W[sel].filter(r=>!r.xi);
+ const xi=rows.filter(r=>r.xi), bench=rows.filter(r=>!r.xi);
  const lines=['GKP','DEF','MID','FWD'].map(p=>xi.filter(r=>r.pos===p));
  document.getElementById('pitch').innerHTML =
   '<div class="goalbox b18"></div><div class="goalbox b6"></div>' +
   lines.map(row=>'<div class="pline">'+row.map(r=>pcard(r,inSet,false)).join('')+'</div>').join('');
- // bench in the plan's own order, keeper first, which is the autosub order
  const bo=[...bench].sort((a,b)=>(a.pos==='GKP'?0:1)-(b.pos==='GKP'?0:1));
  document.getElementById('pbench').innerHTML=bo.map(r=>pcard(r,inSet,true)).join('');
  document.getElementById('pgw').textContent=GWL[sel];
+
  const cap=xi.find(r=>r.cap);
- document.getElementById('pnote').innerHTML=
-  `Each card shows the next three gameweeks&rsquo; projected points, `+
-  `starting with GW${GWL[sel]} (highlighted). Captain: <b>${cap?esc(cap.n):'—'}</b>. `+
-  (sel===0?'Your fifteen, with the XI <b>the plan would pick</b> — which can differ from '+
-           'the one you have set.'
-          :'The squad <b>after</b> the plan&rsquo;s transfers up to GW'+GWL[sel]+'.');
- document.getElementById('pgwchips').innerHTML=GWL.map((g,k)=>
-  `<button class="chip" data-gw="${k}" aria-pressed="${k===sel}">GW${g}</button>`).join('');
+ let msg=`Each card shows the next three gameweeks&rsquo; projected points, starting with `+
+   `GW${GWL[sel]} (highlighted). Captain: <b>${cap?esc(cap.n):'\u2014'}</b>. `;
+ if(isMine()){
+  msg+='This is <b>your</b> squad and your lineup'+(EDIT?' \u2014 click a player to change it.':'.');
+  if(xi.length!==11)msg+=` <span style="color:var(--warn)">${xi.length} starters, need 11.</span>`;
+ } else {
+  msg+=`The squad <b>after</b> the plan&rsquo;s transfers up to GW${GWL[sel]}, with the XI it `+
+       'would field.';
+ }
+ document.getElementById('pnote').innerHTML=msg;
+ drawSugg();
 }
 
-function draw(){
- drawPitch();
- const rows=[...W[sel]].sort((a,b)=>(a.xi?0:1)-(b.xi?0:1)||POS[a.pos]-POS[b.pos]);
+// the plan's opinion about THIS week, as a suggestion rather than a silent swap
+function drawSugg(){
+ const box=document.getElementById('psugg');
+ if(!isMine()){box.innerHTML='';return}
+ const mine=myWeek(), plan=W[0];
+ const key=r=>(r.rawn||r.n)+'|'+r.t;
+ const mineXi=new Set(mine.filter(r=>r.xi).map(key));
+ const planXi=new Set(plan.filter(r=>r.xi).map(key));
+ const inn=plan.filter(r=>r.xi&&!mineXi.has(key(r))), out=mine.filter(r=>r.xi&&!planXi.has(key(r)));
+ const planCap=plan.find(r=>r.cap), myCap=mine.find(r=>r.cap);
+ const capDiff=planCap&&myCap&&key(planCap)!==key(myCap);
+ const d=xiTotal(plan,0)-xiTotal(mine,0);
+ if(!inn.length&&!capDiff){box.innerHTML='';return}
+ const bits=[];
+ if(inn.length)bits.push('start '+inn.map(r=>'<b>'+esc(r.n)+'</b>').join(', ')+
+                         ' over '+out.map(r=>esc(r.n)).join(', '));
+ if(capDiff)bits.push('captain <b>'+esc(planCap.n)+'</b>');
+ box.innerHTML=`<div class="psugg">The plan would ${bits.join(' and ')} `+
+  `(<b>${d>=0?'+':''}${d.toFixed(2)}</b> this week)`+
+  (EDIT?'<button type="button" id="applyplan">Apply</button>':'')+'</div>';
+}
+
+function drawStrip(){
+ document.getElementById('gwstrip').innerHTML=GWL.map((g,k)=>{
+  const t=k>0?TR[k-1]:null;
+  let sub;
+  if(k===0)sub='your lineup';
+  else if(t&&t['in'].length)sub=t.out.map(x=>esc(x.n)).join(', ')+' \u2192 '+
+       t['in'].map(x=>esc(x.n)).join(', ')+(t.hits?' (\u22124)':'');
+  else sub='no transfer';
+  const val=k===0?xiTotal(myWeek(),0):TOT[k];
+  return `<button type="button" class="gwtile" data-gw="${k}" aria-pressed="${k===sel}">`+
+   `<div class="gl">GW${g}</div><div class="gv">${val.toFixed(1)}</div>`+
+   `<div class="gs" title="${sub}">${sub}</div></button>`;
+ }).join('');
+ const path=GWL.slice(1).map((g,k)=>{
+  const t=TR[k];
+  return t&&t['in'].length
+   ? `GW${g}: <b>${t.out.map(x=>esc(x.n)).join(', ')}</b> \u2192 <b>${t['in'].map(x=>esc(x.n)).join(', ')}</b>`+
+     (t.hits?` (${t.hits} hit, \u22124)`:'')
+   : `GW${g}: hold`;
+ }).join(' \u00b7 ');
+ document.getElementById('ppath').innerHTML='Transfer path &mdash; '+path;
+}
+
+function drawTable(){
+ const rows=[...weekSquad(sel)].sort((a,b)=>(a.xi?0:1)-(b.xi?0:1)||POS[a.pos]-POS[b.pos]);
+ const memb=W.map(w=>new Set(w.map(r=>r.n+'|'+r.t)));
  const inSet=new Set(sel>0&&TR[sel-1]?TR[sel-1]['in'].map(x=>x.n+'|'+x.t):[]);
- const prev=new Map(sel>0?W[sel-1].map(r=>[r.n+'|'+r.t,r.xi]):[]);
- let h='<thead><tr><th>Player</th><th>Opp</th><th>Pos</th><th class="num">£m</th>'+
+ let h='<thead><tr><th>Player</th><th>Opp</th><th>Pos</th><th class="num">\u00a3m</th>'+
   GWL.map((g,k)=>`<th class="num gwsel${k===sel?' selcol':''}" data-gw="${k}">GW${g}</th>`).join('')+
-  '<th>Role</th></tr></thead><tbody>';
+  '<th class="num">Total</th><th>Role</th></tr></thead><tbody>';
  let benched=false;
  rows.forEach(r=>{
-  const key=r.n+'|'+r.t, bs=!r.xi&&!benched?(benched=true,' class="benchstart"'):'';
-  let mv='';
-  if(prev.has(key)){
-   if(r.xi&&!prev.get(key))mv=' <span style="color:#0ca30c;font-weight:700" title="promoted from the bench">↑</span>';
-   else if(!r.xi&&prev.get(key))mv=' <span style="color:#d03b3b;font-weight:700" title="dropped to the bench">↓</span>';
-  }
+  const key=(r.rawn||r.n)+'|'+r.t, pk=r.n+'|'+r.t;
+  const bs=!r.xi&&!benched?(benched=true,' class="benchstart"'):'';
+  const tot=r.gws.reduce((a,b)=>a+b,0);
   h+=`<tr${bs}><td><b>${esc(r.n)}</b> <span style="color:var(--muted);font-size:11.5px">${esc(r.t)}</span>`+
-   (inSet.has(key)?' <span style="color:var(--accent)" title="transferred in this week">⇄</span>':'')+mv+
-   (r.cap?' <b style="color:var(--accent)">(C)</b>':'')+`</td><td>${esc(opp(r.t))}</td><td>${r.pos}</td>`+
-   `<td class="num">${r.price.toFixed(1)}</td>`+
-   r.gws.map((v,k)=>`<td class="num${k===sel?' selcol':''}${memb[k].has(key)?'':' absent'}">${v.toFixed(1)}</td>`).join('')+
+   (inSet.has(pk)?' <span style="color:var(--accent)" title="transferred in this week">\u21c4</span>':'')+
+   (r.cap?' <b style="color:var(--accent)">(C)</b>':r.vice?' <b style="color:var(--ink2)">(V)</b>':'')+
+   `</td><td>${esc(oppOf(r.t))}</td><td>${r.pos}</td><td class="num">${r.price.toFixed(1)}</td>`+
+   r.gws.map((v,k)=>`<td class="num${k===sel?' selcol':''}${memb[k].has(pk)?'':' absent'}">${v.toFixed(1)}</td>`).join('')+
+   `<td class="num"><b>${tot.toFixed(1)}</b></td>`+
    `<td><span class="pill">${r.xi?'XI':'Bench'}</span></td></tr>`;
  });
- h+='</tbody><tfoot><tr><th colspan="4" style="text-align:left">Plan XI + captain</th>'+
-  TOT.map((v,k)=>`<th class="num${k===sel?' selcol':''}">${v.toFixed(1)}</th>`).join('')+
-  '<th></th></tr></tfoot>';
+ h+='</tbody><tfoot><tr><th colspan="4" style="text-align:left">XI + captain</th>'+
+  GWL.map((g,k)=>`<th class="num${k===sel?' selcol':''}">`+
+    (k===0?xiTotal(myWeek(),0):TOT[k]).toFixed(1)+'</th>').join('')+
+  '<th></th><th></th></tr></tfoot>';
  document.getElementById('plantab').innerHTML=h;
- const t=sel>0?TR[sel-1]:null;
- document.getElementById('plantr').innerHTML = sel===0
-  ? 'Starting squad — transfers begin GW'+GWL[1]+'.'
-  : (t&&t['in'].length
-     ? 'This week: OUT '+t.out.map(x=>'<b>'+esc(x.n)+'</b> ('+esc(x.t)+')').join(', ')+' → IN '+
-       t['in'].map(x=>'<b>'+esc(x.n)+'</b> ('+esc(x.t)+')').join(', ')+
-       (t.hits?' · '+t.hits+' hit(s), −'+(t.hits*4)+' pts':' · free')
-     : 'No transfer this week — free transfer banked.');
 }
-document.getElementById('plantab').addEventListener('click',e=>{
- const th=e.target.closest('th[data-gw]'); if(th){sel=+th.dataset.gw;draw()}
+
+function draw(){drawPitch();drawStrip();drawTable();}
+
+/* ---- editing, on the pitch ---- */
+const menu=document.getElementById('pmenu');
+function closeMenu(){menu.hidden=true}
+function setRole(i,ch){
+ if(ch==='C'||ch==='V')ROLES=ROLES.map((c,k)=>k!==i&&c===ch?'X':c);
+ ROLES[i]=ch;
+ try{if(typeof persist==='function'&&typeof LINES!=='undefined')persist(LINES,ROLES.join(''));}catch(e){}
+ draw();
+}
+function openMenu(card){
+ const i=+card.dataset.i, r=MY[i];
+ if(!r)return;
+ const role=ROLES[i];
+ menu.innerHTML=`<b>${esc(r.n)} \u00b7 ${esc(r.t)}</b>`+
+  `<button type="button" data-a="C"${role==='C'?' disabled':''}>Make captain</button>`+
+  `<button type="button" data-a="V"${role==='V'?' disabled':''}>Make vice-captain</button>`+
+  `<button type="button" data-a="${role==='B'?'X':'B'}">${role==='B'?'Start':'Move to bench'}</button>`+
+  `<button type="button" class="subbtn" data-n="${esc(r.rawn||r.n)}" data-t="${esc(r.t)}" `+
+  `data-p="${esc(r.pos)}">Substitute\u2026</button>`;
+ menu.hidden=false;                       // unhide BEFORE measuring it
+ const b=card.getBoundingClientRect(), m=menu.getBoundingClientRect();
+ const x=Math.max(6,Math.min(b.left,innerWidth-m.width-6));
+ // flip above the card if there is no room below, then clamp: "above" is still
+ // off-screen when the card itself sits past the fold
+ const below=b.bottom+6;
+ let y=(below+m.height>innerHeight-6)?b.top-m.height-6:below;
+ y=Math.max(6,Math.min(y,innerHeight-m.height-6));
+ menu.style.left=x+'px'; menu.style.top=y+'px';
+ menu.dataset.i=i;
+}
+document.addEventListener('click',e=>{
+ const t=e.target.closest('.gwtile'); if(t){sel=+t.dataset.gw;closeMenu();draw();return}
+ const th=e.target.closest('#plantab th[data-gw]'); if(th){sel=+th.dataset.gw;draw();return}
+ const act=e.target.closest('#pmenu button[data-a]');
+ if(act){setRole(+menu.dataset.i,act.dataset.a);closeMenu();return}
+ if(e.target.closest('#pmenu'))return;                  // let .subbtn bubble to its own handler
+ const card=e.target.closest('.pcard.clickable');
+ if(card){openMenu(card);return}
+ closeMenu();
 });
-document.getElementById('pgwchips').addEventListener('click',e=>{
- const b=e.target.closest('button[data-gw]'); if(b){sel=+b.dataset.gw;draw()}
+document.getElementById('tabtog').addEventListener('click',e=>{
+ const w=document.getElementById('tabwrap'), on=w.hidden;
+ w.hidden=!on; e.currentTarget.setAttribute('aria-pressed',String(on));
+ e.currentTarget.textContent=on?'Hide the full grid':'Show the full grid';
+});
+document.addEventListener('click',e=>{
+ if(e.target.id==='applyplan'){
+  const key=r=>(r.rawn||r.n)+'|'+r.t;
+  const idx=new Map(MY.map((r,i)=>[key(r),i]));
+  const next=Array(MY.length).fill('B');
+  W[0].forEach(r=>{const i=idx.get(r.n+'|'+r.t); if(i!=null)next[i]=r.cap?'C':(r.xi?'X':'B')});
+  // keep a vice: the best remaining starter by this week's projection
+  let best=-1,bv=-1;
+  next.forEach((c,i)=>{if(c==='X'&&MY[i].gws[0]>bv){bv=MY[i].gws[0];best=i}});
+  if(best>=0)next[best]='V';
+  ROLES=next;
+  try{if(typeof persist==='function'&&typeof LINES!=='undefined')persist(LINES,ROLES.join(''));}catch(e2){}
+  draw();
+ }
 });
 draw();
 })()</script>
 </div>"""
 
 
-def squad_plan_html(entries, m, stored=None, bank=0.0):
+def squad_plan_html(entries, m, stored=None, bank=0.0, editable=False):
     """Interactive 4-week plan for a specific squad: per-week squads, weekly XI
     and captain, and the optimal transfer path from here."""
     import html as _h
@@ -1060,6 +1107,8 @@ def squad_plan_html(entries, m, stored=None, bank=0.0):
             gap = ''
         return (PLAN_TABLE
                 .replace('__KITS__', json.dumps(__import__('kits').as_dict()))
+                .replace('__MY__', json.dumps(my_rows(entries), ensure_ascii=False))
+                .replace('__EDITABLE__', 'true' if editable else 'false')
                 .replace('__WEEKS__', json.dumps(weeks, ensure_ascii=False))
                 .replace('__GWL__', json.dumps(gwl))
                 .replace('__HEAT__', json.dumps(m.get('heat') or {}, ensure_ascii=False))
@@ -1638,16 +1687,18 @@ def team(team_id: int):
                         'pos': el['element_type'], 'price': el['now_cost'] / 10,
                         'g': mp['gws'] if mp else [0.0] * 4,
                         'tt': mp['tot4'] if mp else 0.0,
-                        'xi': pk['position'] <= 11, 'cap': pk['is_captain']})
-    table = squad_table_html(entries, m['gwl'])
+                        'xi': pk['position'] <= 11, 'cap': pk['is_captain'],
+                        'vice': pk['is_vice_captain']})
     xi_total = sum(r['tt'] * (2 if r['cap'] else 1) for r in entries if r['xi'])
 
     bank = (picks.get('entry_history') or {}).get('bank')
     sugg = transfers_html(owned, (bank / 10) if bank is not None else 0.0, m,
                           bank_known=bank is not None)
 
+
     body = (f'<h1>{name}</h1><p class="sub">{manager} · GW{gw} squad · projected '
             f'<b>{xi_total:.1f}</b> XI points over the next 4 GWs (captain doubled)</p>'
-            + table + sugg
+            + squad_plan_html(entries, m, bank=(bank / 10) if bank is not None else 0.0)
+            + sugg
             + REMEMBER_SNIPPET.format(tid=team_id))
     return render(title=name, body=body)
