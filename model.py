@@ -26,10 +26,13 @@ fx = json.load(open('fixtures.json', encoding='utf-8'))
 # the rollover - which broke this model outright at 2026/27's first deadline.
 # history.json carries the prior season, keyed by the cross-season `code`, and
 # merge() blends it with whatever the new season has accumulated so far.
-HIST_META = {}
+HIST_META, PRIORS = {}, {}
 try:
     import history as _history
     HIST_META = _history.merge(d, fixtures=fx)
+    # what players of this price and position actually did last season, for
+    # anyone with no Premier League record of their own
+    PRIORS = _history.priors()
 except Exception as _he:  # noqa: BLE001 - a missing snapshot must not be fatal
     HIST_META = {'error': str(_he)[:80]}
 teams = {t['id']: t['short_name'] for t in d['teams']}
@@ -255,14 +258,33 @@ for e in d['elements']:
         xpts = 0.0
         gws = [0.0] * HORIZON
     else:
-        # no PL rate data: build from what we DO know — appearance points from
-        # expected minutes, team-level clean sheets (fixture-adjusted), a modest
-        # defcon prior for DEF/MID — plus a price-based guess only for attack
+        # No PL record of his own, so stand in the median player of his price and
+        # position from last season and score him the normal way. The old flat
+        # "0.10 x price" was position-blind and about half the real rate for
+        # attackers - which is how a 6.5m Arsenal winger ended up credited with
+        # 0.13 points of attacking return.
+        _pr = _history.prior_for(PRIORS, pos, price) if PRIORS else None
+        # prior_mult is the one place a judgement about pre-season form can enter:
+        # it says "better than the typical player at this price", which is what a
+        # strong pre-season actually tells you, without inventing an xG90
+        _pm = XMINS[e['id']].get('prior_mult') or 1.0
+        p_xg = (_pr['xg90'] if _pr else 0.02 * price) * sent * _pm
+        p_xa = (_pr['xa90'] if _pr else 0.02 * price) * sent * _pm
+        p_dc = _pr['dc90'] if _pr else (4.0 if pos in (2, 3) else 0.0)
+        p_bonus = _pr['bonus90'] if _pr else 0.0
+        thresh = DEFCON_THRESH.get(pos)
+
         def _prior(att, xgc_v, frac):
+            goals = p_xg * frac * GOAL_VAL[pos] * att
+            assists = p_xa * frac * 3 * att
             cs = math.exp(-xgc_v) * CS_VAL[pos] * frac if pos <= 3 else 0
-            dc_prior = 0.4 * frac if pos in (2, 3) else 0
+            gc = (xgc_v / 2) * frac if pos <= 2 else 0
+            dcm = p_dc * frac
+            defcon = 2 * (1 - sum(math.exp(-dcm) * dcm ** k / math.factorial(k)
+                                  for k in range(thresh))) if thresh and dcm > 0 else 0
             pen = 0.04 * GOAL_VAL[pos] * frac if e['penalties_order'] == 1 else 0
-            return 2 * frac + cs + 0.10 * price * frac * att * sent + dc_prior + pen
+            return (2 * frac + goals + assists + cs + defcon + p_bonus * frac
+                    + pen - gc)
 
         gws = [sum(_prior(a, g, min(mm / 90, 1.0)) for a, g in ev_adjs[ev])
                for ev, mm in zip(HORIZON_EVENTS, xmins_gw)]

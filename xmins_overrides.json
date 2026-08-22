@@ -1,5 +1,5 @@
 {
- "_comment": "Curated expected-minutes facts. Highest-priority minutes signal. Each entry: 'xmins' per match OR 'ramp' (one xmins per horizon gameweek, for minutes that climb rather than sit flat), plus reason, added date, review trigger.",
+ "_comment": "Curated expected-minutes facts. Highest-priority minutes signal. Each entry: 'xmins' per match OR 'ramp' (one xmins per horizon gameweek, for minutes that climb rather than sit flat); optional 'prior_mult' scales the price-and-position attacking prior for a player with no PL record (pre-season form is the usual reason); plus reason, added date, review trigger.",
  "Kinsky|TOT": {
   "xmins": 88,
   "reason": "Confirmed #1; Vicario left, Dubravka signed as backup",

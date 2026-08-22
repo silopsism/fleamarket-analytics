@@ -44,7 +44,7 @@ def build(src='bootstrap_old.json', season='2025/26', out=PATH):
     rows = {}
     for e in d['elements']:
         rec = {'name': e['web_name'], 'club': teams.get(e['team'], '?'),
-               'pos': e['element_type']}
+               'pos': e['element_type'], 'price': e['now_cost'] / 10}
         for f in COUNTS:
             rec[f] = e.get(f) or 0
         for f in RATES + FLOAT_COUNTS:
@@ -69,6 +69,67 @@ def load(path=PATH):
 
 def _per90(total, minutes):
     return (total / (minutes / 90)) if minutes else 0.0
+
+
+# A player with no Premier League record still has a price and a position, and
+# last season says what players of that price and position actually did. That is
+# a far better guess than a flat fraction of the price: at 6.0m the median
+# midfielder produced 1.27 attacking points per 90 and the median defender 0.53,
+# where "0.10 x price" gives both 0.60.
+PRIOR_MIN_MINUTES = 900     # only established players define the expectation
+PRIOR_MIN_SAMPLE = 6        # below this, widen the price window
+
+
+def priors(hist=None, path=PATH):
+    """{(pos, price_band): {xg90, xa90, dc90, bonus90, n}} from the prior season.
+
+    Bands are half-millions. Thin cells widen their price window until they have
+    a real sample rather than reporting one player's season as a population.
+    """
+    hist = hist if hist is not None else load(path)
+    if not hist or not hist.get('players'):
+        return {}
+    rows = [r for r in hist['players'].values()
+            if r.get('minutes', 0) >= PRIOR_MIN_MINUTES and r.get('price')]
+
+    def med(vals):
+        vals = sorted(vals)
+        return vals[len(vals) // 2] if vals else 0.0
+
+    out = {}
+    bands = sorted({round(r['price'] * 2) / 2 for r in rows})
+    for pos in (1, 2, 3, 4):
+        pool = [r for r in rows if r['pos'] == pos]
+        for band in bands:
+            width = 0.0
+            near = []
+            while len(near) < PRIOR_MIN_SAMPLE and width <= 2.0:
+                near = [r for r in pool if abs(r['price'] - band) <= width + 1e-9]
+                width += 0.5
+            if not near:
+                continue
+            out[(pos, band)] = {
+                'xg90': med(r['expected_goals_per_90'] for r in near),
+                'xa90': med(r['expected_assists_per_90'] for r in near),
+                'dc90': med(_per90(r.get('defensive_contribution', 0), r['minutes'])
+                            for r in near),
+                'bonus90': med(_per90(r.get('bonus', 0), r['minutes']) for r in near),
+                'n': len(near), 'window': round(width - 0.5, 1),
+            }
+    return out
+
+
+def prior_for(pri, pos, price):
+    """Nearest prior cell for a position and price."""
+    if not pri:
+        return None
+    band = round(price * 2) / 2
+    if (pos, band) in pri:
+        return pri[(pos, band)]
+    cand = [k for k in pri if k[0] == pos]
+    if not cand:
+        return None
+    return pri[min(cand, key=lambda k: abs(k[1] - price))]
 
 
 def team_games(fixtures, teams_by_id=None):

@@ -104,7 +104,11 @@ def expected_minutes(d):
 
         out[e['id']] = {'xmins': min(base, CAP), 'src': src,
                         'ramp': [min(v, CAP) for v in ramp] if ramp else None,
-                        'trust': bool(over.get(okey, {}).get('trust_rates'))}
+                        'trust': bool(over.get(okey, {}).get('trust_rates')),
+                        # for a player with no PL record, how much better (or
+                        # worse) than the typical player of his price we judge
+                        # him to be - pre-season form is the usual reason
+                        'prior_mult': float(over.get(okey, {}).get('prior_mult') or 1.0)}
     return out
 
 
