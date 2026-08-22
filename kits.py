@@ -67,18 +67,26 @@ def as_dict():
 #     slightly above it and inboard, so the underarm seam runs up-and-in
 # Proportions are the photograph's, so the box is 54x39 rather than 52x26 - a
 # real tee cropped at the chest is not twice as wide as it is tall.
-VIEWBOX = '-1 0 54 39'
-BODY = ('M10.1 6.5 L20.98 2.18 Q25.95 6.25 30.93 2.0 L41.9 6.5 '
-        'L52 19.5 L43.7 27.0 L41.0 25.0 L41.0 39 '
-        'L11.0 39 L11.0 25.0 L8.3 27.0 L0 19.5 Z')
-SLEEVE_L = 'M10.1 6.5 L0 19.5 L8.3 27.0 L11.0 25.0 Z'
-SLEEVE_R = 'M41.9 6.5 L52 19.5 L43.7 27.0 L41.0 25.0 Z'
-NECK = 'M20.98 2.18 Q25.95 6.25 30.93 2.0'
-# Chest print, clear of the sleeves: they end at y27, the code's em box runs
-# 16.7 to 27.1 but sits between the armpits at x11 and x41, so nothing collides.
-CODE_SIZE = 9.5
-CODE_BASELINE = 25.0
-PLATE = {'x': 13, 'y': 16.1, 'width': 26, 'height': 11.6, 'rx': 2.2}
+# Dialled in directly with the interactive editor rather than described in
+# words - five attempts from descriptions all failed differently, and handing
+# over sliders settled it in one pass.
+# Dialled in with the interactive editor rather than described in words. Five
+# attempts from written descriptions each failed differently; handing over
+# sliders settled it in two passes. These are the editor's exact numbers.
+VIEWBOX = '-1 0 54 44'
+BODY = ('M10 6.5 L21 2.1 Q26 6.25 31 2.1 L42 6.5 '
+        'L52 19.5 L43.5 27 L41 25 L41 44 '
+        'L11 44 L11 25 L8.5 27 L0 19.5 Z')
+SLEEVE_L = 'M10 6.5 L0 19.5 L8.5 27 L11 25 Z'
+SLEEVE_R = 'M42 6.5 L52 19.5 L43.5 27 L41 25 Z'
+NECK = 'M21 2.1 Q26 6.25 31 2.1'
+# Code sized to the chest rather than left at the old 9.5.
+CODE_SIZE = 12.0
+CODE_BASELINE = 39.20
+# The plate spans the FULL chest (x11 to x41, between the armpits) rather than
+# being computed from an estimated text width. Measured in the DOM, the codes
+# run 26.4 to 29.1 units wide at this size - a formula-derived 27.4 clipped BHA.
+PLATE = {'x': 11.0, 'y': 28.04, 'width': 30.0, 'height': 14.94, 'rx': 3}
 
 
 def geometry():
