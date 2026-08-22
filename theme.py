@@ -241,6 +241,25 @@ th.gwsel:hover{color:var(--accent)}
  border-radius:4px;font:700 9px/16px Archivo;letter-spacing:.06em;
  background:var(--lime);color:var(--lime-ink)}
 
+/* On a wide screen a full-width pitch is mostly empty grass, so the gameweek
+   tiles and the transfer path move into a rail beside it. Below 900px they go
+   back to stacking under the pitch. */
+.squadwrap{display:grid;gap:16px}
+.squadmain{min-width:0}
+.squadside{min-width:0}
+@media (min-width:900px){
+ .squadwrap{grid-template-columns:minmax(0,1fr) minmax(232px,300px);align-items:start}
+ .squadside .gwstrip{grid-template-columns:1fr;margin-top:12px}
+ .squadside .gwtile{display:grid;grid-template-columns:auto 1fr;column-gap:10px;
+  align-items:baseline}
+ .squadside .gwtile .gl{grid-column:1}
+ .squadside .gwtile .gv{grid-column:1;margin-top:2px}
+ .squadside .gwtile .gs{grid-column:2;grid-row:1 / span 2;white-space:normal;
+  align-self:center}
+ /* the pitch gets taller rather than wider, which is the shape of a pitch */
+ .squadmain .pcard{width:100px}
+}
+
 /* one tile per gameweek: the plan's XI total and what it does that week.
    Replaces both the chip row and the old table footer. */
 .gwstrip{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px;

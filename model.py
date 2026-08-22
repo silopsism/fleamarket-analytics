@@ -29,7 +29,7 @@ fx = json.load(open('fixtures.json', encoding='utf-8'))
 HIST_META = {}
 try:
     import history as _history
-    HIST_META = _history.merge(d)
+    HIST_META = _history.merge(d, fixtures=fx)
 except Exception as _he:  # noqa: BLE001 - a missing snapshot must not be fatal
     HIST_META = {'error': str(_he)[:80]}
 teams = {t['id']: t['short_name'] for t in d['teams']}

@@ -71,7 +71,24 @@ def _per90(total, minutes):
     return (total / (minutes / 90)) if minutes else 0.0
 
 
-def merge(d, hist=None, blend_minutes=BLEND_MINUTES, path=PATH):
+def team_games(fixtures, teams_by_id=None):
+    """Matches each club has actually started, keyed by team id.
+
+    Counting finished GAMEWEEKS is wrong: a gameweek is not finished until all
+    ten fixtures are, so for most of a weekend it reads zero while players are
+    accruing minutes - which scaled every current-season count to nothing. Clubs
+    also play different numbers of games once a season has blanks and doubles.
+    """
+    games = {}
+    for f in fixtures or []:
+        if not (f.get('finished') or f.get('started')):
+            continue
+        for k in ('team_h', 'team_a'):
+            games[f[k]] = games.get(f[k], 0) + 1
+    return games
+
+
+def merge(d, hist=None, blend_minutes=BLEND_MINUTES, path=PATH, fixtures=None):
     """Blend prior-season rates into the live bootstrap, in place.
 
     Returns meta about what happened. Identity and market fields (price, status,
@@ -82,8 +99,8 @@ def merge(d, hist=None, blend_minutes=BLEND_MINUTES, path=PATH):
     if not hist or not hist.get('players'):
         return {'merged': 0, 'reason': 'no history file'}
     rows = hist['players']
+    games = team_games(fixtures)
     played = sum(1 for e in d.get('events', []) if e.get('finished'))
-    scale = (38 / played) if played else 0.0     # full-season-equivalent
 
     merged = no_hist = 0
     for e in d['elements']:
@@ -93,6 +110,9 @@ def merge(d, hist=None, blend_minutes=BLEND_MINUTES, path=PATH):
             continue
         cur_min = e.get('minutes') or 0
         w = min(cur_min / blend_minutes, 1.0) if blend_minutes else 1.0
+        # scale this club's games so far up to a full season
+        gp = games.get(e.get('team'), 0)
+        scale = (38 / gp) if gp else 0.0
 
         # one synthetic season's worth of minutes: last season's, giving way to
         # this season's projected to a full 38 games
@@ -106,9 +126,9 @@ def merge(d, hist=None, blend_minutes=BLEND_MINUTES, path=PATH):
             prev90 = _per90(h.get(f, 0), h['minutes'])
             cur90 = _per90(float(e.get(f) or 0), cur_min)
             blended90 = w * cur90 + (1 - w) * prev90
-            val = blended90 * eff_min / 90
-            e[f] = val if f in FLOAT_COUNTS else (int(round(val)) if f != 'starts'
-                                                  else int(round(val)))
+            # kept as floats: rounding a fractional goal or assist to zero threw
+            # away the only evidence we have about a player with no PL history
+            e[f] = blended90 * eff_min / 90
         for f in RATES:
             try:
                 cur = float(e.get(f) or 0)
@@ -120,7 +140,9 @@ def merge(d, hist=None, blend_minutes=BLEND_MINUTES, path=PATH):
         merged += 1
 
     return {'merged': merged, 'no_history': no_hist, 'season': hist.get('season'),
-            'games_played': played, 'blend_minutes': blend_minutes}
+            'events_finished': played, 'clubs_started': len(games),
+            'max_team_games': max(games.values()) if games else 0,
+            'blend_minutes': blend_minutes}
 
 
 if __name__ == '__main__':
@@ -142,7 +164,8 @@ if __name__ == '__main__':
         print(f"history {h['season']}: {len(h['players'])} players")
         print(f"current bootstrap: {len(d['elements'])} players, {have} with history, "
               f"{len(d['elements']) - have} without")
-        print('merge ->', merge(d, h))
+        fx = json.load(open('fixtures.json', encoding='utf-8'))
+        print('merge ->', merge(d, h, fixtures=fx))
         hl = next((e for e in d['elements'] if e['web_name'] == 'Haaland'), None)
         if hl:
             print(f"  Haaland after merge: mins={hl['minutes']} starts={hl['starts']} "

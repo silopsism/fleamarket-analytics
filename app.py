@@ -841,11 +841,17 @@ PLAN_TABLE = """<div class="card">
 </div>
 <p class="note" id="pnote" style="margin:6px 0 10px"></p>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs id="kitdefs"></defs></svg>
-<div class="pitch" id="pitch"></div>
-<div class="benchstrip" id="pbench"></div>
-<div id="psugg"></div>
-<div class="gwstrip" id="gwstrip"></div>
-<p class="note" id="ppath" style="margin:12px 0 0"></p>
+<div class="squadwrap">
+ <div class="squadmain">
+  <div class="pitch" id="pitch"></div>
+  <div class="benchstrip" id="pbench"></div>
+ </div>
+ <div class="squadside">
+  <div id="psugg"></div>
+  <div class="gwstrip" id="gwstrip"></div>
+  <p class="note" id="ppath" style="margin:12px 0 0"></p>
+ </div>
+</div>
 <div id="tabwrap" hidden>
  <p class="note" style="margin:16px 0 6px">Every player against every gameweek &mdash; the one read a
  pitch cannot give you: scan a column for a thin week, or a row for dead weight. Dimmed means the
