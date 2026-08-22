@@ -54,3 +54,27 @@ def as_dict():
     out = {k: list(v) for k, v in KITS.items()}
     out['_'] = list(FALLBACK)
     return out
+
+# The shirt is drawn as the TOP HALF of a jersey - cropped at the chest, wider
+# than it is tall - so it can fill the card's width without towering over the
+# numbers below it. 52x26 units, scaled by CSS rather than a fixed pixel size.
+VIEWBOX = '0 0 52 26'
+BODY = ('M12 4 L22 4 Q26 9.5 30 4 L40 4 L48 8 L45.5 15.5 L40 13 '
+        'L40 26 L12 26 L12 13 L6.5 15.5 L4 8 Z')
+SLEEVE_L = 'M12 4 L4 8 L6.5 15.5 L12 13 Z'
+SLEEVE_R = 'M40 4 L48 8 L45.5 15.5 L40 13 Z'
+NECK = 'M22 4 Q26 9.5 30 4'
+# Chest plate for striped kits, where white letters would otherwise cross a
+# white stripe. Sized to contain the text's FULL EM BOX, not just its cap
+# height: at 9.5 units the em box runs 12.68 to 23.08, so a plate clipped to the
+# capitals looked shorter than the type it was meant to sit behind.
+CODE_SIZE = 9.5
+CODE_BASELINE = 21.0
+PLATE = {'x': 13, 'y': 12.1, 'width': 26, 'height': 11.4, 'rx': 2.2}
+
+
+def geometry():
+    """Everything a renderer needs to draw the shirt, for embedding in a page."""
+    return {'viewBox': VIEWBOX, 'body': BODY, 'sleeveL': SLEEVE_L,
+            'sleeveR': SLEEVE_R, 'neck': NECK, 'plate': PLATE,
+            'codeSize': CODE_SIZE, 'codeBaseline': CODE_BASELINE}

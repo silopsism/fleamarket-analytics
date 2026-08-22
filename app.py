@@ -886,29 +886,41 @@ function myWeek(){
 function weekSquad(k){return k===0?myWeek():W[k]}
 function isMine(){return sel===0}
 
-const SHIRT='M12 3 L8 1 L2 6 L6 11 L9 8.6 L9 31 L31 31 L31 8.6 L34 11 L38 6 L32 1 L28 3 '+
-            'C26 6.4 14 6.4 12 3 Z';
-const SLEEVE_L='M8 1 L2 6 L6 11 L9 8.6 L9 2.4 Z', SLEEVE_R='M32 1 L38 6 L34 11 L31 8.6 L31 2.4 Z';
+// The top half of a jersey: wide body, stubby sleeves, a neck rim in the club's
+// second colour. It fills the card's width via CSS rather than a fixed pixel
+// size, so it scales with the card at every breakpoint. Geometry from kits.py.
+const G=__SHIRTGEO__;
 const kitDefs=new Set();
-function shirtSvg(club,w){
- const k=KITS[club]||KITS['_'], body=k[0], trim=k[1], pat=k[3];
- let fill=body, extra='';
+function shirtSvg(club){
+ const k=KITS[club]||KITS['_'], body=k[0], trim=k[1], ink=k[2], pat=k[3];
+ let fill=body, extra='', rim=trim, codeInk=ink;
  if(pat==='stripe'){
   const id='kit_'+club;
   if(!kitDefs.has(id)){
    kitDefs.add(id);
    document.getElementById('kitdefs').insertAdjacentHTML('beforeend',
-    `<pattern id="${id}" width="7" height="7" patternUnits="userSpaceOnUse">`+
-    `<rect width="7" height="7" fill="${body}"/><rect width="3.5" height="7" fill="${trim}"/></pattern>`);
+    `<pattern id="${id}" width="8" height="8" patternUnits="userSpaceOnUse">`+
+    `<rect width="8" height="8" fill="${body}"/><rect width="4" height="8" fill="${trim}"/></pattern>`);
   }
   fill='url(#'+id+')';
+  // stripes: a chest plate so the code never straddles a pale stripe, sized to
+  // the glyphs PLUS padding, and a rim in the BODY colour because the trim here
+  // is the stripe itself
+  const P=G.plate;
+  extra=`<rect x="${P.x}" y="${P.y}" width="${P.width}" height="${P.height}" `+
+        `rx="${P.rx}" fill="rgba(0,0,0,.55)"/>`;
+  rim=body; codeInk='#fff';
  } else if(pat==='sleeve'){
-  extra=`<path d="${SLEEVE_L}" fill="${trim}"/><path d="${SLEEVE_R}" fill="${trim}"/>`;
+  extra=`<path d="${G.sleeveL}" fill="${trim}" stroke="rgba(0,0,0,.22)" stroke-width=".5"/>`+
+        `<path d="${G.sleeveR}" fill="${trim}" stroke="rgba(0,0,0,.22)" stroke-width=".5"/>`;
  }
- return `<svg class="shirt" viewBox="0 0 40 34" width="${w}" height="${Math.round(w*0.85)}" `+
-        `role="img" aria-label="${club} shirt"><path d="${SHIRT}" fill="${fill}" `+
-        `stroke="rgba(0,0,0,.35)" stroke-width="1"/>${extra}`+
-        `<path d="${SHIRT}" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="1"/></svg>`;
+ return `<svg class="shirt" viewBox="${G.viewBox}" preserveAspectRatio="xMidYMid meet" `+
+        `role="img" aria-label="${club} shirt">`+
+        `<path d="${G.body}" fill="${fill}" stroke="rgba(0,0,0,.4)" stroke-width=".7"/>`+
+        extra+
+        `<path d="${G.neck}" fill="none" stroke="${rim}" stroke-width="1.4"/>`+
+        `<text x="26" y="${G.codeBaseline}" text-anchor="middle" font-size="${G.codeSize}" `+
+        `font-weight="700" letter-spacing=".2" fill="${codeInk}">${club}</text></svg>`;
 }
 function oppOf(t){const g=(HEAT[t]||{})[GWL[sel]];return g?g[0]+' ('+(g[1]?'H':'A')+')':'\u2014'}
 
@@ -923,7 +935,7 @@ function pcard(r,inSet,small){
  return `<div class="pcard${inSet.has(key)?' movein':''}${click}" data-i="${r.i==null?'':r.i}" `+
    `title="${esc(r.n)} \u00b7 ${esc(r.t)} \u00b7 \u00a3${r.price.toFixed(1)}m \u00b7 `+
    `vs ${esc(oppOf(r.t))}${click?' \u00b7 click to change':''}">${badge}`+
-   shirtSvg(r.t,small?26:34)+
+   shirtSvg(r.t)+
    `<div class="pn">${esc(r.n)}</div>`+
    `<div class="pc">${esc(r.t)} \u00b7 ${esc(oppOf(r.t))}</div>`+
    `<div class="px">${nxt.map(v=>`<b>${v.toFixed(1)}</b>`).join('')}</div></div>`;
@@ -1113,6 +1125,7 @@ def squad_plan_html(entries, m, stored=None, bank=0.0, editable=False):
             gap = ''
         return (PLAN_TABLE
                 .replace('__KITS__', json.dumps(__import__('kits').as_dict()))
+                .replace('__SHIRTGEO__', json.dumps(__import__('kits').geometry()))
                 .replace('__MY__', json.dumps(my_rows(entries), ensure_ascii=False))
                 .replace('__EDITABLE__', 'true' if editable else 'false')
                 .replace('__WEEKS__', json.dumps(weeks, ensure_ascii=False))

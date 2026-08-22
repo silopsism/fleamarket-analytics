@@ -217,10 +217,12 @@ th.gwsel:hover{color:var(--accent)}
 .pline{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;
  position:relative;z-index:1;margin:10px 0}
 
-.pcard{width:92px;background:rgba(10,20,14,.62);border:1px solid rgba(255,255,255,.16);
+.pcard{width:104px;background:rgba(10,20,14,.62);border:1px solid rgba(255,255,255,.16);
  border-radius:10px;padding:6px 5px 5px;text-align:center;color:#fff;
  backdrop-filter:blur(2px);position:relative}
-.pcard .shirt{display:block;margin:0 auto 3px}
+/* edge to edge in the card, so the shirt is exactly as wide as the numbers
+   under it and the card reads as one block */
+.pcard .shirt{display:block;width:100%;height:auto;margin:0 0 4px}
 /* two lines rather than an ellipsis: "Calvert-Lewin" and "B.Fernandes" both
    clip at card width, and a fixed two-line box keeps every card the same height */
 .pcard .pn{font:700 11.5px/1.2 Archivo;letter-spacing:.01em;
@@ -257,7 +259,7 @@ th.gwsel:hover{color:var(--accent)}
  .squadside .gwtile .gs{grid-column:2;grid-row:1 / span 2;white-space:normal;
   align-self:center}
  /* the pitch gets taller rather than wider, which is the shape of a pitch */
- .squadmain .pcard{width:100px}
+ .squadmain .pcard{width:112px}
 }
 
 /* one tile per gameweek: the plan's XI total and what it does that week.
@@ -305,7 +307,7 @@ th.gwsel:hover{color:var(--accent)}
 .pitchhead{display:flex;justify-content:space-between;align-items:baseline;
  gap:12px;flex-wrap:wrap;margin-bottom:6px}
 @media (max-width:560px){
- .pcard{width:74px}
+ .pcard{width:78px}
  .pcard .pn{font-size:10.5px;min-height:2.4em}
  .pline{gap:5px;margin:7px 0}
  .pitch{padding:12px 4px 8px}
