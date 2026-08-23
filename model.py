@@ -15,6 +15,7 @@ import pulp
 from minutes import expected_minutes
 
 HORIZON = 4          # gameweeks for fixture adjustment
+SHRINK_MINUTES = 1500   # real minutes at which a player's own rates are trusted
 GOAL_VAL = {1: 10, 2: 6, 3: 5, 4: 4}
 CS_VAL = {1: 4, 2: 4, 3: 1, 4: 0}
 DEFCON_THRESH = {2: 10, 3: 12, 4: 12}
@@ -216,11 +217,6 @@ for e in d['elements']:
             factor = (team_att[e['team']] / origin) ** 0.5 if origin else 1.0
             factor = min(max(factor, 0.85), 1.15)
             xg90, xa90 = xg90 * factor, xa90 * factor
-        if mins < 1500 and xmins > mins / 38 * 1.5 and not XMINS[e['id']]['trust']:
-            # promoted role on a thin sample: shrink attack rates toward 0
-            # (trust_rates overrides skip this - e.g. injury-shortened stars)
-            shrink = max(mins / 1500, 0.3)
-            xg90, xa90 = xg90 * shrink, xa90 * shrink
         xg90, xa90 = xg90 * sent, xa90 * sent   # season-expectation sentiment
         # per-90 rates; each is scaled by THAT gameweek's expected minutes below
         r_saves = (e['saves'] / (mins / 90) if mins else 0) if pos == 1 else 0
@@ -229,6 +225,31 @@ for e in d['elements']:
         # missed games (availability is already priced into frac)
         r_bonus = e['bonus'] / (mins / 90) if mins else 0
         r_yc = e['yellow_cards'] / (mins / 90) if mins else 0
+
+        # Thin-sample shrinkage, judged on REAL minutes rather than the blended
+        # full-season equivalent: 75 actual minutes must not be trusted like a
+        # season. Shrink toward what this price and position typically produce,
+        # not toward zero - one good cameo is weak evidence of a high rate but
+        # no evidence at all of a zero one.
+        # It has to cover EVERY rate. Shrinking only the attacking ones left
+        # saves, defensive contributions and bonus at their one-game values
+        # blown up to a season, which put a keeper on 6.4 xPts off 90 minutes
+        # and filled the optimum with players nobody has seen play twice.
+        real_mins = e.get('_real_minutes', mins)
+        if real_mins < SHRINK_MINUTES and not XMINS[e['id']]['trust']:
+            conf = max(min(real_mins / SHRINK_MINUTES, 1.0), 0.0)
+            _pr = _history.prior_for(PRIORS, pos, price) if PRIORS else None
+
+            def _toward(rate, key, fallback):
+                base = _pr[key] if (_pr and key in _pr) else fallback
+                return conf * rate + (1 - conf) * base
+
+            xg90 = _toward(xg90, 'xg90', 0.02 * price) * sent
+            xa90 = _toward(xa90, 'xa90', 0.02 * price) * sent
+            r_dc = _toward(r_dc, 'dc90', 4.0 if pos in (2, 3) else 2.0)
+            r_bonus = _toward(r_bonus, 'bonus90', 0.15)
+            if pos == 1:
+                r_saves = _toward(r_saves, 'saves90', 2.5)
         thresh = DEFCON_THRESH.get(pos)
 
         def _pts(att, xgc_v, frac):

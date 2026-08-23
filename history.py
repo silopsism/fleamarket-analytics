@@ -114,6 +114,7 @@ def priors(hist=None, path=PATH):
                 'dc90': med(_per90(r.get('defensive_contribution', 0), r['minutes'])
                             for r in near),
                 'bonus90': med(_per90(r.get('bonus', 0), r['minutes']) for r in near),
+                'saves90': med(_per90(r.get('saves', 0), r['minutes']) for r in near),
                 'n': len(near), 'window': round(width - 0.5, 1),
             }
     return out
@@ -171,6 +172,14 @@ def merge(d, hist=None, blend_minutes=BLEND_MINUTES, path=PATH, fixtures=None):
             continue
         cur_min = e.get('minutes') or 0
         w = min(cur_min / blend_minutes, 1.0) if blend_minutes else 1.0
+        # A row can EXIST with zero minutes - a player who was registered last
+        # season but never played. Averaging against that zero dragged the
+        # blend to nearly nothing: Sangare played 75 minutes and scored 14, and
+        # came out of here on a full-season equivalent of 237, which minutes.py
+        # then read as 6 minutes a game. With no prior evidence there is nothing
+        # to blend against, so this season stands alone.
+        if not h.get('minutes'):
+            w = 1.0
         # scale this club's games so far up to a full season
         gp = games.get(e.get('team'), 0)
         scale = (38 / gp) if gp else 0.0
@@ -198,6 +207,11 @@ def merge(d, hist=None, blend_minutes=BLEND_MINUTES, path=PATH, fixtures=None):
             e[f] = w * cur + (1 - w) * h.get(f, 0.0)
         e['minutes'] = int(round(eff_min))
         e['_hist_w'] = round(w, 3)
+        # REAL minutes behind the projection, both seasons. e['minutes'] is a
+        # full-season equivalent and says nothing about how much evidence there
+        # is; a 75-minute sample projected to 2850 must not be trusted like a
+        # 2850-minute season.
+        e['_real_minutes'] = int(h.get('minutes', 0)) + cur_min
         merged += 1
 
     return {'merged': merged, 'no_history': no_hist, 'season': hist.get('season'),
