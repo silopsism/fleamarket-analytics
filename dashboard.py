@@ -654,18 +654,25 @@ def band_tables(personal):
     cols = []
     for pos_id in [2, 3, 4, 1]:
         rows = ''
-        for lo, hi, n in BANDS[pos_id]:
+        prev = None                       # top of the shelf below this one
+        bands = BANDS[pos_id]
+        for i, (lo, hi, n) in enumerate(bands):
+            last = (i == len(bands) - 1)
+            # A shelf is what a budget BUYS, not an exact price tag. FPL prices
+            # drift in 0.1 steps once the season is running, so testing for the
+            # exact 0.5 point quietly emptied every shelf of everyone who had
+            # risen or fallen a notch - leaving only the players still sitting
+            # on a round number, every one of them matching the shelf label.
+            top = 16.0 if last else hi
             cand = sorted((p for p in players if p['pos'] == pos_id
-                           and lo <= p['price'] <= hi and p['xmins'] >= 45),
+                           and (prev is None or p['price'] > prev)
+                           and p['price'] <= top and p['xmins'] >= 45),
                           key=lambda p: -p['xpts'])[:n]
+            label = (f'over £{prev:.1f}' if last and prev is not None
+                     else f'£{hi:.1f}')
+            prev = hi
             if not cand:
                 continue
-            if lo == hi:
-                label = f'£{lo:.1f}'
-            elif hi >= 15.9:
-                label = f'£{lo:.1f}+'
-            else:
-                label = f'£{lo:.1f}–{hi:.1f}'
             rows += (f"<tr><th colspan='4' style='padding-top:10px'>{label}</th></tr>"
                      + ''.join(
                 f"<tr><td>{'● ' if personal and pkey(p) in v4set else ''}<b>{p['name']}</b> "
@@ -680,7 +687,8 @@ def band_tables(personal):
     return ('<section class="card"><h2>Best at every price point</h2>'
             '<p class="note">The frontier chart shows every player faintly, with the best score at '
             'each price bolded, named, and joined by a running-best line — anyone ON the line is '
-            'the strongest buy at that money. Tables list the top names per 0.5m shelf. '
+            'the strongest buy at that money. Each table shelf is what that budget buys: '
+            '£5.0 means anyone from just over £4.5 up to £5.0, so a risen £4.6 shows there. '
             'Only players expected to start (45+ expected minutes).</p>'
             '<div class="chips" id="chips3"></div>'
             '<svg id="frontier" viewBox="0 0 940 460" role="img" aria-label="Value frontier: expected points against price"></svg>'
