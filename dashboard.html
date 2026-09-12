@@ -141,6 +141,7 @@ a{color:var(--accent)}
 .warn{color:var(--warn)}
 .chipcard .gain.unpriced{font:600 12.5px/1.3 system-ui;color:var(--muted)}
 .chipcard .bestp{color:var(--ink);font-size:11.5px;margin-top:5px}
+.chipcard .gain .vs{font:600 11px/1 system-ui;color:var(--muted)}
 .chipcard .warn{font-size:11.5px;line-height:1.4;margin-top:6px}
 p.note.warn{border-left:3px solid var(--warn);padding-left:10px;margin-top:12px}
 
@@ -562,8 +563,8 @@ clean sheets, defensive contributions), season expectations, and fixtures. </p>
 
 <footer>Phase 1 model: built on prior-season Opta rates, expected minutes, transfer
 context, season expectations and fixtures — a value lens, not an oracle.
-<br>FPL data pulled Sat 12 Sep 09:59 UK · refreshed hourly · fixtures priced by bookmaker odds: 10 · fixture model k(attack)=0.78, k(opponent defence)=0.80, home ×1.10, rmse 0.182
-<br><span class="build">build 1a2f52e+dirty · Trim the chip planner's explanatory text · generated Sat 12 Sep 09:59 UK</span></footer>
+<br>FPL data pulled Sat 12 Sep 10:13 UK · refreshed hourly · fixtures priced by bookmaker odds: 10 · fixture model k(attack)=0.78, k(opponent defence)=0.80, home ×1.10, rmse 0.182
+<br><span class="build">build 5bf47db+dirty · Mark the squad you actually have, and make the marking work at all · generated Sat 12 Sep 10:13 UK</span></footer>
 </div>
 <div class="tip" id="tip"></div>
 <script>
@@ -572,7 +573,7 @@ const HEAT = [{"team": "EVE", "gws": [{"o": "CRY", "h": 1, "fdr": 3, "a": 1.23, 
 const SQUAD = [];
 const LEAGUE = [{"team": "MCI", "p": 3, "w": 3, "d": 0, "l": 0, "gf": 7, "ga": 2, "pts": 9, "form": "WWW", "pos": 1, "gd": 5}, {"team": "ARS", "p": 3, "w": 3, "d": 0, "l": 0, "gf": 6, "ga": 1, "pts": 9, "form": "WWW", "pos": 2, "gd": 5}, {"team": "HUL", "p": 3, "w": 2, "d": 1, "l": 0, "gf": 3, "ga": 0, "pts": 7, "form": "WWD", "pos": 3, "gd": 3}, {"team": "CHE", "p": 3, "w": 2, "d": 0, "l": 1, "gf": 8, "ga": 7, "pts": 6, "form": "WWL", "pos": 4, "gd": 1}, {"team": "BRE", "p": 3, "w": 1, "d": 2, "l": 0, "gf": 5, "ga": 2, "pts": 5, "form": "WDD", "pos": 5, "gd": 3}, {"team": "LIV", "p": 3, "w": 1, "d": 2, "l": 0, "gf": 6, "ga": 4, "pts": 5, "form": "DDW", "pos": 6, "gd": 2}, {"team": "NEW", "p": 3, "w": 1, "d": 2, "l": 0, "gf": 6, "ga": 4, "pts": 5, "form": "DWD", "pos": 7, "gd": 2}, {"team": "EVE", "p": 3, "w": 1, "d": 2, "l": 0, "gf": 5, "ga": 3, "pts": 5, "form": "WDD", "pos": 8, "gd": 2}, {"team": "LEE", "p": 3, "w": 1, "d": 2, "l": 0, "gf": 3, "ga": 2, "pts": 5, "form": "WDD", "pos": 9, "gd": 1}, {"team": "BHA", "p": 3, "w": 1, "d": 1, "l": 1, "gf": 8, "ga": 5, "pts": 4, "form": "WLD", "pos": 10, "gd": 3}, {"team": "MUN", "p": 3, "w": 1, "d": 1, "l": 1, "gf": 7, "ga": 6, "pts": 4, "form": "LWD", "pos": 11, "gd": 1}, {"team": "SUN", "p": 3, "w": 1, "d": 1, "l": 1, "gf": 3, "ga": 3, "pts": 4, "form": "LWD", "pos": 12, "gd": 0}, {"team": "CRY", "p": 3, "w": 1, "d": 0, "l": 2, "gf": 4, "ga": 8, "pts": 3, "form": "LLW", "pos": 13, "gd": -4}, {"team": "IPS", "p": 3, "w": 1, "d": 0, "l": 2, "gf": 4, "ga": 8, "pts": 3, "form": "WLL", "pos": 14, "gd": -4}, {"team": "BOU", "p": 3, "w": 0, "d": 2, "l": 1, "gf": 4, "ga": 5, "pts": 2, "form": "LDD", "pos": 15, "gd": -1}, {"team": "NFO", "p": 3, "w": 0, "d": 2, "l": 1, "gf": 2, "ga": 3, "pts": 2, "form": "LDD", "pos": 16, "gd": -1}, {"team": "AVL", "p": 3, "w": 0, "d": 1, "l": 2, "gf": 0, "ga": 5, "pts": 1, "form": "LLD", "pos": 17, "gd": -5}, {"team": "TOT", "p": 3, "w": 0, "d": 1, "l": 2, "gf": 0, "ga": 5, "pts": 1, "form": "LLD", "pos": 18, "gd": -5}, {"team": "FUL", "p": 3, "w": 0, "d": 0, "l": 3, "gf": 4, "ga": 7, "pts": 0, "form": "LLL", "pos": 19, "gd": -3}, {"team": "COV", "p": 3, "w": 0, "d": 0, "l": 3, "gf": 0, "ga": 5, "pts": 0, "form": "LLL", "pos": 20, "gd": -5}];
 const WEEK = [{"h": "AVL", "a": "NFO", "hp": 17, "ap": 16, "when": "Sat 12 Sep · 15:00", "done": false, "score": ""}, {"h": "BOU", "a": "BRE", "hp": 15, "ap": 5, "when": "Sat 12 Sep · 15:00", "done": false, "score": ""}, {"h": "CHE", "a": "HUL", "hp": 4, "ap": 3, "when": "Sat 12 Sep · 15:00", "done": false, "score": ""}, {"h": "CRY", "a": "IPS", "hp": 13, "ap": 14, "when": "Sat 12 Sep · 15:00", "done": false, "score": ""}, {"h": "LIV", "a": "FUL", "hp": 6, "ap": 19, "when": "Sat 12 Sep · 15:00", "done": false, "score": ""}, {"h": "TOT", "a": "EVE", "hp": 18, "ap": 8, "when": "Sat 12 Sep · 17:30", "done": false, "score": ""}, {"h": "SUN", "a": "ARS", "hp": 12, "ap": 2, "when": "Sat 12 Sep · 20:00", "done": false, "score": ""}, {"h": "COV", "a": "BHA", "hp": 20, "ap": 10, "when": "Sun 13 Sep · 14:00", "done": false, "score": ""}, {"h": "MUN", "a": "MCI", "hp": 11, "ap": 1, "when": "Sun 13 Sep · 16:30", "done": false, "score": ""}, {"h": "LEE", "a": "NEW", "hp": 9, "ap": 7, "when": "Mon 14 Sep · 20:00", "done": false, "score": ""}];
-const CHIPS = [{"gw": 4, "doubles": [], "blanks": [], "tc": 2.73, "tcfix": {"team": "CHE", "opp": "HUL", "home": 1, "gf": 2.73}, "bb": 1.418, "bbmean": 1.458, "rough": 2, "fh": 0.186, "fhedge": 0.136, "clashes": ["MUN v MCI"], "hurt": [{"t": "MCI", "af": 0.82}, {"t": "MUN", "af": 0.82}, {"t": "ARS", "af": 0.93}]}, {"gw": 5, "doubles": [], "blanks": [], "tc": 2.43, "tcfix": {"team": "MCI", "opp": "SUN", "home": 1, "gf": 2.43}, "bb": 1.394, "bbmean": 1.434, "rough": 2, "fh": 0.228, "fhedge": 0.178, "clashes": ["BHA v ARS"], "hurt": [{"t": "BHA", "af": 0.63}, {"t": "ARS", "af": 0.87}, {"t": "CHE", "af": 0.88}]}, {"gw": 6, "doubles": [], "blanks": [], "tc": 2.18, "tcfix": {"team": "CHE", "opp": "BOU", "home": 1, "gf": 2.18}, "bb": 1.377, "bbmean": 1.417, "rough": 2, "fh": 0.28, "fhedge": 0.18, "clashes": ["MUN v TOT", "LIV v MCI"], "hurt": [{"t": "MCI", "af": 0.77}, {"t": "TOT", "af": 0.82}, {"t": "LIV", "af": 0.92}]}, {"gw": 7, "doubles": [], "blanks": [], "tc": 2.9, "tcfix": {"team": "MCI", "opp": "IPS", "home": 1, "gf": 2.9}, "bb": 1.409, "bbmean": 1.45, "rough": 2, "fh": 0.07, "fhedge": 0.07, "clashes": [], "hurt": [{"t": "LIV", "af": 0.89}, {"t": "ARS", "af": 0.93}, {"t": "MUN", "af": 0.94}]}, {"gw": 8, "doubles": [], "blanks": [], "tc": 2.19, "tcfix": {"team": "ARS", "opp": "EVE", "home": 1, "gf": 2.19}, "bb": 1.367, "bbmean": 1.427, "rough": 3, "fh": 0.242, "fhedge": 0.142, "clashes": ["CHE v TOT", "LIV v BHA"], "hurt": [{"t": "BHA", "af": 0.77}, {"t": "TOT", "af": 0.8}, {"t": "MCI", "af": 0.92}]}, {"gw": 9, "doubles": [], "blanks": [], "tc": 2.24, "tcfix": {"team": "MCI", "opp": "BHA", "home": 1, "gf": 2.24}, "bb": 1.332, "bbmean": 1.412, "rough": 4, "fh": 0.419, "fhedge": 0.269, "clashes": ["CHE v MUN", "MCI v BHA", "LIV v ARS"], "hurt": [{"t": "LIV", "af": 0.63}, {"t": "BHA", "af": 0.76}, {"t": "ARS", "af": 0.76}]}, {"gw": 10, "doubles": [], "blanks": [], "tc": 2.32, "tcfix": {"team": "ARS", "opp": "HUL", "home": 1, "gf": 2.32}, "bb": 1.425, "bbmean": 1.446, "rough": 1, "fh": 0.089, "fhedge": 0.089, "clashes": [], "hurt": [{"t": "TOT", "af": 0.94}, {"t": "MCI", "af": 0.94}, {"t": "CHE", "af": 0.95}]}, {"gw": 11, "doubles": [], "blanks": [], "tc": 2.74, "tcfix": {"team": "MCI", "opp": "FUL", "home": 1, "gf": 2.74}, "bb": 1.383, "bbmean": 1.444, "rough": 3, "fh": 0.154, "fhedge": 0.104, "clashes": ["LIV v MUN"], "hurt": [{"t": "MUN", "af": 0.78}, {"t": "ARS", "af": 0.85}, {"t": "LIV", "af": 0.99}]}, {"gw": 12, "doubles": [], "blanks": [], "tc": 1.95, "tcfix": {"team": "MUN", "opp": "BRE", "home": 1, "gf": 1.95}, "bb": 1.388, "bbmean": 1.408, "rough": 1, "fh": 0.287, "fhedge": 0.237, "clashes": ["ARS v MCI"], "hurt": [{"t": "MCI", "af": 0.52}, {"t": "ARS", "af": 0.9}, {"t": "CHE", "af": 0.94}]}, {"gw": 13, "doubles": [], "blanks": [], "tc": 2.38, "tcfix": {"team": "MCI", "opp": "LEE", "home": 1, "gf": 2.38}, "bb": 1.365, "bbmean": 1.425, "rough": 3, "fh": 0.115, "fhedge": 0.115, "clashes": [], "hurt": [{"t": "MUN", "af": 0.86}, {"t": "ARS", "af": 0.87}, {"t": "BHA", "af": 0.95}]}];
+const CHIPS = [{"gw": 4, "doubles": [], "blanks": [], "tc": 2.73, "tcfix": {"team": "CHE", "opp": "HUL", "home": 1, "gf": 2.73}, "bb": 1.418, "bbmean": 1.458, "rough": 2, "fh": 0.2, "fhedge": 0.2, "template": 65.58, "field": 65.78, "weak": [{"n": "Haaland", "t": "MCI", "sel": 71.2, "cost": 0.44}, {"n": "B.Fernandes", "t": "MUN", "sel": 43.1, "cost": 0.23}, {"n": "Cherki", "t": "MCI", "sel": 29.3, "cost": 0.12}]}, {"gw": 5, "doubles": [], "blanks": [], "tc": 2.43, "tcfix": {"team": "MCI", "opp": "SUN", "home": 1, "gf": 2.43}, "bb": 1.394, "bbmean": 1.434, "rough": 2, "fh": 6.44, "fhedge": 6.44, "template": 61.05, "field": 67.49, "weak": [{"n": "João Pedro", "t": "CHE", "sel": 73.5, "cost": 0.37}, {"n": "Rogers", "t": "CHE", "sel": 33.6, "cost": 0.2}, {"n": "De Cuyper", "t": "BHA", "sel": 22.1, "cost": 0.18}]}, {"gw": 6, "doubles": [], "blanks": [], "tc": 2.18, "tcfix": {"team": "CHE", "opp": "BOU", "home": 1, "gf": 2.18}, "bb": 1.377, "bbmean": 1.417, "rough": 2, "fh": 1.77, "fhedge": 1.77, "template": 62.91, "field": 64.68, "weak": [{"n": "Haaland", "t": "MCI", "sel": 71.2, "cost": 0.56}, {"n": "Cherki", "t": "MCI", "sel": 29.3, "cost": 0.15}, {"n": "Szoboszlai", "t": "LIV", "sel": 38.5, "cost": 0.08}]}, {"gw": 7, "doubles": [], "blanks": [], "tc": 2.9, "tcfix": {"team": "MCI", "opp": "IPS", "home": 1, "gf": 2.9}, "bb": 1.409, "bbmean": 1.45, "rough": 2, "fh": 2.71, "fhedge": 2.71, "template": 65.62, "field": 68.33, "weak": [{"n": "João Pedro", "t": "CHE", "sel": 73.5, "cost": 0.21}, {"n": "Szoboszlai", "t": "LIV", "sel": 38.5, "cost": 0.1}, {"n": "Rogers", "t": "CHE", "sel": 33.6, "cost": 0.09}]}, {"gw": 8, "doubles": [], "blanks": [], "tc": 2.19, "tcfix": {"team": "ARS", "opp": "EVE", "home": 1, "gf": 2.19}, "bb": 1.367, "bbmean": 1.427, "rough": 3, "fh": 1.59, "fhedge": 1.59, "template": 63.77, "field": 65.36, "weak": [{"n": "Haaland", "t": "MCI", "sel": 71.2, "cost": 0.2}, {"n": "De Cuyper", "t": "BHA", "sel": 22.1, "cost": 0.16}, {"n": "João Pedro", "t": "CHE", "sel": 73.5, "cost": 0.14}]}, {"gw": 9, "doubles": [], "blanks": [], "tc": 2.24, "tcfix": {"team": "MCI", "opp": "BHA", "home": 1, "gf": 2.24}, "bb": 1.332, "bbmean": 1.412, "rough": 4, "fh": 5.13, "fhedge": 5.13, "template": 58.23, "field": 63.36, "weak": [{"n": "Calafiori", "t": "ARS", "sel": 49.0, "cost": 0.29}, {"n": "B.Fernandes", "t": "MUN", "sel": 43.1, "cost": 0.28}, {"n": "Szoboszlai", "t": "LIV", "sel": 38.5, "cost": 0.26}]}, {"gw": 10, "doubles": [], "blanks": [], "tc": 2.32, "tcfix": {"team": "ARS", "opp": "HUL", "home": 1, "gf": 2.32}, "bb": 1.425, "bbmean": 1.446, "rough": 1, "fh": 2.62, "fhedge": 2.62, "template": 65.65, "field": 68.27, "weak": [{"n": "João Pedro", "t": "CHE", "sel": 73.5, "cost": 0.23}, {"n": "Haaland", "t": "MCI", "sel": 71.2, "cost": 0.14}, {"n": "Rogers", "t": "CHE", "sel": 33.6, "cost": 0.08}]}, {"gw": 11, "doubles": [], "blanks": [], "tc": 2.74, "tcfix": {"team": "MCI", "opp": "FUL", "home": 1, "gf": 2.74}, "bb": 1.383, "bbmean": 1.444, "rough": 3, "fh": 0.99, "fhedge": 0.99, "template": 65.68, "field": 66.67, "weak": [{"n": "B.Fernandes", "t": "MUN", "sel": 43.1, "cost": 0.29}, {"n": "Calafiori", "t": "ARS", "sel": 49.0, "cost": 0.05}, {"n": "Gabriel", "t": "ARS", "sel": 24.0, "cost": 0.02}]}, {"gw": 12, "doubles": [], "blanks": [], "tc": 1.95, "tcfix": {"team": "MUN", "opp": "BRE", "home": 1, "gf": 1.95}, "bb": 1.388, "bbmean": 1.408, "rough": 1, "fh": 5.76, "fhedge": 5.76, "template": 58.2, "field": 63.96, "weak": [{"n": "Haaland", "t": "MCI", "sel": 71.2, "cost": 1.19}, {"n": "Cherki", "t": "MCI", "sel": 29.3, "cost": 0.31}, {"n": "João Pedro", "t": "CHE", "sel": 73.5, "cost": 0.25}]}, {"gw": 13, "doubles": [], "blanks": [], "tc": 2.38, "tcfix": {"team": "MCI", "opp": "LEE", "home": 1, "gf": 2.38}, "bb": 1.365, "bbmean": 1.425, "rough": 3, "fh": 2.92, "fhedge": 2.92, "template": 63.24, "field": 66.16, "weak": [{"n": "Calafiori", "t": "ARS", "sel": 49.0, "cost": 0.26}, {"n": "Raya", "t": "ARS", "sel": 39.1, "cost": 0.22}, {"n": "Gabriel", "t": "ARS", "sel": 24.0, "cost": 0.14}]}];
 const FHBEST = [{"gw": 4, "total": 65.78, "cap": "João Pedro"}, {"gw": 5, "total": 67.49, "cap": "Haaland"}, {"gw": 6, "total": 64.68, "cap": "B.Fernandes"}, {"gw": 7, "total": 68.33, "cap": "Haaland"}, {"gw": 8, "total": 65.36, "cap": "B.Fernandes"}, {"gw": 9, "total": 63.36, "cap": "Haaland"}, {"gw": 10, "total": 68.27, "cap": "B.Fernandes"}, {"gw": 11, "total": 66.67, "cap": "Haaland"}, {"gw": 12, "total": 63.96, "cap": "B.Fernandes"}, {"gw": 13, "total": 66.16, "cap": "Haaland"}];
 const CHIPEV = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 const GWL = [4, 5, 6, 7];
@@ -973,8 +974,10 @@ function renderSquadTable(rows, el){
    return bits.join(' · ');
   }
   const bits=[];
-  if(r.clashes.length)bits.push(r.clashes.join(', ')+' — owned attacks cancelling');
-  if(r.hurt.length)bits.push('template stuck with '+r.hurt.map(h=>h.t+' ×'+h.af.toFixed(2)).join(', '));
+  if(r.template!=null&&r.field!=null)
+   bits.push(`template ${r.template.toFixed(1)} → best XI ${r.field.toFixed(1)}`);
+  if(r.weak&&r.weak.length)
+   bits.push('template hurt by '+r.weak.map(w=>`${w.n} (${w.sel}% owned)`).join(', '));
   if(r.blanks.length)bits.push(r.blanks.length+' blank'+(r.blanks.length>1?'s':''));
   return bits.join(' · ')||'no strong edge';
  }
@@ -990,9 +993,16 @@ function renderSquadTable(rows, el){
    const span=all[0][k]-all[all.length-1][k];
    const base=Math.abs(all[0][k])||1;
    const weak=(span/base)<0.08;
-   const gain=tp&&tp[k]!=null
-    ? `<div class="gain">+${tp[k].toFixed(1)} pts</div>`
-    : `<div class="gain unpriced">beyond the priced window</div>`;
+   // Free Hit is measured against the average manager, not against your own
+   // fifteen, so it carries a points figure in every week rather than only the
+   // near ones. TC and BB still need your squad.
+   const own=tp&&tp[k]!=null?tp[k]:null;
+   const gain = k==='fh'
+    ? `<div class="gain">+${top.fh.toFixed(1)} pts <span class="vs">vs the template</span></div>`
+      + (own!=null?`<div class="ts">+${own.toFixed(1)} against your own XI</div>`:'')
+    : (own!=null
+       ? `<div class="gain">+${own.toFixed(1)} pts</div>`
+       : `<div class="gain unpriced">beyond the priced window</div>`);
    // The list is ordered by FIXTURES, which is the planner's job, but the points
    // are the better estimate wherever they exist. When the two disagree - and
    // for a chip like Bench Boost, whose fixture spread is noise, they routinely
@@ -1000,14 +1010,15 @@ function renderSquadTable(rows, el){
    const pricedRows=CHIPS.filter(r=>priced[r.gw]&&priced[r.gw][k]!=null)
      .sort((a,b)=>priced[b.gw][k]-priced[a.gw][k]);
    const bestPriced=pricedRows[0];
-   const disagrees=bestPriced&&(!tp||tp[k]==null||bestPriced.gw!==top.gw);
+   const disagrees=k!=='fh'&&bestPriced&&(!tp||tp[k]==null||bestPriced.gw!==top.gw);
    const bestLine=disagrees
     ? `<div class="ts bestp">On points alone the pick is <b>GW${bestPriced.gw}</b> at `
       + `+${priced[bestPriced.gw][k].toFixed(1)} — best of the weeks we can price.</div>`
     : '';
    const alts=rank.slice(1).map(r=>{
     const p=priced[r.gw];
-    const val=p&&p[k]!=null?`<b>+${p[k].toFixed(1)}</b>`:'<span class="mut2">fixtures only</span>';
+    const val = k==='fh' ? `<b>+${r.fh.toFixed(1)}</b>`
+      : (p&&p[k]!=null?`<b>+${p[k].toFixed(1)}</b>`:'<span class="mut2">fixtures only</span>');
     return `<li><span class="agw">GW${r.gw}</span> ${val}`+
            `<span class="why">${esc(reason(k,r,p))}</span></li>`;
    }).join('');
@@ -1037,7 +1048,7 @@ function renderSquadTable(rows, el){
 
   const t=document.getElementById('chiptable');
   if(t)t.innerHTML='<tr><th class="num">GW</th><th>Doubles</th><th>Blanks</th>'+
-   '<th class="num">TC ceiling</th><th class="num">Board</th><th class="num">FH edge</th>'+
+   '<th class="num">TC ceiling</th><th class="num">Board</th><th class="num">FH vs template</th>'+
    '<th class="num">Your XI</th><th class="num">TC</th><th class="num">BB</th><th class="num">FH</th></tr>'+
    CHIPS.map(r=>{
     const p=priced[r.gw]||{};
@@ -1045,7 +1056,7 @@ function renderSquadTable(rows, el){
     return `<tr><td class="num"><b>${r.gw}</b></td><td>${r.doubles.join(', ')||'—'}</td>`+
      `<td>${r.blanks.join(', ')||'—'}</td>`+
      `<td class="num">${r.tc.toFixed(2)}</td><td class="num">${r.bbmean.toFixed(2)}</td>`+
-     `<td class="num">${r.fhedge.toFixed(2)}</td>`+
+     `<td class="num">${r.fh.toFixed(1)}</td>`+
      `<td class="num">${p.own!=null?p.own.toFixed(1):'<span class="mut2">—</span>'}</td>`+
      `<td class="num">${n(p.tc)}</td><td class="num">${n(p.bb)}</td><td class="num">${n(p.fh)}</td></tr>`;
    }).join('');

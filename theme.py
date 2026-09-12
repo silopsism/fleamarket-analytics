@@ -173,6 +173,7 @@ a{color:var(--accent)}
 .warn{color:var(--warn)}
 .chipcard .gain.unpriced{font:600 12.5px/1.3 system-ui;color:var(--muted)}
 .chipcard .bestp{color:var(--ink);font-size:11.5px;margin-top:5px}
+.chipcard .gain .vs{font:600 11px/1 system-ui;color:var(--muted)}
 .chipcard .warn{font-size:11.5px;line-height:1.4;margin-top:6px}
 p.note.warn{border-left:3px solid var(--warn);padding-left:10px;margin-top:12px}
 

@@ -700,8 +700,10 @@ function renderSquadTable(rows, el){
    return bits.join(' · ');
   }
   const bits=[];
-  if(r.clashes.length)bits.push(r.clashes.join(', ')+' — owned attacks cancelling');
-  if(r.hurt.length)bits.push('template stuck with '+r.hurt.map(h=>h.t+' ×'+h.af.toFixed(2)).join(', '));
+  if(r.template!=null&&r.field!=null)
+   bits.push(`template ${r.template.toFixed(1)} → best XI ${r.field.toFixed(1)}`);
+  if(r.weak&&r.weak.length)
+   bits.push('template hurt by '+r.weak.map(w=>`${w.n} (${w.sel}% owned)`).join(', '));
   if(r.blanks.length)bits.push(r.blanks.length+' blank'+(r.blanks.length>1?'s':''));
   return bits.join(' · ')||'no strong edge';
  }
@@ -717,9 +719,16 @@ function renderSquadTable(rows, el){
    const span=all[0][k]-all[all.length-1][k];
    const base=Math.abs(all[0][k])||1;
    const weak=(span/base)<0.08;
-   const gain=tp&&tp[k]!=null
-    ? `<div class="gain">+${tp[k].toFixed(1)} pts</div>`
-    : `<div class="gain unpriced">beyond the priced window</div>`;
+   // Free Hit is measured against the average manager, not against your own
+   // fifteen, so it carries a points figure in every week rather than only the
+   // near ones. TC and BB still need your squad.
+   const own=tp&&tp[k]!=null?tp[k]:null;
+   const gain = k==='fh'
+    ? `<div class="gain">+${top.fh.toFixed(1)} pts <span class="vs">vs the template</span></div>`
+      + (own!=null?`<div class="ts">+${own.toFixed(1)} against your own XI</div>`:'')
+    : (own!=null
+       ? `<div class="gain">+${own.toFixed(1)} pts</div>`
+       : `<div class="gain unpriced">beyond the priced window</div>`);
    // The list is ordered by FIXTURES, which is the planner's job, but the points
    // are the better estimate wherever they exist. When the two disagree - and
    // for a chip like Bench Boost, whose fixture spread is noise, they routinely
@@ -727,14 +736,15 @@ function renderSquadTable(rows, el){
    const pricedRows=CHIPS.filter(r=>priced[r.gw]&&priced[r.gw][k]!=null)
      .sort((a,b)=>priced[b.gw][k]-priced[a.gw][k]);
    const bestPriced=pricedRows[0];
-   const disagrees=bestPriced&&(!tp||tp[k]==null||bestPriced.gw!==top.gw);
+   const disagrees=k!=='fh'&&bestPriced&&(!tp||tp[k]==null||bestPriced.gw!==top.gw);
    const bestLine=disagrees
     ? `<div class="ts bestp">On points alone the pick is <b>GW${bestPriced.gw}</b> at `
       + `+${priced[bestPriced.gw][k].toFixed(1)} — best of the weeks we can price.</div>`
     : '';
    const alts=rank.slice(1).map(r=>{
     const p=priced[r.gw];
-    const val=p&&p[k]!=null?`<b>+${p[k].toFixed(1)}</b>`:'<span class="mut2">fixtures only</span>';
+    const val = k==='fh' ? `<b>+${r.fh.toFixed(1)}</b>`
+      : (p&&p[k]!=null?`<b>+${p[k].toFixed(1)}</b>`:'<span class="mut2">fixtures only</span>');
     return `<li><span class="agw">GW${r.gw}</span> ${val}`+
            `<span class="why">${esc(reason(k,r,p))}</span></li>`;
    }).join('');
@@ -764,7 +774,7 @@ function renderSquadTable(rows, el){
 
   const t=document.getElementById('chiptable');
   if(t)t.innerHTML='<tr><th class="num">GW</th><th>Doubles</th><th>Blanks</th>'+
-   '<th class="num">TC ceiling</th><th class="num">Board</th><th class="num">FH edge</th>'+
+   '<th class="num">TC ceiling</th><th class="num">Board</th><th class="num">FH vs template</th>'+
    '<th class="num">Your XI</th><th class="num">TC</th><th class="num">BB</th><th class="num">FH</th></tr>'+
    CHIPS.map(r=>{
     const p=priced[r.gw]||{};
@@ -772,7 +782,7 @@ function renderSquadTable(rows, el){
     return `<tr><td class="num"><b>${r.gw}</b></td><td>${r.doubles.join(', ')||'—'}</td>`+
      `<td>${r.blanks.join(', ')||'—'}</td>`+
      `<td class="num">${r.tc.toFixed(2)}</td><td class="num">${r.bbmean.toFixed(2)}</td>`+
-     `<td class="num">${r.fhedge.toFixed(2)}</td>`+
+     `<td class="num">${r.fh.toFixed(1)}</td>`+
      `<td class="num">${p.own!=null?p.own.toFixed(1):'<span class="mut2">—</span>'}</td>`+
      `<td class="num">${n(p.tc)}</td><td class="num">${n(p.bb)}</td><td class="num">${n(p.fh)}</td></tr>`;
    }).join('');
@@ -1139,6 +1149,53 @@ def week_fixtures(fixtures, team_name, event, table):
     return out
 
 
+def template_xi(pts, gw_events):
+    """What the average manager is expected to score, week by week.
+
+    Aggregate club ownership was the wrong measure and produced nonsense.
+    Tottenham cleared the "heavily owned" bar on 74%, of which 17.9% is Dubravka
+    - a backup keeper projected at zero - so a fixture against them was reported
+    as two owned attacks cancelling out when Spurs' entire template exposure is
+    1.57 points. Brighton's 80% is three cheap defenders and two goalkeepers.
+    Arsenal's 213% is Calafiori, Raya and Gabriel, and worth 8.16.
+
+    So the template is built the way a squad is: the most-owned players that form
+    a legal XI, captained on the best of them. That is directly comparable with
+    the Free Hit ceiling, and a player nobody starts contributes nothing to it.
+    """
+    QUOTA = {1: (1, 1), 2: (3, 5), 3: (2, 5), 4: (1, 3)}
+    ranked = sorted(pts, key=lambda q: -q['sel'])
+    out = []
+    for i, ev in enumerate(gw_events):
+        xi, per_pos, per_club = [], {1: 0, 2: 0, 3: 0, 4: 0}, {}
+        for q in ranked:
+            if len(xi) >= 11:
+                break
+            lo, hi = QUOTA[q['pos']]
+            if per_pos[q['pos']] >= hi or per_club.get(q['team'], 0) >= 3:
+                continue
+            # keep room for the minimum of every position still unfilled
+            need = sum(max(QUOTA[k][0] - per_pos[k], 0) for k in QUOTA if k != q['pos'])
+            if 11 - len(xi) - 1 < need:
+                continue
+            xi.append(q)
+            per_pos[q['pos']] += 1
+            per_club[q['team']] = per_club.get(q['team'], 0) + 1
+        val = lambda q: q['chip_gws'][i] if i < len(q['chip_gws']) else 0.0
+        cap = max((val(q) for q in xi), default=0.0)
+        # who in the template is having a bad week, judged against their own
+        # normal level and weighted by how many managers actually hold them
+        weak = sorted(
+            ({'n': q['name'], 't': teams[q['team']], 'sel': round(q['sel'], 1),
+              'cost': round((sum(q['chip_gws']) / len(q['chip_gws']) - val(q))
+                            * q['sel'] / 100, 2)}
+             for q in xi if q['chip_gws']),
+            key=lambda r: -r['cost'])[:3]
+        out.append({'gw': ev, 'total': round(sum(val(q) for q in xi) + cap, 2),
+                    'weak': [w for w in weak if w['cost'] > 0.01]})
+    return out
+
+
 def free_hit_ceiling(pts, gw_events, budget=100.0):
     """Best legal fifteen, week by week, scored as an XI with a captain.
 
@@ -1188,7 +1245,8 @@ def free_hit_ceiling(pts, gw_events, budget=100.0):
     return out
 
 
-def chip_plan(fixtures, team_name, fixmap, elements, from_gw, half_end=19, horizon=10):
+def chip_plan(fixtures, team_name, fixmap, elements, from_gw, fh_rows=(), tpl_rows=(),
+              half_end=19, horizon=10):
     """Score every remaining gameweek in this half, per chip, on FIXTURES.
 
     Planning a squad fifteen weeks out is fiction - the team will have changed
@@ -1214,13 +1272,8 @@ def chip_plan(fixtures, team_name, fixmap, elements, from_gw, half_end=19, horiz
     for f in fixtures:
         if f.get('event'):
             by_gw.setdefault(f['event'], []).append(f)
-
-    club_own = {}
-    for e in elements:
-        c = team_name[e['team']]
-        club_own[c] = club_own.get(c, 0.0) + float(e['selected_by_percent'])
-    total_own = sum(club_own.values()) or 1.0
-    heavy = {c for c, w in club_own.items() if w >= total_own / 20}   # top-ish template clubs
+    fh_by_gw = {r['gw']: r for r in (fh_rows or []) if r}
+    tpl_by_gw = {r['gw']: r for r in (tpl_rows or []) if r}
 
     gws = [g for g in sorted(by_gw) if from_gw <= g <= half_end][:horizon]
     rows = []
@@ -1256,16 +1309,14 @@ def chip_plan(fixtures, team_name, fixmap, elements, from_gw, half_end=19, horiz
         rough = sum(1 for r in cells if r[3] < 0.8)
         bb = round(bb_mean + 1.2 * len(doubles) - 0.5 * len(blanks) - 0.02 * rough, 3)
 
-        # --- Free Hit: template punished, field rewarded ---------------------
-        owned_af = (sum(club_own[r[0]] * r[3] for r in cells)
-                    / sum(club_own[r[0]] for r in cells)) if cells else 1.0
-        light = sorted((r for r in cells if r[0] not in heavy), key=lambda r: -r[3])[:6]
-        free_af = sum(r[3] for r in light) / len(light) if light else owned_af
-        clashes = [f"{team_name[f['team_h']]} v {team_name[f['team_a']]}" for f in fx
-                   if team_name[f['team_h']] in heavy and team_name[f['team_a']] in heavy]
-        hurt = sorted((r for r in cells if r[0] in heavy), key=lambda r: r[3])[:3]
-        fh = round((free_af - owned_af) + 0.05 * len(clashes)
-                   + 0.7 * len(blanks) - 0.3 * len(doubles), 3)
+        # --- Free Hit: what the field can reach minus what the template gets -
+        # Both sides are now POINTS, from a real XI, so the number means
+        # something: how far ahead of the average manager one week of freedom
+        # puts you. Ownership sums told us Spurs were a template club on the
+        # strength of a backup keeper.
+        f_row = fh_by_gw.get(g) or {}
+        t_row = tpl_by_gw.get(g) or {}
+        fh = round((f_row.get('total') or 0) - (t_row.get('total') or 0), 2)
 
         rows.append({
             'gw': g, 'doubles': doubles, 'blanks': blanks,
@@ -1273,9 +1324,9 @@ def chip_plan(fixtures, team_name, fixmap, elements, from_gw, half_end=19, horiz
             'tcfix': ({'team': tc_best[0], 'opp': tc_best[1], 'home': tc_best[2],
                        'gf': round(tc_best[4], 2)} if tc_best else None),
             'bb': bb, 'bbmean': round(bb_mean, 3), 'rough': rough,
-            'fh': fh, 'fhedge': round(free_af - owned_af, 3),
-            'clashes': clashes,
-            'hurt': [{'t': r[0], 'af': round(r[3], 2)} for r in hurt],
+            'fh': fh, 'fhedge': fh,
+            'template': t_row.get('total'), 'field': f_row.get('total'),
+            'weak': t_row.get('weak') or [],
         })
     return rows
 
@@ -1283,7 +1334,6 @@ def chip_plan(fixtures, team_name, fixmap, elements, from_gw, half_end=19, horiz
 _fx_all = json.load(open('fixtures.json', encoding='utf-8'))
 LEAGUE = league_table(_fx_all, teams)
 WEEK = week_fixtures(_fx_all, teams, gw_labels[0], LEAGUE)
-CHIPS = chip_plan(_fx_all, teams, FIXMAP, ns['d']['elements'], gw_labels[0])
 CHIP_EVENTS = ns['CHIP_EVENTS']
 try:
     FHBEST = free_hit_ceiling(pts, CHIP_EVENTS)
@@ -1292,6 +1342,9 @@ try:
 except Exception as _fhe:  # noqa: BLE001 - chips degrade, page still builds
     print('free hit ceiling skipped:', _fhe)
     FHBEST = []
+TEMPLATE = template_xi(pts, CHIP_EVENTS)
+CHIPS = chip_plan(_fx_all, teams, FIXMAP, ns['d']['elements'], gw_labels[0],
+                  fh_rows=FHBEST, tpl_rows=TEMPLATE)
 
 _ev = next(e for e in ns['d']['events'] if e['id'] == gw_labels[0])
 _dl = datetime.strptime(_ev['deadline_time'], '%Y-%m-%dT%H:%M:%SZ') + timedelta(hours=1)  # UK summer time
