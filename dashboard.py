@@ -901,7 +901,7 @@ if(TEAMS.length){
  drawTeams();
 }
 
-drawDiff('All');drawFrontier('All');drawPlanner();
+drawDiff('All');drawPlanner();
 </script>
 """
 POS = {1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD'}

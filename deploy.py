@@ -12,11 +12,14 @@ So this does the whole job and refuses to claim success it has not observed:
 it waits until /health reports the commit that was just pushed.
 """
 import json
+import os
 import subprocess
 import sys
 import time
 import urllib.error
 import urllib.request
+
+import check_page
 
 SITE = 'http://fpl.salwood.co.za'
 POLL_SECONDS = 15
@@ -48,6 +51,19 @@ def main():
         print('uncommitted changes - commit them first, or use --no-push:')
         print('\n'.join('  ' + ln for ln in dirty.splitlines()))
         sys.exit(1)
+
+    # A dead JS function is not a Python error: the build exits 0, the tests
+    # pass, the deploy verifies the sha and the page returns 200 with correct
+    # markup. Only the console disagrees - which is how a blank planner shipped.
+    for page in ('dashboard.html', 'my_dashboard.html'):
+        if os.path.exists(page):
+            bad = check_page.check(page)
+            if bad:
+                print(f'{page} is broken:')
+                for b in sorted(set(bad)):
+                    print('  ', b)
+                sys.exit('refusing to deploy')
+    print('page check ok')
 
     want = sh('git', 'rev-parse', 'HEAD')[:7]
     print(f'target  {want}  {sh("git", "log", "-1", "--format=%s")}')
