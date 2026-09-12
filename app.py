@@ -1011,7 +1011,9 @@ function drawnShirt(club){
 function shirtSvg(club, pos){
  if(!HAVEKIT.has(club))return drawnShirt(club);
  const gk = pos==='GKP' ? '_gk' : '';
- return `<img class="shirt" src="/shirts/${club}${gk}.png" alt="" loading="lazy" `+
+ // NOT lazy: fifteen small images ARE the view, and deferring them left cards
+ // blank on first paint for anything below the fold
+ return `<img class="shirt" src="/shirts/${club}${gk}.png" alt="" `+
   `onerror="this.outerHTML=drawnShirt('${club}')">`;
 }
 function oppOf(t){const g=(HEAT[t]||{})[GWL[sel]];return g?g[0]+' ('+(g[1]?'H':'A')+')':'\u2014'}

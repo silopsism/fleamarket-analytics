@@ -380,8 +380,11 @@ th.gwsel:hover{color:var(--accent)}
  /* a 66px content box cannot hold "Calvert-Lewin" on one line at any readable
     size, and letting it wrap made card heights uneven across a row - so on
     small screens the name truncates instead */
- .pcard .pn{font-size:11.5px;min-height:1.2em;display:block;white-space:nowrap;
-  text-overflow:ellipsis}
+ .pcard .pn{font-size:11px;min-height:1.2em;display:block;white-space:nowrap;
+  text-overflow:ellipsis;padding:2px 1px}
+ /* the card is narrower here, so the kit takes a bigger share of it to stay
+    recognisable - 54% of 78px is too small to tell two blue shirts apart */
+ .pcard .shirt{width:64%;max-width:46px;margin-bottom:4px}
  /* three-letter codes in a 20px cell: 9px with letter-spacing clipped NEW
     and BOU, so drop the size and the tracking on small screens */
  .pcard .px i{font-size:9px;letter-spacing:0}
