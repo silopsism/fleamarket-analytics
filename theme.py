@@ -165,6 +165,14 @@ a{color:var(--accent)}
 .chipcard .gain{font:700 19px/1.1 system-ui;color:var(--up);margin-top:2px;
  font-variant-numeric:tabular-nums}
 .chipcard .runner{color:var(--muted);font-size:11.5px}
+.chipcard .alts{list-style:none;margin:10px 0 0;padding:9px 0 0;border-top:1px solid var(--grid)}
+.chipcard .alts li{display:grid;grid-template-columns:46px 52px 1fr;gap:6px;align-items:baseline;
+ font-size:11.5px;color:var(--ink2);padding:3px 0}
+.chipcard .alts .agw{font-weight:700;color:var(--ink)}
+.chipcard .alts .why{color:var(--muted);overflow:hidden;text-overflow:ellipsis}
+.warn{color:var(--warn)}
+.chipcard .warn{font-size:11.5px;line-height:1.4;margin-top:6px}
+p.note.warn{border-left:3px solid var(--warn);padding-left:10px;margin-top:12px}
 
 /* league table: European places and the drop, plus a form strip */
 tr.ucl td:first-child{box-shadow:inset 3px 0 var(--accent)}

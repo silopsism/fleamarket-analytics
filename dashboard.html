@@ -133,6 +133,14 @@ a{color:var(--accent)}
 .chipcard .gain{font:700 19px/1.1 system-ui;color:var(--up);margin-top:2px;
  font-variant-numeric:tabular-nums}
 .chipcard .runner{color:var(--muted);font-size:11.5px}
+.chipcard .alts{list-style:none;margin:10px 0 0;padding:9px 0 0;border-top:1px solid var(--grid)}
+.chipcard .alts li{display:grid;grid-template-columns:46px 52px 1fr;gap:6px;align-items:baseline;
+ font-size:11.5px;color:var(--ink2);padding:3px 0}
+.chipcard .alts .agw{font-weight:700;color:var(--ink)}
+.chipcard .alts .why{color:var(--muted);overflow:hidden;text-overflow:ellipsis}
+.warn{color:var(--warn)}
+.chipcard .warn{font-size:11.5px;line-height:1.4;margin-top:6px}
+p.note.warn{border-left:3px solid var(--warn);padding-left:10px;margin-top:12px}
 
 /* league table: European places and the drop, plus a form strip */
 tr.ucl td:first-child{box-shadow:inset 3px 0 var(--accent)}
@@ -487,7 +495,7 @@ clean sheets, defensive contributions), season expectations, and fixtures. </p>
 </div>
 
 <div class="tabpane" data-tab="chips">
-<section class="card"><h2>Chip planner <span class="mut">GW4–13</span></h2><p class="note">What each chip is worth, in points, against the squad you actually own. <b>Triple Captain</b> is one extra copy of your best player that week. <b>Bench Boost</b> is what your four bench players would add. <b>Free Hit</b> is the best legal fifteen money can buy for that week — solved under the real rules, 2/5/5/3, three per club, inside budget — minus what your own eleven would have scored. Chips already spent are not shown.</p><p class="note" id="chipnote"></p><div class="chipgrid" id="chipgrid"></div></section><section class="card"><h2>Every gameweek, priced</h2><p class="note">The same numbers in full, so a close call is visible rather than hidden behind one pick. Best week for each chip is highlighted. Projections thin out the further ahead they run, and blanks and doubles are not yet scheduled this far out — both will move these numbers.</p><div class="scroll"><table id="chiptable"></table></div></section>
+<section class="card"><h2>Chip planner <span class="mut">GW4–13</span></h2><p class="note">Chips are a <b>calendar</b> decision, not a squad one: fifteen weeks out your team will have turned over several times, but the fixtures will not have moved. So each chip ranks the windows that suit it, and adds a points figure only for the next few gameweeks, where the squad you own is still the squad you will have. <b>Triple Captain</b> wants the biggest single ceiling — a strong attack at home to a weak defence. <b>Bench Boost</b> wants a week the whole fifteen plays and plays well. <b>Free Hit</b> wants a week that punishes the template and rewards what nobody owns. Chips already spent are not shown.</p><p class="note" id="chipnote"></p><div class="chipgrid" id="chipgrid"></div></section><section class="card"><h2>Every gameweek, priced</h2><p class="note">Every week, both readings side by side: the fixture scores that rank the windows, then the points they are worth against your current squad where that can still be said. Blanks and doubles are not scheduled this far out yet, and they move these numbers more than fixture quality does — expect the back half to shift.</p><div class="scroll"><table id="chiptable"></table></div></section>
 </div>
 
 <div class="tabpane" data-tab="teams">
@@ -552,8 +560,8 @@ clean sheets, defensive contributions), season expectations, and fixtures. </p>
 
 <footer>Phase 1 model: built on prior-season Opta rates, expected minutes, transfer
 context, season expectations and fixtures — a value lens, not an oracle.
-<br>FPL data pulled Sat 12 Sep 09:24 UK · refreshed hourly · fixtures priced by bookmaker odds: 10 · fixture model k(attack)=0.78, k(opponent defence)=0.80, home ×1.10, rmse 0.182
-<br><span class="build">build 7b7b299+dirty · Chip planner prices each chip in points, against your own squad · generated Sat 12 Sep 09:24 UK</span></footer>
+<br>FPL data pulled Sat 12 Sep 09:38 UK · refreshed hourly · fixtures priced by bookmaker odds: 10 · fixture model k(attack)=0.78, k(opponent defence)=0.80, home ×1.10, rmse 0.182
+<br><span class="build">build 76836a2+dirty · One origin, and rescue the data stranded on the other · generated Sat 12 Sep 09:38 UK</span></footer>
 </div>
 <div class="tip" id="tip"></div>
 <script>
@@ -562,7 +570,7 @@ const HEAT = [{"team": "EVE", "gws": [{"o": "CRY", "h": 1, "fdr": 3, "a": 1.23, 
 const SQUAD = [];
 const LEAGUE = [{"team": "MCI", "p": 3, "w": 3, "d": 0, "l": 0, "gf": 7, "ga": 2, "pts": 9, "form": "WWW", "pos": 1, "gd": 5}, {"team": "ARS", "p": 3, "w": 3, "d": 0, "l": 0, "gf": 6, "ga": 1, "pts": 9, "form": "WWW", "pos": 2, "gd": 5}, {"team": "HUL", "p": 3, "w": 2, "d": 1, "l": 0, "gf": 3, "ga": 0, "pts": 7, "form": "WWD", "pos": 3, "gd": 3}, {"team": "CHE", "p": 3, "w": 2, "d": 0, "l": 1, "gf": 8, "ga": 7, "pts": 6, "form": "WWL", "pos": 4, "gd": 1}, {"team": "BRE", "p": 3, "w": 1, "d": 2, "l": 0, "gf": 5, "ga": 2, "pts": 5, "form": "WDD", "pos": 5, "gd": 3}, {"team": "LIV", "p": 3, "w": 1, "d": 2, "l": 0, "gf": 6, "ga": 4, "pts": 5, "form": "DDW", "pos": 6, "gd": 2}, {"team": "NEW", "p": 3, "w": 1, "d": 2, "l": 0, "gf": 6, "ga": 4, "pts": 5, "form": "DWD", "pos": 7, "gd": 2}, {"team": "EVE", "p": 3, "w": 1, "d": 2, "l": 0, "gf": 5, "ga": 3, "pts": 5, "form": "WDD", "pos": 8, "gd": 2}, {"team": "LEE", "p": 3, "w": 1, "d": 2, "l": 0, "gf": 3, "ga": 2, "pts": 5, "form": "WDD", "pos": 9, "gd": 1}, {"team": "BHA", "p": 3, "w": 1, "d": 1, "l": 1, "gf": 8, "ga": 5, "pts": 4, "form": "WLD", "pos": 10, "gd": 3}, {"team": "MUN", "p": 3, "w": 1, "d": 1, "l": 1, "gf": 7, "ga": 6, "pts": 4, "form": "LWD", "pos": 11, "gd": 1}, {"team": "SUN", "p": 3, "w": 1, "d": 1, "l": 1, "gf": 3, "ga": 3, "pts": 4, "form": "LWD", "pos": 12, "gd": 0}, {"team": "CRY", "p": 3, "w": 1, "d": 0, "l": 2, "gf": 4, "ga": 8, "pts": 3, "form": "LLW", "pos": 13, "gd": -4}, {"team": "IPS", "p": 3, "w": 1, "d": 0, "l": 2, "gf": 4, "ga": 8, "pts": 3, "form": "WLL", "pos": 14, "gd": -4}, {"team": "BOU", "p": 3, "w": 0, "d": 2, "l": 1, "gf": 4, "ga": 5, "pts": 2, "form": "LDD", "pos": 15, "gd": -1}, {"team": "NFO", "p": 3, "w": 0, "d": 2, "l": 1, "gf": 2, "ga": 3, "pts": 2, "form": "LDD", "pos": 16, "gd": -1}, {"team": "AVL", "p": 3, "w": 0, "d": 1, "l": 2, "gf": 0, "ga": 5, "pts": 1, "form": "LLD", "pos": 17, "gd": -5}, {"team": "TOT", "p": 3, "w": 0, "d": 1, "l": 2, "gf": 0, "ga": 5, "pts": 1, "form": "LLD", "pos": 18, "gd": -5}, {"team": "FUL", "p": 3, "w": 0, "d": 0, "l": 3, "gf": 4, "ga": 7, "pts": 0, "form": "LLL", "pos": 19, "gd": -3}, {"team": "COV", "p": 3, "w": 0, "d": 0, "l": 3, "gf": 0, "ga": 5, "pts": 0, "form": "LLL", "pos": 20, "gd": -5}];
 const WEEK = [{"h": "AVL", "a": "NFO", "hp": 17, "ap": 16, "when": "Sat 12 Sep · 15:00", "done": false, "score": ""}, {"h": "BOU", "a": "BRE", "hp": 15, "ap": 5, "when": "Sat 12 Sep · 15:00", "done": false, "score": ""}, {"h": "CHE", "a": "HUL", "hp": 4, "ap": 3, "when": "Sat 12 Sep · 15:00", "done": false, "score": ""}, {"h": "CRY", "a": "IPS", "hp": 13, "ap": 14, "when": "Sat 12 Sep · 15:00", "done": false, "score": ""}, {"h": "LIV", "a": "FUL", "hp": 6, "ap": 19, "when": "Sat 12 Sep · 15:00", "done": false, "score": ""}, {"h": "TOT", "a": "EVE", "hp": 18, "ap": 8, "when": "Sat 12 Sep · 17:30", "done": false, "score": ""}, {"h": "SUN", "a": "ARS", "hp": 12, "ap": 2, "when": "Sat 12 Sep · 20:00", "done": false, "score": ""}, {"h": "COV", "a": "BHA", "hp": 20, "ap": 10, "when": "Sun 13 Sep · 14:00", "done": false, "score": ""}, {"h": "MUN", "a": "MCI", "hp": 11, "ap": 1, "when": "Sun 13 Sep · 16:30", "done": false, "score": ""}, {"h": "LEE", "a": "NEW", "hp": 9, "ap": 7, "when": "Mon 14 Sep · 20:00", "done": false, "score": ""}];
-const CHIPS = [{"gw": 4, "doubles": [], "blanks": [], "best": {"team": "COV", "opp": "BHA", "af": 1.5}, "tc": 1.502, "bb": 1.021, "fh": 0.78}, {"gw": 5, "doubles": [], "blanks": [], "best": {"team": "EVE", "opp": "IPS", "af": 1.39}, "tc": 1.391, "bb": 0.997, "fh": 0.761}, {"gw": 6, "doubles": [], "blanks": [], "best": {"team": "IPS", "opp": "FUL", "af": 1.33}, "tc": 1.335, "bb": 1.0, "fh": 0.814}, {"gw": 7, "doubles": [], "blanks": [], "best": {"team": "MCI", "opp": "IPS", "af": 1.38}, "tc": 1.375, "bb": 0.998, "fh": 0.739}, {"gw": 8, "doubles": [], "blanks": [], "best": {"team": "COV", "opp": "FUL", "af": 1.3}, "tc": 1.297, "bb": 1.001, "fh": 0.771}, {"gw": 9, "doubles": [], "blanks": [], "best": {"team": "HUL", "opp": "IPS", "af": 1.39}, "tc": 1.39, "bb": 1.003, "fh": 0.762}, {"gw": 10, "doubles": [], "blanks": [], "best": {"team": "ARS", "opp": "HUL", "af": 1.22}, "tc": 1.22, "bb": 0.996, "fh": 0.699}, {"gw": 11, "doubles": [], "blanks": [], "best": {"team": "TOT", "opp": "IPS", "af": 1.39}, "tc": 1.387, "bb": 1.002, "fh": 0.758}, {"gw": 12, "doubles": [], "blanks": [], "best": {"team": "CRY", "opp": "HUL", "af": 1.26}, "tc": 1.263, "bb": 0.997, "fh": 0.746}, {"gw": 13, "doubles": [], "blanks": [], "best": {"team": "COV", "opp": "IPS", "af": 1.37}, "tc": 1.374, "bb": 1.002, "fh": 0.743}];
+const CHIPS = [{"gw": 4, "doubles": [], "blanks": [], "tc": 2.73, "tcfix": {"team": "CHE", "opp": "HUL", "home": 1, "gf": 2.73}, "bb": 1.418, "bbmean": 1.458, "rough": 2, "fh": 0.186, "fhedge": 0.136, "clashes": ["MUN v MCI"], "hurt": [{"t": "MCI", "af": 0.82}, {"t": "MUN", "af": 0.82}, {"t": "ARS", "af": 0.93}]}, {"gw": 5, "doubles": [], "blanks": [], "tc": 2.43, "tcfix": {"team": "MCI", "opp": "SUN", "home": 1, "gf": 2.43}, "bb": 1.394, "bbmean": 1.434, "rough": 2, "fh": 0.228, "fhedge": 0.178, "clashes": ["BHA v ARS"], "hurt": [{"t": "BHA", "af": 0.63}, {"t": "ARS", "af": 0.87}, {"t": "CHE", "af": 0.88}]}, {"gw": 6, "doubles": [], "blanks": [], "tc": 2.18, "tcfix": {"team": "CHE", "opp": "BOU", "home": 1, "gf": 2.18}, "bb": 1.377, "bbmean": 1.417, "rough": 2, "fh": 0.28, "fhedge": 0.18, "clashes": ["MUN v TOT", "LIV v MCI"], "hurt": [{"t": "MCI", "af": 0.77}, {"t": "TOT", "af": 0.82}, {"t": "LIV", "af": 0.92}]}, {"gw": 7, "doubles": [], "blanks": [], "tc": 2.9, "tcfix": {"team": "MCI", "opp": "IPS", "home": 1, "gf": 2.9}, "bb": 1.409, "bbmean": 1.45, "rough": 2, "fh": 0.07, "fhedge": 0.07, "clashes": [], "hurt": [{"t": "LIV", "af": 0.89}, {"t": "ARS", "af": 0.93}, {"t": "MUN", "af": 0.94}]}, {"gw": 8, "doubles": [], "blanks": [], "tc": 2.19, "tcfix": {"team": "ARS", "opp": "EVE", "home": 1, "gf": 2.19}, "bb": 1.367, "bbmean": 1.427, "rough": 3, "fh": 0.242, "fhedge": 0.142, "clashes": ["CHE v TOT", "LIV v BHA"], "hurt": [{"t": "BHA", "af": 0.77}, {"t": "TOT", "af": 0.8}, {"t": "MCI", "af": 0.92}]}, {"gw": 9, "doubles": [], "blanks": [], "tc": 2.24, "tcfix": {"team": "MCI", "opp": "BHA", "home": 1, "gf": 2.24}, "bb": 1.332, "bbmean": 1.412, "rough": 4, "fh": 0.419, "fhedge": 0.269, "clashes": ["CHE v MUN", "MCI v BHA", "LIV v ARS"], "hurt": [{"t": "LIV", "af": 0.63}, {"t": "BHA", "af": 0.76}, {"t": "ARS", "af": 0.76}]}, {"gw": 10, "doubles": [], "blanks": [], "tc": 2.32, "tcfix": {"team": "ARS", "opp": "HUL", "home": 1, "gf": 2.32}, "bb": 1.425, "bbmean": 1.446, "rough": 1, "fh": 0.089, "fhedge": 0.089, "clashes": [], "hurt": [{"t": "TOT", "af": 0.94}, {"t": "MCI", "af": 0.94}, {"t": "CHE", "af": 0.95}]}, {"gw": 11, "doubles": [], "blanks": [], "tc": 2.74, "tcfix": {"team": "MCI", "opp": "FUL", "home": 1, "gf": 2.74}, "bb": 1.383, "bbmean": 1.444, "rough": 3, "fh": 0.154, "fhedge": 0.104, "clashes": ["LIV v MUN"], "hurt": [{"t": "MUN", "af": 0.78}, {"t": "ARS", "af": 0.85}, {"t": "LIV", "af": 0.99}]}, {"gw": 12, "doubles": [], "blanks": [], "tc": 1.95, "tcfix": {"team": "MUN", "opp": "BRE", "home": 1, "gf": 1.95}, "bb": 1.388, "bbmean": 1.408, "rough": 1, "fh": 0.287, "fhedge": 0.237, "clashes": ["ARS v MCI"], "hurt": [{"t": "MCI", "af": 0.52}, {"t": "ARS", "af": 0.9}, {"t": "CHE", "af": 0.94}]}, {"gw": 13, "doubles": [], "blanks": [], "tc": 2.38, "tcfix": {"team": "MCI", "opp": "LEE", "home": 1, "gf": 2.38}, "bb": 1.365, "bbmean": 1.425, "rough": 3, "fh": 0.115, "fhedge": 0.115, "clashes": [], "hurt": [{"t": "MUN", "af": 0.86}, {"t": "ARS", "af": 0.87}, {"t": "BHA", "af": 0.95}]}];
 const FHBEST = [{"gw": 4, "total": 65.78, "cap": "João Pedro"}, {"gw": 5, "total": 67.49, "cap": "Haaland"}, {"gw": 6, "total": 64.68, "cap": "B.Fernandes"}, {"gw": 7, "total": 68.33, "cap": "Haaland"}, {"gw": 8, "total": 65.36, "cap": "B.Fernandes"}, {"gw": 9, "total": 63.36, "cap": "Haaland"}, {"gw": 10, "total": 68.27, "cap": "B.Fernandes"}, {"gw": 11, "total": 66.67, "cap": "Haaland"}, {"gw": 12, "total": 63.96, "cap": "B.Fernandes"}, {"gw": 13, "total": 66.16, "cap": "Haaland"}];
 const CHIPEV = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 const GWL = [4, 5, 6, 7];
@@ -907,79 +915,134 @@ function renderSquadTable(rows, el){
  }).catch(()=>{if(link)link.hidden=false});
 })();
 
-// ---- Chip planner: what each chip is worth, week by week --------------
+// ---- Chip planner: ranked windows, priced where a squad still means something
 (function(){
- const grid=document.getElementById('chipgrid'); if(!grid)return;
- const META={tc:['Triple Captain','one extra copy of your captain'],
-             bb:['Bench Boost','your four bench players actually scoring'],
-             fh:['Free Hit','the best XI money can buy, for one week only']};
+ const grid=document.getElementById('chipgrid'); if(!grid||!CHIPS.length)return;
+ // Beyond about five gameweeks the squad is fiction - it will have turned over
+ // several times - so points stop being claimed and the fixture read stands alone.
+ const SQUAD_WEEKS=5, SHOW=5;
  const MIN={GKP:1,DEF:3,MID:2,FWD:1}, MAX={GKP:1,DEF:5,MID:5,FWD:3};
+ const META={
+  tc:{name:'Triple Captain',
+      want:'one huge ceiling: a strong attack at home to a weak defence'},
+  bb:{name:'Bench Boost',
+      want:'a week the whole fifteen plays, and plays well'},
+  fh:{name:'Free Hit',
+      want:'a week that punishes the template and rewards what nobody owns'}};
 
- // best legal XI from a fifteen. Only per-position caps and a total of eleven
- // bind here, so taking the minimums then the best of the rest is optimal.
  function bestXI(sq,i){
   const val=r=>(r.cg&&r.cg[i]!=null)?r.cg[i]:0;
   const by={GKP:[],DEF:[],MID:[],FWD:[]};
   sq.forEach(r=>(by[r.p]||by.MID).push(r));
   Object.values(by).forEach(a=>a.sort((x,y)=>val(y)-val(x)));
   const xi=[]; Object.keys(MIN).forEach(k=>xi.push(...by[k].slice(0,MIN[k])));
-  const rest=sq.filter(r=>!xi.includes(r))
-    .filter(r=>xi.filter(z=>z.p===r.p).length<MAX[r.p])
-    .sort((x,y)=>val(y)-val(x));
+  const rest=sq.filter(r=>!xi.includes(r)).sort((x,y)=>val(y)-val(x));
   while(xi.length<11&&rest.length){
    const nx=rest.shift();
    if(xi.filter(z=>z.p===nx.p).length<MAX[nx.p])xi.push(nx);
   }
   const bench=sq.filter(r=>!xi.includes(r));
-  const tot=xi.reduce((a,r)=>a+val(r),0);
-  const cap=xi.reduce((m,r)=>Math.max(m,val(r)),0);
-  return {xi,bench,tot,cap,benchSum:bench.reduce((a,r)=>a+val(r),0)};
+  return {tot:xi.reduce((a,r)=>a+val(r),0), cap:xi.reduce((m,r)=>Math.max(m,val(r)),0),
+          benchSum:bench.reduce((a,r)=>a+val(r),0), bench:bench,
+          capName:(xi.slice().sort((a,b)=>val(b)-val(a))[0]||{}).n};
  }
 
- function gains(sq){
-  return CHIPEV.map((ev,i)=>{
-   const b=bestXI(sq,i);
-   const fh=FHBEST[i];
-   return {gw:ev,
-    tc:b.cap,                                   // the third multiplier
-    bb:b.benchSum,                              // what the bench would add
-    fh:fh?Math.max(fh.total-(b.tot+b.cap),0):null,
-    fhcap:fh?fh.cap:null, own:b.tot+b.cap};
+ // points, but only inside the window where a squad is still a real object
+ function price(sq){
+  const out={};
+  CHIPEV.forEach((ev,i)=>{
+   if(!sq||i>=SQUAD_WEEKS)return;
+   const b=bestXI(sq,i), fh=FHBEST[i];
+   out[ev]={tc:b.cap, capName:b.capName, bb:b.benchSum,
+            fh:fh?Math.max(fh.total-(b.tot+b.cap),0):null,
+            fhcap:fh?fh.cap:null, own:b.tot+b.cap,
+            weak:b.bench.filter(r=>(r.xm||0)<45).map(r=>r.n)};
   });
+  return out;
  }
 
- function render(rows,have,note){
+ function reason(k,r,pt){
+  if(k==='tc'){
+   const f=r.tcfix;
+   if(!f)return 'no fixture priced';
+   return `${f.team} ${f.home?'at home to':'away at'} ${f.opp} · ${f.gf.toFixed(2)} xG`
+        + (pt&&pt.capName?` · your best is ${pt.capName}`:'');
+  }
+  if(k==='bb'){
+   const bits=[];
+   if(r.doubles.length)bits.push(r.doubles.length+' double'+(r.doubles.length>1?'s':''));
+   if(r.blanks.length)bits.push(r.blanks.length+' blank'+(r.blanks.length>1?'s':''));
+   bits.push('board average ×'+r.bbmean.toFixed(2));
+   if(pt&&pt.weak&&pt.weak.length)bits.push('but '+pt.weak.join(', ')+' may not start');
+   return bits.join(' · ');
+  }
+  const bits=[];
+  if(r.clashes.length)bits.push(r.clashes.join(', ')+' — owned attacks cancelling');
+  if(r.hurt.length)bits.push('template stuck with '+r.hurt.map(h=>h.t+' ×'+h.af.toFixed(2)).join(', '));
+  if(r.blanks.length)bits.push(r.blanks.length+' blank'+(r.blanks.length>1?'s':''));
+  return bits.join(' · ')||'no strong edge';
+ }
+
+ function render(have,priced,note){
+  const picks={};
   grid.innerHTML=Object.keys(META).filter(k=>have.includes(k.toUpperCase())).map(k=>{
-   const ok=rows.filter(r=>r[k]!=null);
-   if(!ok.length)return `<div class="chipcard"><div class="tl">${META[k][0]}</div>`+
-     `<div class="tv">?</div><div class="ts">not enough data to price this chip</div></div>`;
-   const rank=[...ok].sort((a,b)=>b[k]-a[k]);
-   const top=rank[0], next=rank[1];
-   const extra = k==='fh'&&top.fhcap?` · captain ${esc(top.fhcap)}`:'';
-   return `<div class="chipcard"><div class="tl">${META[k][0]}</div>`+
-    `<div class="tv">GW${top.gw}</div>`+
-    `<div class="gain">+${top[k].toFixed(1)} pts</div>`+
-    `<div class="ts">against your current squad${extra}</div>`+
-    `<div class="ts runner">${next?`next best GW${next.gw} at +${next[k].toFixed(1)}`:''}</div>`+
-    `<div class="ts mut">worth ${META[k][1]}</div></div>`;
+   const all=[...CHIPS].sort((a,b)=>b[k]-a[k]);
+   const rank=all.slice(0,SHOW);
+   const top=rank[0], tp=priced[top.gw];
+   picks[k]=top.gw;
+   // if the whole window scores the same, the ranking is noise and should say so
+   const span=all[0][k]-all[all.length-1][k];
+   const base=Math.abs(all[0][k])||1;
+   const weak=(span/base)<0.08;
+   const gain=tp&&tp[k]!=null?`<div class="gain">+${tp[k].toFixed(1)} pts</div>`:'';
+   const alts=rank.slice(1).map(r=>{
+    const p=priced[r.gw];
+    const val=p&&p[k]!=null?`<b>+${p[k].toFixed(1)}</b>`:'<span class="mut2">fixtures only</span>';
+    return `<li><span class="agw">GW${r.gw}</span> ${val}`+
+           `<span class="why">${esc(reason(k,r,p))}</span></li>`;
+   }).join('');
+   const flag=weak
+    ? `<div class="ts warn">Fixtures barely separate these weeks (${span.toFixed(2)} across ten).`
+      + ` Treat the order as noise — for this chip the real signal is your own squad,`
+      + ` and the doubles and blanks that are not scheduled yet.</div>`
+    : '';
+   return `<div class="chipcard"><div class="tl">${META[k].name}</div>`+
+    `<div class="tv">GW${top.gw}</div>${gain}`+
+    `<div class="ts">${esc(reason(k,top,tp))}</div>${flag}`+
+    `<ol class="alts">${alts}</ol>`+
+    `<div class="ts mut">wants ${META[k].want}</div></div>`;
   }).join('')||'<p class="note">No chips left in this half of the season.</p>';
+
+  // one chip per gameweek: if two headline picks collide, say so
+  const clash={};
+  Object.entries(picks).forEach(([k,g])=>(clash[g]=clash[g]||[]).push(META[k].name));
+  const dup=Object.entries(clash).filter(([,v])=>v.length>1);
+  if(dup.length){
+   const w=document.createElement('p');
+   w.className='note warn';
+   w.textContent=dup.map(([g,v])=>
+    `${v.join(' and ')} both point at GW${g}, and only one chip can be played in a gameweek — `+
+    `take the second-choice week for whichever gains less.`).join(' ');
+   grid.parentNode.insertBefore(w, grid.nextSibling);
+  }
 
   const t=document.getElementById('chiptable');
   if(t)t.innerHTML='<tr><th class="num">GW</th><th>Doubles</th><th>Blanks</th>'+
-   '<th class="num">Your XI</th><th class="num">TC gain</th><th class="num">BB gain</th>'+
-   '<th class="num">FH gain</th></tr>'+
-   rows.map(r=>{
-    const f=CHIPS.find(c=>c.gw===r.gw)||{doubles:[],blanks:[]};
-    const hi=(v,best)=>v!=null&&Math.abs(v-best)<0.05?' style="color:var(--accent);font-weight:700"':'';
-    const bTC=Math.max(...rows.map(x=>x.tc)), bBB=Math.max(...rows.map(x=>x.bb));
-    const fhv=rows.map(x=>x.fh).filter(v=>v!=null), bFH=fhv.length?Math.max(...fhv):null;
-    return `<tr><td class="num"><b>${r.gw}</b></td><td>${f.doubles.join(', ')||'—'}</td>`+
-     `<td>${f.blanks.join(', ')||'—'}</td><td class="num">${r.own.toFixed(1)}</td>`+
-     `<td class="num"${hi(r.tc,bTC)}>+${r.tc.toFixed(1)}</td>`+
-     `<td class="num"${hi(r.bb,bBB)}>+${r.bb.toFixed(1)}</td>`+
-     `<td class="num"${bFH!=null?hi(r.fh,bFH):''}>${r.fh==null?'—':'+'+r.fh.toFixed(1)}</td></tr>`;
+   '<th class="num">TC ceiling</th><th class="num">Board</th><th class="num">FH edge</th>'+
+   '<th class="num">Your XI</th><th class="num">TC</th><th class="num">BB</th><th class="num">FH</th></tr>'+
+   CHIPS.map(r=>{
+    const p=priced[r.gw]||{};
+    const n=v=>v==null?'<span class="mut2">—</span>':'+'+v.toFixed(1);
+    return `<tr><td class="num"><b>${r.gw}</b></td><td>${r.doubles.join(', ')||'—'}</td>`+
+     `<td>${r.blanks.join(', ')||'—'}</td>`+
+     `<td class="num">${r.tc.toFixed(2)}</td><td class="num">${r.bbmean.toFixed(2)}</td>`+
+     `<td class="num">${r.fhedge.toFixed(2)}</td>`+
+     `<td class="num">${p.own!=null?p.own.toFixed(1):'<span class="mut2">—</span>'}</td>`+
+     `<td class="num">${n(p.tc)}</td><td class="num">${n(p.bb)}</td><td class="num">${n(p.fh)}</td></tr>`;
    }).join('');
-  const n=document.getElementById('chipnote'); if(n&&note)n.textContent=note;
+  const nel=document.getElementById('chipnote');
+  if(nel)nel.textContent=note||('Points shown for the next '+SQUAD_WEEKS+
+    ' gameweeks only — beyond that your squad will have turned over and the fixture read is all that survives.');
  }
 
  function squadFromLines(lines){
@@ -987,29 +1050,20 @@ function renderSquadTable(rows, el){
   return lines.map(l=>{const q=l.trim().split(' '),t=q.pop();return idx.get(q.join(' ')+'|'+t)})
               .filter(Boolean);
  }
- function noSquad(){
-  grid.innerHTML='<p class="note">Link your team on the <a href="/squads">Manager</a> page '+
-   'and each chip is priced against your actual fifteen — until then there is no squad to '+
-   'compare a Free Hit or a Bench Boost against.</p>';
-  const t=document.getElementById('chiptable'); if(t)t.innerHTML='';
- }
-
+ const ALL=['TC','BB','FH'];
  const tid=localStorage.getItem('fpl_team_id');
  if(!tid){
-  const saved=localStorage.getItem('fpl_my_squad');
-  if(!saved)return noSquad();
-  try{const sq=squadFromLines(JSON.parse(saved));
-      if(sq.length<15)return noSquad();
-      return render(gains(sq),['TC','BB','FH'],'from your saved squad');}
-  catch(e){return noSquad()}
+  let sq=null;
+  try{const sv=localStorage.getItem('fpl_my_squad'); if(sv)sq=squadFromLines(JSON.parse(sv));}catch(e){}
+  return render(ALL, sq&&sq.length>=15?price(sq):{},
+    sq&&sq.length>=15?null:'Link your team on the Manager page to price these in points — the rankings below are fixtures only.');
  }
  fetch('/api/team/'+encodeURIComponent(tid)).then(r=>r.json()).then(d=>{
   const sq=squadFromLines((d&&d.lines)||[]);
-  if(sq.length<15)return noSquad();
   const c=d&&d.summary?d.summary.chips:undefined;
-  render(gains(sq), c==null?['TC','BB','FH']:c.map(x=>x.name),
-         c==null?'chip status unavailable — showing all three':'');
- }).catch(noSquad);
+  render(c==null?ALL:c.map(x=>x.name), sq.length>=15?price(sq):{},
+         sq.length>=15?null:'Squad unavailable — rankings are fixtures only.');
+ }).catch(()=>render(ALL,{},'Squad unavailable — rankings are fixtures only.'));
 })();
 
 // ---- Football: league table and the week's kick-offs -------------------
