@@ -141,6 +141,11 @@ a{color:var(--accent)}
 .tile .tv{font:400 31px/1.05 Anton,Impact,sans-serif;letter-spacing:.01em;margin-top:8px;
  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tile .ts{font-size:12px;color:var(--ink2);margin-top:3px}
+/* the deadline is the one number on this page with a clock on it */
+.tile.urgent{--tint:var(--warn)}
+.tile.urgent .tv{color:var(--warn);font-variant-numeric:tabular-nums}
+.tile .tv a{color:inherit;text-decoration:none;border-bottom:2px solid var(--accent)}
+.tile.me .ts .up,.tile.me .ts .down{font-size:12px}
 
 /* chips */
 .chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}

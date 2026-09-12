@@ -109,6 +109,11 @@ a{color:var(--accent)}
 .tile .tv{font:400 31px/1.05 Anton,Impact,sans-serif;letter-spacing:.01em;margin-top:8px;
  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tile .ts{font-size:12px;color:var(--ink2);margin-top:3px}
+/* the deadline is the one number on this page with a clock on it */
+.tile.urgent{--tint:var(--warn)}
+.tile.urgent .tv{color:var(--warn);font-variant-numeric:tabular-nums}
+.tile .tv a{color:inherit;text-decoration:none;border-bottom:2px solid var(--accent)}
+.tile.me .ts .up,.tile.me .ts .down{font-size:12px}
 
 /* chips */
 .chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
@@ -364,12 +369,13 @@ footer .build{display:inline-block;margin-top:6px;font-family:ui-monospace,
 <p class="sub" style="margin-top:16px">Every player scored from last season's Opta rates (xG, xA,
 clean sheets, defensive contributions), season expectations, and fixtures. </p>
 <div class="tiles">
- <div class="tile"><div class="tl">Next deadline</div><div class="tv">Sat 12 Sep, 13:30</div><div class="ts">GW4 · UK time</div></div>
- <div class="tile"><div class="tl">Top value</div><div class="tv">Thiaw</div><div class="ts">£5.0 · 4.32 xPts · NEW</div></div>
- <div class="tile"><div class="tl">Top differential</div><div class="tv">Tavernier</div><div class="ts">4% owned · 4.91 xPts · BOU</div></div>
- <div class="tile"><div class="tl">Model top scorer</div><div class="tv">Haaland</div><div class="ts">7.08 xPts/match · MCI</div></div>
- <div class="tile"><div class="tl">Model optimum, 4 GWs</div><div class="tv">255.5</div><div class="ts">holds all 4 weeks · free transfer priced at 2 pts · <a href="/squads">open in Squads</a></div></div>
+ <div class="tile urgent"><div class="tl">Deadline</div><div class="tv" id="tile-cd">Sat 12 Sep, 13:30</div><div class="ts">GW4 · Sat 13:30 UK</div></div>
+ <div class="tile me" id="tile-rank" hidden><div class="tl">Overall rank</div><div class="tv" id="tile-rank-v">–</div><div class="ts" id="tile-rank-s">–</div></div>
+ <div class="tile me" id="tile-val" hidden><div class="tl">Team value</div><div class="tv" id="tile-val-v">–</div><div class="ts" id="tile-val-s">all 15 players</div></div>
+ <div class="tile me" id="tile-ft" hidden><div class="tl">Free transfers</div><div class="tv" id="tile-ft-v">–</div><div class="ts" id="tile-ft-s">–</div></div>
+ <div class="tile me" id="tile-chips" hidden><div class="tl">Chips left</div><div class="tv" id="tile-chips-v">–</div><div class="ts" id="tile-chips-s">–</div></div>
  <div class="tile" id="tile-squad" hidden><div class="tl">Your XI, next 4 GWs</div><div class="tv" id="tile-squad-v">–</div><div class="ts">model projection</div></div>
+ <div class="tile" id="tile-link" hidden><div class="tl">No team linked</div><div class="tv" style="font-size:17px"><a href="/squads">Import your team</a></div><div class="ts">rank, value, transfers and chips appear here</div></div>
 </div>
 
 <section class="card" id="mysec" hidden>
@@ -480,8 +486,8 @@ clean sheets, defensive contributions), season expectations, and fixtures. </p>
 
 <footer>Phase 1 model: built on prior-season Opta rates, expected minutes, transfer
 context, season expectations and fixtures — a value lens, not an oracle.
-<br>FPL data pulled Sat 12 Sep 08:07 UK · refreshed hourly · fixtures priced by bookmaker odds: 10 · fixture model k(attack)=0.78, k(opponent defence)=0.80, home ×1.10, rmse 0.182
-<br><span class="build">build e3a18d0+dirty · Make the running build visible, and make deploying verifiable · generated Sat 12 Sep 08:07 UK</span></footer>
+<br>FPL data pulled Sat 12 Sep 08:51 UK · refreshed hourly · fixtures priced by bookmaker odds: 10 · fixture model k(attack)=0.78, k(opponent defence)=0.80, home ×1.10, rmse 0.182
+<br><span class="build">build 674282d+dirty · Rebuild with the build stamp in the footer · generated Sat 12 Sep 08:51 UK</span></footer>
 </div>
 <div class="tip" id="tip"></div>
 <script>
@@ -722,8 +728,12 @@ function squadPanels(rows){
   : '<p class="note">No upgrade beats what you own at these prices.</p>';
 
  // price watch: FPL's own projections, your players first
+ // sort by SIZE of the move, not by sign: a player 37% of the way to a drop
+ // matters as much as one 82% of the way to a rise. Squad order is not relevance
+ // order, and leaving this unsorted is why only rises ever showed up here.
  const mine=rows.filter(r=>{const d=DATA.find(x=>x.n===r.n&&x.t===r.t);return d&&(Math.abs(d.pc)>=25||d.pl>=0.3)})
-   .map(r=>DATA.find(x=>x.n===r.n&&x.t===r.t));
+   .map(r=>DATA.find(x=>x.n===r.n&&x.t===r.t))
+   .sort((a,b)=>Math.abs(b.pc)-Math.abs(a.pc));
  const global=[...DATA].filter(d=>Math.abs(d.pc)>=50).sort((a,b)=>Math.abs(b.pc)-Math.abs(a.pc)).slice(0,3);
  const list=(mine.length?mine:global).slice(0,4);
  document.getElementById('pwbox').innerHTML = list.length
@@ -755,6 +765,57 @@ function renderSquadTable(rows, el){
  const tile=document.getElementById('tile-squad');
  if(tile){tile.hidden=false;document.getElementById('tile-squad-v').textContent=total.toFixed(1)}
 }
+// ---- deadline countdown -----------------------------------------------
+(function(){
+ const el=document.getElementById('tile-cd'), when=Date.parse('2026-09-12T12:30:00+00:00');
+ if(!el||isNaN(when))return;
+ const tile=el.closest('.tile');
+ function tick(){
+  let ms=when-Date.now();
+  if(ms<=0){el.textContent='Deadline passed';tile.classList.remove('urgent');return}
+  const h=Math.floor(ms/3600000), m=Math.floor(ms/60000)%60;
+  el.textContent = h>=48 ? Math.floor(h/24)+'d '+(h%24)+'h'
+                 : h>=1  ? h+'h '+String(m).padStart(2,'0')+'m'
+                         : m+'m '+String(Math.floor(ms/1000)%60).padStart(2,'0')+'s';
+  tile.classList.toggle('urgent', ms < 6*3600000);
+  setTimeout(tick, h>=48?60000:1000);
+ }
+ tick();
+})();
+
+// ---- manager tiles: rank, value, transfers, chips ----------------------
+(function(){
+ const tid=localStorage.getItem('fpl_team_id');
+ const link=document.getElementById('tile-link');
+ if(!tid){if(link)link.hidden=false;return}
+ const show=(id,v,sub)=>{const t=document.getElementById(id);if(!t)return;
+  t.hidden=false;document.getElementById(id+'-v').textContent=v;
+  const e=document.getElementById(id+'-s'); if(e&&sub!=null)e.innerHTML=sub;};
+ fetch('/api/team/'+encodeURIComponent(tid)).then(r=>r.json()).then(d=>{
+  const m=d&&d.summary; if(!m){if(link)link.hidden=false;return}
+  if(m.rank!=null){
+   // FPL rank is a position, so SMALLER is better: a positive delta is a climb
+   const dl=m.rank_delta;
+   const arrow = dl==null ? '' :
+     dl>0 ? '<span class="up">▲ '+Math.abs(dl).toLocaleString()+'</span>'
+          : dl<0 ? '<span class="down">▼ '+Math.abs(dl).toLocaleString()+'</span>'
+                 : '<span class="mut">no change</span>';
+   show('tile-rank', m.rank.toLocaleString(),
+        (arrow?arrow+' ':'')+'<span class="mut">last GW · '+(m.points||0)+' pts</span>');
+  }
+  if(m.squad_value!=null)
+   show('tile-val','£'+m.squad_value.toFixed(1)+'m',
+        m.bank?('£'+m.bank.toFixed(1)+'m in the bank'):'all 15 players, nothing banked');
+  if(m.free_transfers!=null)
+   show('tile-ft', m.free_transfers, m.free_transfers>=5
+     ? 'at the cap — use one or lose it' : 'banked, up to 5');
+  if(m.chips){
+   show('tile-chips', m.chips.length?m.chips.map(c=>c.name).join(' · '):'none',
+     m.chips.length?('expire after GW'+m.chips[0].until):'all spent this half');
+  }
+ }).catch(()=>{if(link)link.hidden=false});
+})();
+
 const sqEl=document.getElementById('squad');
 if(sqEl&&SQUAD.length)renderSquadTable(SQUAD, sqEl);
 

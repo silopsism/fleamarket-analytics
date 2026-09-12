@@ -1498,7 +1498,77 @@ def api_team(team_id: int, request: Request):
         lines.append(f"{el['web_name']} {m['teams'][el['team']]}")
         roles += ('C' if pk['is_captain'] else 'V' if pk['is_vice_captain']
                   else 'X' if pk['position'] <= 11 else 'B')
-    return {'name': name, 'gw': gw, 'lines': lines, 'roles': roles}
+    return {'name': name, 'gw': gw, 'lines': lines, 'roles': roles,
+            'summary': entry_summary(team_id, entry, m)}
+
+
+# chips are issued per half-season; these are the windows FPL publishes
+CHIP_LABEL = {'wildcard': 'WC', 'freehit': 'FH', 'bboost': 'BB', '3xc': 'TC'}
+
+
+def entry_summary(team_id, entry, m):
+    """Team value, rank with last week's direction, free transfers and chips.
+
+    The dashboard used to lead with top-value and top-differential tiles, which
+    say nothing about how YOUR season is going. This is the manager-facing half:
+    everything the FPL site puts above the fold, which we were not showing at all.
+    """
+    out = {'value': (entry.get('last_deadline_value') or 0) / 10,
+           'bank': (entry.get('last_deadline_bank') or 0) / 10,
+           'rank': entry.get('summary_overall_rank'),
+           'points': entry.get('summary_overall_points'),
+           'event_points': entry.get('summary_event_points')}
+    out['squad_value'] = round(out['value'] + out['bank'], 1)
+    try:
+        hist = fpl_get(f'https://fantasy.premierleague.com/api/entry/{team_id}/history/')
+    except Exception:  # noqa: BLE001 - tiles degrade, page still renders
+        return out
+    cur = hist.get('current') or []
+    if len(cur) >= 2:
+        prev, now = cur[-2]['overall_rank'], cur[-1]['overall_rank']
+        if prev and now:
+            out['last_rank'] = prev
+            out['rank_delta'] = prev - now          # positive = climbed
+    played = {c['event']: c['name'] for c in (hist.get('chips') or [])}
+    out['chips_used'] = [{'gw': g, 'name': CHIP_LABEL.get(n, n)}
+                         for g, n in sorted(played.items())]
+    # Chips come in two batches. Anything issued for a window we are still in,
+    # and not already spent inside it, is available.
+    now_gw = (locked_gw(m) or 0) + 1
+    avail = []
+    for c in (m.get('chips') or []):
+        lo, hi = c.get('start_event') or 1, c.get('stop_event') or 38
+        if not lo <= now_gw <= hi:
+            continue
+        if any(lo <= g <= hi and n == c['name'] for g, n in played.items()):
+            continue
+        avail.append({'name': CHIP_LABEL.get(c['name'], c['name']),
+                      'until': hi})
+    out['chips'] = avail
+    out['free_transfers'] = free_transfers(cur, played)
+    return out
+
+
+def free_transfers(current, chips_by_gw):
+    """Free transfers going into the next gameweek.
+
+    FPL does not publish this on the public entry endpoint, so it is rebuilt
+    from the transfer history: one a week from GW2, banked up to five. Wildcard
+    and Free Hit weeks are skipped rather than zeroed - since 2024/25 those
+    chips RETAIN your saved transfers instead of consuming them, so a wildcard
+    does not reset you to one.
+    """
+    ft = 1
+    for row in current:
+        gw = row['event']
+        if gw < 2:
+            continue
+        if chips_by_gw.get(gw) not in ('wildcard', 'freehit'):
+            ft -= row.get('event_transfers') or 0
+            # paid hits cannot push the bank below zero
+            ft = max(ft, 0)
+        ft = min(ft + 1, 5)
+    return ft
 
 
 SQUADS_PAGE = """<h1>Squads</h1>

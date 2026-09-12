@@ -116,12 +116,13 @@ __STYLE__
 <p class="sub" style="margin-top:16px">Every player scored from last season's Opta rates (xG, xA,
 clean sheets, defensive contributions), season expectations, and fixtures. __SUBNOTE__</p>
 <div class="tiles">
- <div class="tile"><div class="tl">Next deadline</div><div class="tv">__DL_TIME__</div><div class="ts">__DL_GW__</div></div>
- <div class="tile"><div class="tl">Top value</div><div class="tv">__TV_NAME__</div><div class="ts">__TV_SUB__</div></div>
- <div class="tile"><div class="tl">Top differential</div><div class="tv">__TD_NAME__</div><div class="ts">__TD_SUB__</div></div>
- <div class="tile"><div class="tl">Model top scorer</div><div class="tv">__TS_NAME__</div><div class="ts">__TS_SUB__</div></div>
- <div class="tile"><div class="tl">Model optimum, 4 GWs</div><div class="tv">__OPTTOTAL__</div><div class="ts">__OPTSUB__ · <a href="/squads">open in Squads</a></div></div>
+ <div class="tile urgent"><div class="tl">Deadline</div><div class="tv" id="tile-cd">__DL_TIME__</div><div class="ts">__DL_GW__</div></div>
+ <div class="tile me" id="tile-rank" hidden><div class="tl">Overall rank</div><div class="tv" id="tile-rank-v">–</div><div class="ts" id="tile-rank-s">–</div></div>
+ <div class="tile me" id="tile-val" hidden><div class="tl">Team value</div><div class="tv" id="tile-val-v">–</div><div class="ts" id="tile-val-s">all 15 players</div></div>
+ <div class="tile me" id="tile-ft" hidden><div class="tl">Free transfers</div><div class="tv" id="tile-ft-v">–</div><div class="ts" id="tile-ft-s">–</div></div>
+ <div class="tile me" id="tile-chips" hidden><div class="tl">Chips left</div><div class="tv" id="tile-chips-v">–</div><div class="ts" id="tile-chips-s">–</div></div>
  <div class="tile" id="tile-squad" hidden><div class="tl">Your XI, next 4 GWs</div><div class="tv" id="tile-squad-v">–</div><div class="ts">model projection</div></div>
+ <div class="tile" id="tile-link" hidden><div class="tl">No team linked</div><div class="tv" style="font-size:17px"><a href="/squads">Import your team</a></div><div class="ts">rank, value, transfers and chips appear here</div></div>
 </div>
 
 <section class="card" id="mysec" hidden>
@@ -473,8 +474,12 @@ function squadPanels(rows){
   : '<p class="note">No upgrade beats what you own at these prices.</p>';
 
  // price watch: FPL's own projections, your players first
+ // sort by SIZE of the move, not by sign: a player 37% of the way to a drop
+ // matters as much as one 82% of the way to a rise. Squad order is not relevance
+ // order, and leaving this unsorted is why only rises ever showed up here.
  const mine=rows.filter(r=>{const d=DATA.find(x=>x.n===r.n&&x.t===r.t);return d&&(Math.abs(d.pc)>=25||d.pl>=0.3)})
-   .map(r=>DATA.find(x=>x.n===r.n&&x.t===r.t));
+   .map(r=>DATA.find(x=>x.n===r.n&&x.t===r.t))
+   .sort((a,b)=>Math.abs(b.pc)-Math.abs(a.pc));
  const global=[...DATA].filter(d=>Math.abs(d.pc)>=50).sort((a,b)=>Math.abs(b.pc)-Math.abs(a.pc)).slice(0,3);
  const list=(mine.length?mine:global).slice(0,4);
  document.getElementById('pwbox').innerHTML = list.length
@@ -506,6 +511,57 @@ function renderSquadTable(rows, el){
  const tile=document.getElementById('tile-squad');
  if(tile){tile.hidden=false;document.getElementById('tile-squad-v').textContent=total.toFixed(1)}
 }
+// ---- deadline countdown -----------------------------------------------
+(function(){
+ const el=document.getElementById('tile-cd'), when=Date.parse('__DL_ISO__');
+ if(!el||isNaN(when))return;
+ const tile=el.closest('.tile');
+ function tick(){
+  let ms=when-Date.now();
+  if(ms<=0){el.textContent='Deadline passed';tile.classList.remove('urgent');return}
+  const h=Math.floor(ms/3600000), m=Math.floor(ms/60000)%60;
+  el.textContent = h>=48 ? Math.floor(h/24)+'d '+(h%24)+'h'
+                 : h>=1  ? h+'h '+String(m).padStart(2,'0')+'m'
+                         : m+'m '+String(Math.floor(ms/1000)%60).padStart(2,'0')+'s';
+  tile.classList.toggle('urgent', ms < 6*3600000);
+  setTimeout(tick, h>=48?60000:1000);
+ }
+ tick();
+})();
+
+// ---- manager tiles: rank, value, transfers, chips ----------------------
+(function(){
+ const tid=localStorage.getItem('fpl_team_id');
+ const link=document.getElementById('tile-link');
+ if(!tid){if(link)link.hidden=false;return}
+ const show=(id,v,sub)=>{const t=document.getElementById(id);if(!t)return;
+  t.hidden=false;document.getElementById(id+'-v').textContent=v;
+  const e=document.getElementById(id+'-s'); if(e&&sub!=null)e.innerHTML=sub;};
+ fetch('/api/team/'+encodeURIComponent(tid)).then(r=>r.json()).then(d=>{
+  const m=d&&d.summary; if(!m){if(link)link.hidden=false;return}
+  if(m.rank!=null){
+   // FPL rank is a position, so SMALLER is better: a positive delta is a climb
+   const dl=m.rank_delta;
+   const arrow = dl==null ? '' :
+     dl>0 ? '<span class="up">▲ '+Math.abs(dl).toLocaleString()+'</span>'
+          : dl<0 ? '<span class="down">▼ '+Math.abs(dl).toLocaleString()+'</span>'
+                 : '<span class="mut">no change</span>';
+   show('tile-rank', m.rank.toLocaleString(),
+        (arrow?arrow+' ':'')+'<span class="mut">last GW · '+(m.points||0)+' pts</span>');
+  }
+  if(m.squad_value!=null)
+   show('tile-val','£'+m.squad_value.toFixed(1)+'m',
+        m.bank?('£'+m.bank.toFixed(1)+'m in the bank'):'all 15 players, nothing banked');
+  if(m.free_transfers!=null)
+   show('tile-ft', m.free_transfers, m.free_transfers>=5
+     ? 'at the cap — use one or lose it' : 'banked, up to 5');
+  if(m.chips){
+   show('tile-chips', m.chips.length?m.chips.map(c=>c.name).join(' · '):'none',
+     m.chips.length?('expire after GW'+m.chips[0].until):'all spent this half');
+  }
+ }).catch(()=>{if(link)link.hidden=false});
+})();
+
 const sqEl=document.getElementById('squad');
 if(sqEl&&SQUAD.length)renderSquadTable(SQUAD, sqEl);
 
@@ -769,7 +825,10 @@ except Exception as _exc:  # noqa: BLE001 - dashboard must still build
 _ev = next(e for e in ns['d']['events'] if e['id'] == gw_labels[0])
 _dl = datetime.strptime(_ev['deadline_time'], '%Y-%m-%dT%H:%M:%SZ') + timedelta(hours=1)  # UK summer time
 tile_deadline = _dl.strftime('%a %d %b, %H:%M')
-tile_dl_gw = f"GW{gw_labels[0]} · UK time"
+tile_dl_gw = f"GW{gw_labels[0]} · {_dl.strftime('%a %H:%M')} UK"
+# the raw instant, so the tile can count down live rather than print a date the
+# reader then has to subtract today from
+_dl_iso = _ev['deadline_time'].replace('Z', '+00:00')
 _tv = max((p for p in players if p['xmins'] >= 45 and p['price'] > 0), key=lambda p: p['xpts'] / p['price'])
 _ts = max(players, key=lambda p: p['xpts'])
 _td = diffs[0]
@@ -934,19 +993,12 @@ def emit(path, personal):
                 .replace('__MOVES__', _moves_html)
                 .replace('__MOVEWIN__', _move_win)
                 .replace('__STORIES__', _stories_html)
-                .replace('__OPTTOTAL__', f"{OPT['totals'] and round(sum(OPT['totals']) - OPT['hitpen'], 1) or '–'}" if OPT else '–')
-                .replace('__OPTSUB__', _opt_sub)
                 .replace('__PULLED__', (datetime.now(timezone.utc) + timedelta(hours=1)).strftime('%a %d %b %H:%M'))
                 .replace('__SHA__', _BUILD['sha'])
                 .replace('__SUBJECT__', _esc(_BUILD['subject'] or 'no subject')[:68])
                 .replace('__BUILT__', _BUILT_UK)
                 .replace('__DL_TIME__', tile_deadline).replace('__DL_GW__', tile_dl_gw)
-                .replace('__TV_NAME__', _tv['name'])
-                .replace('__TV_SUB__', f"£{_tv['price']:.1f} · {_tv['xpts']:.2f} xPts · {teams[_tv['team']]}")
-                .replace('__TD_NAME__', _td['name'])
-                .replace('__TD_SUB__', f"{_td['sel']:.0f}% owned · {_td['xpts']:.2f} xPts · {teams[_td['team']]}")
-                .replace('__TS_NAME__', _ts['name'])
-                .replace('__TS_SUB__', f"{_ts['xpts']:.2f} xPts/match · {teams[_ts['team']]}")
+                .replace('__DL_ISO__', _dl_iso)
                 .replace('__SUBNOTE__', 'Squad v5 marked with rings. ' if personal else '')
                 .replace('__RINGNOTE__', 'Ringed dots / ● = our squad. ' if personal else '')
                 .replace('__DIFFROWS__', table_rows(diffs))
