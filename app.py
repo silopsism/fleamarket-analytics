@@ -80,6 +80,14 @@ def refresh_data(build=True, use_api=False):
         if build:
             subprocess.run([sys.executable, 'dashboard.py'], check=True, timeout=240)
         try:
+            import shirts as _shirts
+            _got, _had, _bad = _shirts.sync(json.load(
+                open('bootstrap.json', encoding='utf-8'))['teams'])
+            if _got or _bad:
+                print(f'shirts: {_got} fetched, {_had} cached, {len(_bad)} failed')
+        except Exception as exc:  # noqa: BLE001 - kits are cosmetic
+            print('shirt sync skipped:', exc)
+        try:
             import momentum as mom
             boot = json.load(open('bootstrap.json', encoding='utf-8'))
             els = {e['id']: e for e in boot['elements']}
@@ -843,6 +851,21 @@ async def canonical_https(request: Request, call_next):
 _plan_cache = {}
 
 
+@app.get('/shirts/{name}')
+def shirt_file(name: str):
+    """Serve a cached kit image. Name is a club short code, so nothing a caller
+    sends can reach outside the shirts directory."""
+    import re as _re
+    from fastapi.responses import FileResponse, Response
+    if not _re.fullmatch(r'[A-Z]{3}(_gk)?\.png', name):
+        return Response(status_code=404)
+    path = os.path.join('shirts', name)
+    if not os.path.exists(path):
+        return Response(status_code=404)
+    return FileResponse(path, media_type='image/png',
+                        headers={'Cache-Control': 'public, max-age=604800'})
+
+
 @app.get('/health')
 def health():
     """What build is running and how fresh its data is.
@@ -953,12 +976,14 @@ function myWeek(){
 function weekSquad(k){return k===0?myWeek():W[k]}
 function isMine(){return sel===0}
 
-// The top half of a jersey: wide body, stubby sleeves, a neck rim in the club's
-// second colour. It fills the card's width via CSS rather than a fixed pixel
-// size, so it scales with the card at every breakpoint. Geometry from kits.py.
+// Real kit artwork, cached from the game itself (see shirts.py). Twenty clubs
+// have sashes, hoops, pinstripes and trim that a three-colour table cannot
+// express, and the hand-drawn version read as a crest rather than a shirt.
+// The drawn shirt survives only as a fallback for a kit we failed to cache.
+const HAVEKIT=new Set(__HAVEKIT__);
 const G=__SHIRTGEO__;
 const kitDefs=new Set();
-function shirtSvg(club){
+function drawnShirt(club){
  const k=KITS[club]||KITS['_'], body=k[0], trim=k[1], ink=k[2], pat=k[3];
  let fill=body, extra='', rim=trim, codeInk=ink;
  if(pat==='stripe'){
@@ -970,24 +995,24 @@ function shirtSvg(club){
     `<rect width="8" height="8" fill="${body}"/><rect width="4" height="8" fill="${trim}"/></pattern>`);
   }
   fill='url(#'+id+')';
-  // stripes: a chest plate so the code never straddles a pale stripe, sized to
-  // the glyphs PLUS padding, and a rim in the BODY colour because the trim here
-  // is the stripe itself
   const P=G.plate;
   extra=`<rect x="${P.x}" y="${P.y}" width="${P.width}" height="${P.height}" `+
-        `rx="${P.rx}" fill="rgba(0,0,0,.55)"/>`;
+   `rx="${P.rx}" fill="rgba(0,0,0,.55)"/>`;
   rim=body; codeInk='#fff';
- } else if(pat==='sleeve'){
-  extra=`<path d="${G.sleeveL}" fill="${trim}" stroke="rgba(0,0,0,.22)" stroke-width=".5"/>`+
-        `<path d="${G.sleeveR}" fill="${trim}" stroke="rgba(0,0,0,.22)" stroke-width=".5"/>`;
  }
- return `<svg class="shirt" viewBox="${G.viewBox}" preserveAspectRatio="xMidYMid meet" `+
-        `role="img" aria-label="${club} shirt">`+
-        `<path d="${G.body}" fill="${fill}" stroke="rgba(0,0,0,.4)" stroke-width=".7"/>`+
-        extra+
-        `<path d="${G.neck}" fill="none" stroke="${rim}" stroke-width="1.4"/>`+
-        `<text x="26" y="${G.codeBaseline}" text-anchor="middle" font-size="${G.codeSize}" `+
-        `font-weight="700" letter-spacing=".2" fill="${codeInk}">${club}</text></svg>`;
+ const sleeves = (pat==='sleeve')
+  ? `<path d="${G.sleeveL}" fill="${trim}"/><path d="${G.sleeveR}" fill="${trim}"/>` : '';
+ return `<svg class="shirt" viewBox="${G.viewBox}" aria-hidden="true">`+
+  `<path d="${G.body}" fill="${fill}"/>${sleeves}${extra}`+
+  `<path d="${G.neck}" fill="none" stroke="${rim}" stroke-width="1.4"/>`+
+  `<text x="26" y="${G.codeBaseline}" text-anchor="middle" font-size="${G.codeSize}" `+
+  `font-weight="700" letter-spacing=".2" fill="${codeInk}">${club}</text></svg>`;
+}
+function shirtSvg(club, pos){
+ if(!HAVEKIT.has(club))return drawnShirt(club);
+ const gk = pos==='GKP' ? '_gk' : '';
+ return `<img class="shirt" src="/shirts/${club}${gk}.png" alt="" loading="lazy" `+
+  `onerror="this.outerHTML=drawnShirt('${club}')">`;
 }
 function oppOf(t){const g=(HEAT[t]||{})[GWL[sel]];return g?g[0]+' ('+(g[1]?'H':'A')+')':'\u2014'}
 // opponent for a specific horizon week, cased for venue: SHOUTING is home
@@ -1008,7 +1033,7 @@ function pcard(r,inSet,small){
  return `<div class="pcard${inSet.has(key)?' movein':''}${click}" data-i="${r.i==null?'':r.i}" `+
    `title="${esc(r.n)} \u00b7 ${esc(r.t)} \u00b7 \u00a3${r.price.toFixed(1)}m \u00b7 `+
    `vs ${esc(oppOf(r.t))}${click?' \u00b7 click to change':''}">${badge}`+
-   shirtSvg(r.t)+
+   shirtSvg(r.t, r.pos)+
    `<div class="pn">${esc(r.n)}</div>`+
    `<div class="px">${nxt.map((v,i)=>
       `<span class="c"><b>${v.toFixed(1)}</b>`+
@@ -1200,6 +1225,7 @@ def squad_plan_html(entries, m, stored=None, bank=0.0, editable=False):
         return (PLAN_TABLE
                 .replace('__KITS__', json.dumps(__import__('kits').as_dict()))
                 .replace('__SHIRTGEO__', json.dumps(__import__('kits').geometry()))
+                .replace('__HAVEKIT__', json.dumps(sorted(__import__('shirts').have())))
                 .replace('__MY__', json.dumps(my_rows(entries), ensure_ascii=False))
                 .replace('__EDITABLE__', 'true' if editable else 'false')
                 .replace('__WEEKS__', json.dumps(weeks, ensure_ascii=False))

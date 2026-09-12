@@ -268,17 +268,21 @@ th.gwsel:hover{color:var(--accent)}
 .pcard{width:104px;max-width:104px;background:rgba(10,20,14,.62);border:1px solid rgba(255,255,255,.16);
  border-radius:10px;padding:6px 5px 5px;text-align:center;color:#fff;
  backdrop-filter:blur(2px);position:relative}
-/* edge to edge in the card, so the shirt is exactly as wide as the numbers
-   under it and the card reads as one block */
-.pcard .shirt{display:block;width:100%;height:auto;margin:0 0 4px}
+/* The kit identifies the club; it is not the subject of the card. At full card
+   width the club code was the largest thing on a player's own card, which is
+   backwards - the official game runs the shirt at about half the card and lets
+   the name carry it. */
+.pcard .shirt{display:block;width:54%;max-width:56px;height:auto;margin:1px auto 5px}
 /* two lines rather than an ellipsis: "Calvert-Lewin" and "B.Fernandes" both
    clip at card width, and a fixed two-line box keeps every card the same height */
 /* One line, not two. Reserving a second line for wrapping cost 17px of dead
    space under EVERY name, and measured in the DOM nothing wraps at this size -
    not even Calvert-Lewin. The clamp stays as a backstop for a freak name. */
-.pcard .pn{font:700 13px/1.2 Archivo;letter-spacing:.01em;
- display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
- overflow:hidden;overflow-wrap:anywhere;min-height:1.2em}
+/* a solid bar, the way the game draws it: the name is the card's subject and
+   needs to read before the kit does */
+.pcard .pn{font:700 12.5px/1.3 Archivo;letter-spacing:.01em;
+ background:rgba(8,14,10,.72);border-radius:3px;padding:2px 3px;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* one column per gameweek: the projection, and under it the opponent that
    projection is against. Uppercase = home, lowercase = away, the same
    convention as the fixtures grid. */
