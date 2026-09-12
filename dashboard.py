@@ -588,6 +588,44 @@ function renderSquadTable(rows, el){
  }).catch(()=>{if(link)link.hidden=false});
 })();
 
+// Which squad counts as yours. A hand-edited one is a deliberate override and
+// wins; the synced one defers to the API, which is fresher than any copy. The
+// override retires itself: once its gameweek is locked, the real picks exist and
+// the API answer is the true one.
+function mySquad(){
+ const idx=new Map(DATA.map(d=>[d.n+'|'+d.t,d]));
+ const fromLines=ls=>ls.map(l=>{const q=l.trim().split(' '),t=q.pop();
+                                return idx.get(q.join(' ')+'|'+t)}).filter(Boolean);
+ const tid=localStorage.getItem('fpl_team_id');
+ let edited=null;
+ try{
+  const src=localStorage.getItem('fpl_my_src')||'';
+  const raw=localStorage.getItem('fpl_my_squad');
+  if(raw&&src&&src!=='my'){
+   const sq=fromLines(JSON.parse(raw));
+   if(sq.length>=15)edited={rows:sq, roles:localStorage.getItem('fpl_my_roles')||'',
+                            label:localStorage.getItem('fpl_my_name')||'your edited squad',
+                            edited:true};
+  }
+ }catch(e){}
+ if(edited)return Promise.resolve(edited);
+ if(!tid){
+  try{
+   const raw=localStorage.getItem('fpl_my_squad');
+   if(raw){const sq=fromLines(JSON.parse(raw));
+     if(sq.length>=15)return Promise.resolve({rows:sq,
+       roles:localStorage.getItem('fpl_my_roles')||'', label:'your saved squad', edited:true});}
+  }catch(e){}
+  return Promise.resolve(null);
+ }
+ return fetch('/api/team/'+encodeURIComponent(tid)).then(r=>r.json()).then(d=>{
+  const sq=fromLines((d&&d.lines)||[]);
+  if(sq.length<15)return null;
+  return {rows:sq, roles:(d&&d.roles)||'', summary:d&&d.summary,
+          label:'your GW'+(d.gw||'?')+' team', edited:false, gw:d&&d.gw};
+ }).catch(()=>null);
+}
+
 // ---- Your squad, on a pitch -------------------------------------------
 (function(){
  const pit=document.getElementById('ovpitch'); if(!pit)return;
@@ -610,7 +648,7 @@ function renderSquadTable(rows, el){
    `<img class="shirt" src="/shirts/${r.t}${r.p==='GKP'?'_gk':''}.png" alt="">`+
    `<div class="pn">${esc(r.n)}</div><div class="px">${cells}</div></div>`;
  }
- function draw(sq,roles,gw){
+ function draw(sq,roles,gw,meta){
   const val=r=>(r.g&&r.g[0]!=null)?r.g[0]:0;
   const byName=new Map(sq.map((r,i)=>[r,roles?roles[i]:'']));
   let xi,bench;
@@ -637,28 +675,16 @@ function renderSquadTable(rows, el){
   const tot=xi.reduce((a,r)=>a+val(r),0)
             + xi.reduce((m,r)=>Math.max(m, byName.get(r)==='C'?val(r):0),0);
   document.getElementById('ovgw').textContent='GW'+gw;
-  document.getElementById('ovnote').textContent=
-   'Projected '+tot.toFixed(1)+' this gameweek, captain included. '+
-   'Each card shows the next three gameweeks against its fixtures.';
+  const src = meta&&meta.edited
+   ? '<b>Showing '+esc(meta.label)+'</b> — your own edit, not the synced team. '
+   : (meta&&meta.label? 'Showing '+esc(meta.label)+'. ' : '');
+  document.getElementById('ovnote').innerHTML=
+   src+'Projected '+tot.toFixed(1)+' this gameweek, captain included. '+
+   'Each card shows the next three gameweeks against its fixtures. '+
+   '<a href="/squads">Edit or try transfers</a>.';
   document.getElementById('ovsquad').hidden=false;
  }
- function fromLines(lines){
-  const idx=new Map(DATA.map(d=>[d.n+'|'+d.t,d]));
-  return lines.map(l=>{const q=l.trim().split(' '),t=q.pop();return idx.get(q.join(' ')+'|'+t)})
-              .filter(Boolean);
- }
- const tid=localStorage.getItem('fpl_team_id');
- if(tid){
-  fetch('/api/team/'+encodeURIComponent(tid)).then(r=>r.json()).then(d=>{
-   const sq=fromLines((d&&d.lines)||[]);
-   if(sq.length>=15)draw(sq,(d&&d.roles)||'',GWL[0]);
-  }).catch(()=>{});
-  return;
- }
- try{
-  const sv=localStorage.getItem('fpl_my_squad');
-  if(sv){const sq=fromLines(JSON.parse(sv)); if(sq.length>=15)draw(sq,'',GWL[0]);}
- }catch(e){}
+ mySquad().then(m=>{ if(m)draw(m.rows, m.roles, GWL[0], m); });
 })();
 
 // ---- Chip planner -----------------------------------------------------
@@ -781,25 +807,12 @@ function renderSquadTable(rows, el){
     ' gameweeks; beyond that only the fixtures are knowable.');
  }
 
- function squadFromLines(lines){
-  const idx=new Map(DATA.map(d=>[d.n+'|'+d.t,d]));
-  return lines.map(l=>{const q=l.trim().split(' '),t=q.pop();return idx.get(q.join(' ')+'|'+t)})
-              .filter(Boolean);
- }
  const ALL=['TC','BB','FH'];
- const tid=localStorage.getItem('fpl_team_id');
- if(!tid){
-  let sq=null;
-  try{const sv=localStorage.getItem('fpl_my_squad'); if(sv)sq=squadFromLines(JSON.parse(sv));}catch(e){}
-  const ok=sq&&sq.length>=15;
-  return render(ALL, ok?price(sq):{},
-    ok?null:'Link your team on the Manager page to price these.');
- }
- fetch('/api/team/'+encodeURIComponent(tid)).then(r=>r.json()).then(d=>{
-  const sq=squadFromLines((d&&d.lines)||[]);
-  const c=d&&d.summary?d.summary.chips:undefined;
-  render(c==null?ALL:c.map(x=>x.name), sq.length>=15?price(sq):{},
-         sq.length>=15?null:'Squad unavailable — fixtures only.');
+ mySquad().then(m=>{
+  if(!m)return render(ALL,{},'Link your team on the Manager page to price these.');
+  const c=m.summary?m.summary.chips:undefined;
+  render(c==null?ALL:c.map(x=>x.name), price(m.rows),
+         m.edited?('Priced against '+m.label+' — your own edit.'):null);
  }).catch(()=>render(ALL,{},'Squad unavailable — fixtures only.'));
 })();
 

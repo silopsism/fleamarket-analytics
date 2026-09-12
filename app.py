@@ -1688,7 +1688,17 @@ function migrate(){
 function primary(){return localStorage.getItem('fpl_primary')}
 function setPrimary(s){
  localStorage.setItem('fpl_primary',s.id);
- if(s.lines&&s.lines.length)localStorage.setItem('fpl_my_squad',JSON.stringify(s.lines));
+ if(s.lines&&s.lines.length){
+  localStorage.setItem('fpl_my_squad',JSON.stringify(s.lines));
+  // roles carry the lineup: which eleven start, who has the armband. Storing
+  // only the names threw that away, so an edited squad reached the dashboard as
+  // fifteen players with no captain and a re-guessed XI.
+  localStorage.setItem('fpl_my_roles', s.roles||'');
+  // and WHICH squad this is, because a hand-edited one must override the synced
+  // picks while the synced one should defer to the live API
+  localStorage.setItem('fpl_my_src', s.type||'');
+  localStorage.setItem('fpl_my_name', s.name||'');
+ }
  render();
 }
 function detailUrl(s){

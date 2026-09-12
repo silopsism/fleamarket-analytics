@@ -488,7 +488,8 @@ def style_block():
 # loop and takes the site down, whereas the worst this can do is fail to run.
 ORIGIN_JS = r"""<script>
 (function(){
- var KEYS=['fpl_team_id','fpl_my_squad','fpl_squads_v1','fpl_primary'];
+ var KEYS=['fpl_team_id','fpl_my_squad','fpl_my_roles','fpl_my_src','fpl_my_name',
+           'fpl_squads_v1','fpl_primary'];
  function readCookie(k){
   var parts=(document.cookie||'').split('; ');
   for(var i=0;i<parts.length;i++){
