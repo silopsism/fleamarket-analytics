@@ -103,13 +103,17 @@ __STYLE__
 <div class="brand"><span class="mark">Flea<em>market</em></span><span class="season">2026/27</span></div>
 <nav class="tabs">
  <a class="tab" href="#overview">Overview</a>
- <a class="tab" href="#value">Value</a>
  <a class="tab" href="#planner">Planner</a>
- <a class="tab" href="#market">Market</a>
+ <a class="tab" href="#chips">Chips</a>
  <a class="tab" href="#fixtures">Fixtures</a>
- <a class="tab" href="#teams">Teams</a>
- <a class="tab" href="/news">News ↗</a>
  <a class="tab" href="/squads">Manager ↗</a>
+ <a class="tab" href="/news">News ↗</a>
+</nav>
+<nav class="tabs sub" aria-label="Not about fantasy">
+ <span class="navlbl">Football</span>
+ <a class="tab" href="#teams">Transfer window</a>
+ <a class="tab" href="#table">League table</a>
+ <a class="tab" href="#week">This week</a>
 </nav>
 
 <div class="tabpane" data-tab="overview">
@@ -158,10 +162,6 @@ clean sheets, defensive contributions), season expectations, and fixtures. __SUB
 __SQUADSEC__
 </div>
 
-<div class="tabpane" data-tab="value">
-__VALUEBANDS__
-</div>
-
 <div class="tabpane" data-tab="planner">
 <section class="card">
  <h2>Next 4 gameweeks — the planner</h2>
@@ -170,22 +170,18 @@ __VALUEBANDS__
  <div class="chips" id="plannerchips"></div>
  <div class="scroll"><table id="planner"></table></div>
 </section>
-</div>
-
-<div class="tabpane" data-tab="market">
+__VALUEBANDS__
 <section class="card">
  <h2>Differentials &amp; traps — the model vs the crowd</h2>
- <p class="note">Ownership against model score. Top-left: gems the crowd hasn't found. Bottom-right: popular picks the model doubts. Ownership axis is stretched at the low end.</p>
+ <p class="note">Ownership against model score. Top-left: gems the crowd hasn't found.
+ Bottom-right: popular picks the model doubts. Ownership axis is stretched at the low end.</p>
  <div class="chips" id="chips2"></div>
  <svg id="diff" viewBox="0 0 940 440" role="img" aria-label="Scatter of ownership against expected points per match"></svg>
- <div class="cols">
-  <div><h3>Top differentials <span class="mut">under 10% owned</span></h3>
-  <div class="scroll"><table><tr><th>Player</th><th>Team</th><th class="num">£m</th><th class="num">Own%</th><th class="num">xPts</th></tr>__DIFFROWS__</table></div></div>
-  <div><h3>Crowd traps <span class="mut">15%+ owned, model skeptical</span></h3>
-  <div class="scroll"><table><tr><th>Player</th><th>Team</th><th class="num">£m</th><th class="num">Own%</th><th class="num">xPts</th></tr>__TRAPROWS__</table></div>
-  <p class="note" style="margin:8px 0 0">Model uses last season's rates — players in new, bigger roles this season may be unfairly flagged.</p></div>
- </div>
 </section>
+</div>
+
+<div class="tabpane" data-tab="chips">
+__CHIPPLAN__
 </div>
 
 <div class="tabpane" data-tab="teams">
@@ -207,6 +203,23 @@ __VALUEBANDS__
  <h3 style="margin-top:20px">Where the squad stands</h3>
  <div class="scroll"><table id="clubpos"></table></div>
  <p class="note" id="clubcaveat" style="margin-top:10px"></p>
+</section>
+</div>
+
+<div class="tabpane" data-tab="table">
+<section class="card">
+ <h2>League table</h2>
+ <p class="note">Actual Premier League standings, from results so far. Nothing fantasy about it —
+ it is here because form and table position are the backdrop everything else is read against.</p>
+ <div class="scroll"><table id="ltable"></table></div>
+</section>
+</div>
+
+<div class="tabpane" data-tab="week">
+<section class="card">
+ <h2>This week's fixtures <span class="mut" id="weekgw"></span></h2>
+ <p class="note">Kick-offs for the coming gameweek, in UK time, with each side's league position.</p>
+ <div class="scroll"><table id="wktable"></table></div>
 </section>
 </div>
 
@@ -241,6 +254,9 @@ context, season expectations and fixtures — a value lens, not an oracle.
 const DATA = __DATA__;
 const HEAT = __HEAT__;
 const SQUAD = __SQUAD__;
+const LEAGUE = __LEAGUE__;
+const WEEK = __WEEK__;
+const CHIPS = __CHIPS__;
 const GWL = __GWL__;
 // tab routing (hash-based, default overview)
 const panes=[...document.querySelectorAll('.tabpane')];
@@ -279,19 +295,23 @@ const PLN_N = {GKP:5, DEF:15, MID:20, FWD:10};
 let plnMode = 'total';
 function drawPlanner(){
  const t=document.getElementById('planner');
- let h=`<tr><th>Player</th><th>Team</th><th class="num">£m</th>`+
+ const mark=k=>plnMode===k?'▼ ':'';
+ // team rides with the name, the way it reads on a team sheet, which frees the
+ // column for ownership - the number you actually weigh a transfer against
+ let h=`<tr><th>Player</th><th class="num">${mark('cost')}£m</th><th class="num">Own%</th>`+
   GWL.map(g=>`<th class="num">GW${g}</th>`).join('')+
-  `<th class="num">${plnMode==='total'?'▼ ':''}Total</th><th class="num">${plnMode==='perm'?'▼ ':''}per £m</th></tr>`;
+  `<th class="num">${mark('total')}Total</th><th class="num">${mark('perm')}per £m</th></tr>`;
+ const SORT={total:(a,b)=>b.tt-a.tt, perm:(a,b)=>(b.tt/b.c)-(a.tt/a.c),
+             cost:(a,b)=>b.c-a.c||b.tt-a.tt, own:(a,b)=>b.s-a.s};
  ['GKP','DEF','MID','FWD'].forEach(p=>{
-  const rows=DATA.filter(d=>d.p===p&&d.tt>0)
-   .sort((a,b)=>plnMode==='total'?b.tt-a.tt:(b.tt/b.c)-(a.tt/a.c))
-   .slice(0,PLN_N[p]);
+  const rows=DATA.filter(d=>d.p===p&&d.tt>0).sort(SORT[plnMode]||SORT.total).slice(0,PLN_N[p]);
   h+=`<tr><th colspan="${5+GWL.length}" style="padding-top:12px;color:${COL[p]}">${p}</th></tr>`;
   rows.forEach(d=>{
    const mins=d.xmg?`expected minutes by GW: ${d.xmg.join(' → ')}`:`expected minutes ${d.xm}`;
    h+=`<tr><td title="${esc(mins+' · '+d.why)}">${d.mine?'● ':''}<b>${esc(d.n)}</b>`+
+    ` <span class="mut2">${d.t}</span>`+
     `${d.xmg?' <span class="ramp">▲ minutes</span>':''}</td>`+
-    `<td>${d.t}</td><td class="num">${d.c.toFixed(1)}</td>`+
+    `<td class="num">${d.c.toFixed(1)}</td><td class="num">${d.s.toFixed(0)}%</td>`+
     d.g.map(v=>`<td class="num">${v.toFixed(1)}</td>`).join('')+
     `<td class="num"><b>${d.tt.toFixed(1)}</b></td><td class="num">${(d.tt/d.c).toFixed(2)}</td></tr>`;
   });
@@ -300,7 +320,8 @@ function drawPlanner(){
 }
 (function(){
  const box=document.getElementById('plannerchips');
- [['total','Top by total xPts'],['perm','Top by xPts per £m']].forEach(([k,lbl],idx)=>{
+ [['total','Top by total xPts'],['perm','Top by xPts per £m'],
+  ['cost','By cost'],['own','By ownership']].forEach(([k,lbl],idx)=>{
   const b=document.createElement('button');
   b.className='chip';b.setAttribute('aria-pressed',idx===0?'true':'false');
   b.textContent=lbl;
@@ -560,6 +581,79 @@ function renderSquadTable(rows, el){
      m.chips.length?('expire after GW'+m.chips[0].until):'all spent this half');
   }
  }).catch(()=>{if(link)link.hidden=false});
+})();
+
+// ---- Chip planner -----------------------------------------------------
+(function(){
+ const grid=document.getElementById('chipgrid'); if(!grid||!CHIPS.length)return;
+ const META={tc:['Triple Captain','the single best attacking fixture on the board'],
+             bb:['Bench Boost','all fifteen playing a good fixture at once'],
+             fh:['Free Hit','a week that hurts most squads and rewards a few']};
+ const wk=g=>CHIPS.find(r=>r.gw===g);
+ function why(k,r){
+  const bits=[];
+  if(r.doubles.length)bits.push(r.doubles.length+' double'+(r.doubles.length>1?'s':'')+' ('+r.doubles.join(', ')+')');
+  if(r.blanks.length)bits.push(r.blanks.length+' blank'+(r.blanks.length>1?'s':''));
+  if(k==='tc'&&r.best)bits.push(r.best.team+' v '+r.best.opp+' at ×'+r.best.af.toFixed(2));
+  if(!bits.length)bits.push('no doubles or blanks — a flat week');
+  return bits.join(' · ');
+ }
+ // a pick is only worth making if it actually stands out; otherwise say hold
+ function render(have){
+  grid.innerHTML=Object.keys(META).filter(k=>have.includes(k.toUpperCase())).map(k=>{
+   const rank=[...CHIPS].sort((a,b)=>b[k]-a[k]);
+   const top=rank[0], next=rank[1];
+   const edge=next?top[k]-next[k]:0;
+   const flat=edge < 0.15;
+   return `<div class="chipcard"><div class="tl">${META[k][0]}</div>`+
+    `<div class="tv">${flat?'Hold':'GW'+top.gw}</div>`+
+    `<div class="ts">${flat
+      ? 'nothing separates these weeks yet — GW'+top.gw+' leads by only '+edge.toFixed(2)
+      : esc(why(k,top))}</div>`+
+    `<div class="ts runner">${flat
+      ? 'GW'+top.gw+': '+esc(why(k,top))
+      : (next?('next best GW'+next.gw+' · '+esc(why(k,next))):'')}</div>`+
+    `<div class="ts mut">wants ${META[k][1]}</div></div>`;
+  }).join('')||'<p class="note">No chips left in this half of the season.</p>';
+  const t=document.getElementById('chiptable');
+  if(t)t.innerHTML='<tr><th class="num">GW</th><th>Doubles</th><th>Blanks</th>'+
+   '<th>Best single fixture</th><th class="num">TC</th><th class="num">BB</th><th class="num">FH</th></tr>'+
+   CHIPS.map(r=>`<tr><td class="num"><b>${r.gw}</b></td><td>${r.doubles.join(', ')||'—'}</td>`+
+    `<td>${r.blanks.join(', ')||'—'}</td>`+
+    `<td>${r.best?esc(r.best.team+' v '+r.best.opp)+' <span class="mut2">×'+r.best.af.toFixed(2)+'</span>':'—'}</td>`+
+    `<td class="num">${r.tc.toFixed(2)}</td><td class="num">${r.bb.toFixed(2)}</td>`+
+    `<td class="num">${r.fh.toFixed(2)}</td></tr>`).join('');
+ }
+ // which chips the reader still holds; without a linked team, show them all
+ const tid=localStorage.getItem('fpl_team_id');
+ if(!tid){render(['TC','BB','FH']);return}
+ fetch('/api/team/'+encodeURIComponent(tid)).then(r=>r.json())
+  .then(d=>render(((d&&d.summary&&d.summary.chips)||[]).map(c=>c.name)))
+  .catch(()=>render(['TC','BB','FH']));
+})();
+
+// ---- Football: league table and the week's kick-offs -------------------
+(function(){
+ const lt=document.getElementById('ltable');
+ if(lt&&LEAGUE.length){
+  const cls=r=>r.pos<=4?'ucl':r.pos<=6?'uel':r.pos>=18?'rel':'';
+  lt.innerHTML='<tr><th class="num">#</th><th>Club</th><th class="num">P</th><th class="num">W</th>'+
+   '<th class="num">D</th><th class="num">L</th><th class="num">GF</th><th class="num">GA</th>'+
+   '<th class="num">GD</th><th class="num">Pts</th><th>Form</th></tr>'+
+   LEAGUE.map(r=>`<tr class="${cls(r)}"><td class="num">${r.pos}</td><td><b>${r.team}</b></td>`+
+    [r.p,r.w,r.d,r.l,r.gf,r.ga].map(v=>`<td class="num">${v}</td>`).join('')+
+    `<td class="num">${r.gd>0?'+':''}${r.gd}</td><td class="num"><b>${r.pts}</b></td>`+
+    `<td>${[...r.form].map(c=>`<span class="frm f${c}">${c}</span>`).join('')}</td></tr>`).join('');
+ }
+ const wt=document.getElementById('wktable');
+ if(wt&&WEEK.length){
+  const g=document.getElementById('weekgw'); if(g)g.textContent='GW'+GWL[0];
+  wt.innerHTML='<tr><th>Kick-off</th><th class="num"></th><th>Home</th><th class="num"></th>'+
+   '<th>Away</th><th class="num"></th></tr>'+
+   WEEK.map(f=>`<tr><td>${f.when||'TBC'}</td><td class="num mut2">${f.hp||''}</td>`+
+    `<td><b>${f.h}</b></td><td class="num">${f.done?'<b>'+f.score+'</b>':'v'}</td>`+
+    `<td><b>${f.a}</b></td><td class="num mut2">${f.ap||''}</td></tr>`).join('');
+ }
 })();
 
 const sqEl=document.getElementById('squad');
@@ -822,6 +916,119 @@ try:
 except Exception as _exc:  # noqa: BLE001 - dashboard must still build
     print('plan4 skipped:', _exc)
 
+def league_table(fixtures, team_name):
+    """Actual Premier League standings from finished results.
+
+    Not fantasy, which is why it lives under Football - but form and position
+    are the backdrop every projection is read against, and the app had no way
+    to answer 'who is actually any good this season'.
+    """
+    tbl = {t: dict(team=t, p=0, w=0, d=0, l=0, gf=0, ga=0, pts=0, form='')
+           for t in team_name.values()}
+    for f in sorted((x for x in fixtures if x.get('finished')),
+                    key=lambda x: x.get('event') or 0):
+        hs, as_ = f.get('team_h_score'), f.get('team_a_score')
+        if hs is None or as_ is None:
+            continue
+        h, a = team_name[f['team_h']], team_name[f['team_a']]
+        for side, gf, ga in ((h, hs, as_), (a, as_, hs)):
+            r = tbl[side]
+            r['p'] += 1
+            r['gf'] += gf
+            r['ga'] += ga
+            res = 'W' if gf > ga else 'D' if gf == ga else 'L'
+            r[res.lower()] += 1
+            r['pts'] += 3 if res == 'W' else 1 if res == 'D' else 0
+            r['form'] = (r['form'] + res)[-5:]
+    rows = sorted(tbl.values(), key=lambda r: (-r['pts'], -(r['gf'] - r['ga']), -r['gf'], r['team']))
+    for i, r in enumerate(rows, 1):
+        r['pos'] = i
+        r['gd'] = r['gf'] - r['ga']
+    return rows
+
+
+def week_fixtures(fixtures, team_name, event, table):
+    """Kick-offs for one gameweek, UK time, with each side's league position."""
+    pos = {r['team']: r['pos'] for r in table}
+    out = []
+    for f in sorted((x for x in fixtures if x.get('event') == event),
+                    key=lambda x: (x.get('kickoff_time') or '', x['id'])):
+        ko = f.get('kickoff_time')
+        when = ''
+        if ko:
+            when = (datetime.strptime(ko, '%Y-%m-%dT%H:%M:%SZ')
+                    + timedelta(hours=1)).strftime('%a %d %b · %H:%M')
+        h, a = team_name[f['team_h']], team_name[f['team_a']]
+        out.append({'h': h, 'a': a, 'hp': pos.get(h), 'ap': pos.get(a),
+                    'when': when, 'done': bool(f.get('finished')),
+                    'score': (f"{f['team_h_score']}-{f['team_a_score']}"
+                              if f.get('team_h_score') is not None else '')})
+    return out
+
+
+def chip_plan(fixtures, team_name, heat, from_gw, half_end=19, horizon=10):
+    """Rank the remaining gameweeks in this half for each chip.
+
+    Chips are the biggest single decisions left in a season and the app said
+    nothing about them. Each chip wants a different thing, so each is scored on
+    its own terms rather than against one generic 'good week' number:
+
+      Triple Captain - the best single attacking fixture available that week,
+        because the chip multiplies ONE player.
+      Bench Boost    - the whole squad playing well at once, so the week's
+        average across all twenty clubs, plus a penalty for blanks.
+      Free Hit       - the opposite: a week that is bad for most teams and good
+        for a few, since the chip is worth most when your own squad blanks.
+
+    Doubles and blanks dominate all three, so fixture COUNT is scored first.
+    """
+    by_gw = {}
+    for f in fixtures:
+        ev = f.get('event')
+        if ev is None:
+            continue
+        by_gw.setdefault(ev, []).append(f)
+
+    gws = [g for g in sorted(by_gw) if from_gw <= g <= half_end][:horizon]
+    if not gws:
+        return []
+    rows = []
+    for g in gws:
+        fx = by_gw[g]
+        played = {}
+        for f in fx:
+            for t in (f['team_h'], f['team_a']):
+                played[t] = played.get(t, 0) + 1
+        doubles = sorted(team_name[t] for t, n in played.items() if n > 1)
+        blanks = sorted(team_name[t] for t in team_name if not played.get(t))
+        # attacking friendliness of each side's fixture that week, from the
+        # same two-direction heat the Fixtures tab draws
+        att = []
+        for f in fx:
+            for t, opp in ((f['team_h'], f['team_a']), (f['team_a'], f['team_h'])):
+                cell = (heat.get(team_name[t]) or {}).get(str(g))
+                if isinstance(cell, dict) and cell.get('af') is not None:
+                    att.append((cell['af'], team_name[t], team_name[opp]))
+        att.sort(reverse=True)
+        best = att[0] if att else None
+        mean_att = sum(a for a, _, _ in att) / len(att) if att else 1.0
+        spread = (max(a for a, _, _ in att) - min(a for a, _, _ in att)) if att else 0.0
+        rows.append({
+            'gw': g, 'doubles': doubles, 'blanks': blanks,
+            'best': ({'team': best[1], 'opp': best[2], 'af': round(best[0], 2)}
+                     if best else None),
+            'tc': round((best[0] if best else 1.0) + 0.9 * len(doubles), 3),
+            'bb': round(mean_att + 1.2 * len(doubles) - 0.35 * len(blanks), 3),
+            'fh': round(spread + 0.8 * len(blanks) - 0.4 * len(doubles), 3),
+        })
+    return rows
+
+
+_fx_all = json.load(open('fixtures.json', encoding='utf-8'))
+LEAGUE = league_table(_fx_all, teams)
+WEEK = week_fixtures(_fx_all, teams, gw_labels[0], LEAGUE)
+CHIPS = chip_plan(_fx_all, teams, FIXMAP, gw_labels[0])
+
 _ev = next(e for e in ns['d']['events'] if e['id'] == gw_labels[0])
 _dl = datetime.strptime(_ev['deadline_time'], '%Y-%m-%dT%H:%M:%SZ') + timedelta(hours=1)  # UK summer time
 tile_deadline = _dl.strftime('%a %d %b, %H:%M')
@@ -980,12 +1187,40 @@ except Exception:
     _stories_html = "<p class='note'>News sweep hasn't run yet.</p>"
 
 
+CHIP_META = {
+    'tc': ('TC', 'Triple Captain', 'the single best attacking fixture on the board'),
+    'bb': ('BB', 'Bench Boost', 'every one of your fifteen playing a good fixture'),
+    'fh': ('FH', 'Free Hit', 'a week that hurts most squads and rewards a few'),
+}
+
+
+def chip_html(rows):
+    """Ranked windows per chip, with a recommendation and a runner-up."""
+    if not rows:
+        return ('<section class="card"><h2>Chips</h2><p class="note">'
+                'No gameweeks left in this half to plan against.</p></section>')
+    out = ['<section class="card"><h2>Chip planner '
+           f'<span class="mut">GW{rows[0]["gw"]}–{rows[-1]["gw"]}</span></h2>'
+           '<p class="note">Each chip wants a different kind of gameweek, so each is ranked on '
+           'its own terms. Doubles and blanks move these scores more than fixture quality does, '
+           'so early in a season — before the cup competitions cut into the calendar — the '
+           'weeks look flat and the honest answer is <b>hold</b>. '
+           'Chips you have already spent are not shown.</p>'
+           '<div class="chipgrid" id="chipgrid"></div></section>']
+    out.append('<section class="card"><h2>Every gameweek, scored</h2>'
+               '<p class="note">The same numbers in full, so a close call is visible rather than '
+               'hidden behind a single pick.</p>'
+               '<div class="scroll"><table id="chiptable"></table></div></section>')
+    return ''.join(out)
+
+
 def emit(path, personal):
     # public copy strips squad markers entirely (no rings, labels, table, or
     # flags in the embedded JSON) so nothing about our team leaks pre-deadline
     dat = data if personal else [{**r, 'mine': False, 'xi': False} for r in data]
     page = (html.replace('__STYLE__', theme.style_block())
                 .replace('__VALUEBANDS__', band_tables(personal))
+                .replace('__CHIPPLAN__', chip_html(CHIPS))
                 .replace('__SQUADSEC__', SQUAD_SEC if personal else '')
                 .replace('__ODDSNOTE__', _odds_note)
                 .replace('__TEAMS__', json.dumps(TEAMS, ensure_ascii=False))
@@ -1001,12 +1236,13 @@ def emit(path, personal):
                 .replace('__DL_ISO__', _dl_iso)
                 .replace('__SUBNOTE__', 'Squad v5 marked with rings. ' if personal else '')
                 .replace('__RINGNOTE__', 'Ringed dots / ● = our squad. ' if personal else '')
-                .replace('__DIFFROWS__', table_rows(diffs))
-                .replace('__TRAPROWS__', table_rows(trapped))
                 .replace('__GWL__', json.dumps(gw_labels))
                 .replace('__DATA__', json.dumps(dat, ensure_ascii=False))
                 .replace('__HEAT__', json.dumps(heat, ensure_ascii=False))
-                .replace('__SQUAD__', json.dumps(squad_rows if personal else [], ensure_ascii=False)))
+                .replace('__SQUAD__', json.dumps(squad_rows if personal else [], ensure_ascii=False))
+                .replace('__LEAGUE__', json.dumps(LEAGUE, ensure_ascii=False))
+                .replace('__WEEK__', json.dumps(WEEK, ensure_ascii=False))
+                .replace('__CHIPS__', json.dumps(CHIPS, ensure_ascii=False)))
     open(path, 'w', encoding='utf-8').write(page)
 
 

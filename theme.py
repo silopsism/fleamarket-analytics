@@ -105,6 +105,7 @@ h3{font:700 12px/1.2 Archivo;letter-spacing:.1em;text-transform:uppercase;
 .sub{color:var(--ink2);max-width:64ch;margin-top:8px}
 .note{font-size:12.5px;color:var(--muted);margin-bottom:14px}
 .mut{font:700 10.5px/1 Archivo;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.mut2{color:var(--muted);font-size:11.5px;font-weight:600}
 .eyebrow{font:700 11px/1 Archivo;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
 a{color:var(--accent)}
 
@@ -146,6 +147,27 @@ a{color:var(--accent)}
 .tile.urgent .tv{color:var(--warn);font-variant-numeric:tabular-nums}
 .tile .tv a{color:inherit;text-decoration:none;border-bottom:2px solid var(--accent)}
 .tile.me .ts .up,.tile.me .ts .down{font-size:12px}
+
+/* the secondary nav: present, but visibly not the main event */
+.tabs.sub{margin-top:-4px;gap:6px;opacity:.82;border-top:1px dashed var(--grid);padding-top:8px}
+.tabs.sub .tab{font-size:12px;padding:5px 10px}
+.navlbl{font:700 10px/1 Archivo;letter-spacing:.13em;text-transform:uppercase;
+ color:var(--muted);align-self:center;margin-right:2px}
+
+/* chip planner cards */
+.chipgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:14px}
+.chipcard{background:var(--surface);border:1px solid var(--ring);border-radius:12px;padding:14px 16px}
+.chipcard .tv{font:400 27px/1.05 Anton,Impact,sans-serif;margin:6px 0 6px}
+.chipcard .ts{font-size:12px;color:var(--ink2);margin-top:4px}
+.chipcard .runner{color:var(--muted);font-size:11.5px}
+
+/* league table: European places and the drop, plus a form strip */
+tr.ucl td:first-child{box-shadow:inset 3px 0 var(--accent)}
+tr.uel td:first-child{box-shadow:inset 3px 0 var(--mid)}
+tr.rel td:first-child{box-shadow:inset 3px 0 var(--down)}
+.frm{display:inline-block;width:15px;height:15px;line-height:15px;text-align:center;
+ border-radius:3px;font:700 9.5px/15px system-ui;margin-right:2px;color:#fff}
+.frm.fW{background:var(--up)}.frm.fD{background:var(--muted)}.frm.fL{background:var(--down)}
 
 /* chips */
 .chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
@@ -401,13 +423,14 @@ EMBLEMS = {
                      "<path d='M12 6.4l3.4 2.5-1.3 4h-4.2l-1.3-4z'/>"
                      "<path d='M12 3v3.4M4.4 9.3l2.9 1.1M19.6 9.3l-2.9 1.1"
                      "M7.2 19.7l1.7-3.2M16.8 19.7l-1.7-3.2'/>"),
-    'value': _emb("<path d='M3 20.5h18'/><path d='M5 20.5V13M10.3 20.5V8.5"
-                  "M15.6 20.5V15.5M20.4 20.5V4.5'/>", sw='1.9'),
+    'chips': _emb("<path d='M7.5 3.5h9l4 6-8.5 11L3.5 9.5z'/>"
+                  "<path d='M3.5 9.5h17M9 3.5l3 6 3-6M12 9.5v11'/>", sw='1.6'),
     'planner': _emb("<rect x='3' y='5' width='18' height='16' rx='2'/>"
                     "<path d='M3 10.2h18M8 3v4M16 3v4'/>"
                     "<path d='M7.5 14h3M13.5 14h3M7.5 17.6h3M13.5 17.6h3'/>"),
-    'market': _emb("<path d='M3.5 18.5l5.2-6 3.8 2.8 7-8.3'/>"
-                   "<path d='M14.4 7h5.1v5'/><path d='M3.5 21h17'/>", sw='1.7'),
+    'table': _emb("<rect x='3' y='4' width='18' height='16' rx='2'/>"
+                  "<path d='M3 9.3h18M3 14.6h18M8.5 4v16'/>", sw='1.7'),
+    'week': _emb("<circle cx='12' cy='12' r='8.6'/><path d='M12 6.8V12l3.6 2.2'/>", sw='1.8'),
     'fixtures': _emb("<rect x='2.5' y='4.5' width='19' height='15' rx='1.5'/>"
                      "<path d='M12 4.5v15'/><circle cx='12' cy='12' r='2.8'/>"
                      "<path d='M2.5 9h3.2v6H2.5M21.5 9h-3.2v6h3.2'/>"),
