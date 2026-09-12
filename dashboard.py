@@ -600,13 +600,7 @@ function renderSquadTable(rows, el){
  // several times - so points stop being claimed and the fixture read stands alone.
  const SQUAD_WEEKS=5, SHOW=5;
  const MIN={GKP:1,DEF:3,MID:2,FWD:1}, MAX={GKP:1,DEF:5,MID:5,FWD:3};
- const META={
-  tc:{name:'Triple Captain',
-      want:'one huge ceiling: a strong attack at home to a weak defence'},
-  bb:{name:'Bench Boost',
-      want:'a week the whole fifteen plays, and plays well'},
-  fh:{name:'Free Hit',
-      want:'a week that punishes the template and rewards what nobody owns'}};
+ const META={tc:{name:'Triple Captain'},bb:{name:'Bench Boost'},fh:{name:'Free Hit'}};
 
  function bestXI(sq,i){
   const val=r=>(r.cg&&r.cg[i]!=null)?r.cg[i]:0;
@@ -701,8 +695,7 @@ function renderSquadTable(rows, el){
    return `<div class="chipcard"><div class="tl">${META[k].name}</div>`+
     `<div class="tv">GW${top.gw}</div>${gain}`+
     `<div class="ts">${esc(reason(k,top,tp))}</div>${bestLine}${flag}`+
-    `<ol class="alts">${alts}</ol>`+
-    `<div class="ts mut">wants ${META[k].want}</div></div>`;
+    `<ol class="alts">${alts}</ol></div>`;
   }).join('')||'<p class="note">No chips left in this half of the season.</p>';
 
   // one chip per gameweek: if two headline picks collide, say so
@@ -1443,14 +1436,6 @@ def chip_html(rows):
     return (
         '<section class="card"><h2>Chip planner '
         f'<span class="mut">GW{rows[0]["gw"]}–{rows[-1]["gw"]}</span></h2>'
-        '<p class="note">Chips are a <b>calendar</b> decision, not a squad one: fifteen weeks out '
-        'your team will have turned over several times, but the fixtures will not have moved. '
-        'So each chip ranks the windows that suit it, and adds a points figure only for the '
-        'next few gameweeks, where the squad you own is still the squad you will have. '
-        '<b>Triple Captain</b> wants the biggest single ceiling — a strong attack at home to a '
-        'weak defence. <b>Bench Boost</b> wants a week the whole fifteen plays and plays well. '
-        '<b>Free Hit</b> wants a week that punishes the template and rewards what nobody owns. '
-        'Chips already spent are not shown.</p>'
         '<p class="note" id="chipnote"></p>'
         '<div class="chipgrid" id="chipgrid"></div></section>'
         '<section class="card"><h2>Every gameweek, priced</h2>'
