@@ -567,8 +567,8 @@ clean sheets, defensive contributions), season expectations, and fixtures. </p>
 </section>
 </div>
 
-<footer>FPL data pulled Sat 12 Sep 11:03 UK · refreshed hourly · fixtures priced by bookmaker odds: 10 · fixture model k(attack)=0.78, k(opponent defence)=0.80, home ×1.10, rmse 0.182
-<br><span class="build">build 2759f29+dirty · Drop the price-point tables; the planner already answers that · generated Sat 12 Sep 11:02 UK</span></footer>
+<footer>FPL data pulled Sat 12 Sep 11:04 UK · refreshed hourly · fixtures priced by bookmaker odds: 10 · fixture model k(attack)=0.78, k(opponent defence)=0.80, home ×1.10, rmse 0.182
+<br><span class="build">build 926706b+dirty · Name the chart after its axes · generated Sat 12 Sep 11:03 UK</span></footer>
 </div>
 <div class="tip" id="tip"></div>
 <script>
@@ -672,6 +672,23 @@ function drawDiff(f){
   g+=mark(d,i,SX(Math.min(d.s,SMAX)),SY(d.x));
  });
  dsvg.innerHTML=g;
+}
+
+function radios(id, fn){
+ const box=document.getElementById(id);
+ if(!box)return;
+ ['All','DEF','MID','FWD','GKP'].forEach((p,idx)=>{
+  const b=document.createElement('button');
+  b.className='chip';b.dataset.p=p;
+  b.setAttribute('aria-pressed', idx===0 ? 'true' : 'false');
+  b.innerHTML=(p==='All'?'':`<span class="sw" style="background:${COL[p]}"></span>`)+p;
+  b.onclick=()=>{
+   box.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed','false'));
+   b.setAttribute('aria-pressed','true');
+   fn(p);
+  };
+  box.appendChild(b);
+ });
 }
 
 radios('chips2', drawDiff);

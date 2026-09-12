@@ -394,6 +394,23 @@ function drawDiff(f){
  dsvg.innerHTML=g;
 }
 
+function radios(id, fn){
+ const box=document.getElementById(id);
+ if(!box)return;
+ ['All','DEF','MID','FWD','GKP'].forEach((p,idx)=>{
+  const b=document.createElement('button');
+  b.className='chip';b.dataset.p=p;
+  b.setAttribute('aria-pressed', idx===0 ? 'true' : 'false');
+  b.innerHTML=(p==='All'?'':`<span class="sw" style="background:${COL[p]}"></span>`)+p;
+  b.onclick=()=>{
+   box.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed','false'));
+   b.setAttribute('aria-pressed','true');
+   fn(p);
+  };
+  box.appendChild(b);
+ });
+}
+
 radios('chips2', drawDiff);
 // fixture grid, scored in two directions and never collapsed into one. Both
 // bands are absolute expected goals so the colours mean the same thing in every
