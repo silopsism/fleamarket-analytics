@@ -165,10 +165,19 @@ def merge(d, hist=None, blend_minutes=BLEND_MINUTES, path=PATH, fixtures=None):
     played = sum(1 for e in d.get('events', []) if e.get('finished'))
 
     merged = no_hist = 0
+    # Observed evidence, stamped on EVERY element before the blend can overwrite
+    # it. The blended figures are full-season equivalents built for per-90 rate
+    # denominators; read as evidence they lie badly - one 90-minute start scales
+    # to "38 starts", which the minutes model then treats as a nailed starter.
+    for e in d['elements']:
+        e['_cur_minutes'] = int(e.get('minutes') or 0)
+        e['_cur_starts'] = int(e.get('starts') or 0)
+        e['_club_games'] = int(games.get(e.get('team'), 0))
     for e in d['elements']:
         h = rows.get(str(e.get('code')))
         if not h:
             no_hist += 1
+            e['_real_starts'] = e['_cur_starts']
             continue
         cur_min = e.get('minutes') or 0
         w = min(cur_min / blend_minutes, 1.0) if blend_minutes else 1.0
@@ -212,6 +221,7 @@ def merge(d, hist=None, blend_minutes=BLEND_MINUTES, path=PATH, fixtures=None):
         # is; a 75-minute sample projected to 2850 must not be trusted like a
         # 2850-minute season.
         e['_real_minutes'] = int(h.get('minutes', 0)) + cur_min
+        e['_real_starts'] = int(h.get('starts', 0)) + e['_cur_starts']
         merged += 1
 
     return {'merged': merged, 'no_history': no_hist, 'season': hist.get('season'),

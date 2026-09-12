@@ -199,7 +199,10 @@ for e in d['elements']:
     # signing bedding in, someone short of pre-season), so every component is
     # evaluated per gameweek at that week's minutes
     ramp = XMINS[e['id']].get('ramp')
-    xmins_gw = [ramp[i] if ramp and i < len(ramp) else xmins for i in range(HORIZON)]
+    # past the end of a ramp the player has reached his settled minutes;
+    # falling back to the flat mean would drag a finished climb back down
+    xmins_gw = [(ramp[i] if i < len(ramp) else ramp[-1]) if ramp else xmins
+                for i in range(HORIZON)]
 
     if xmins_mode == 'rates':
         # finishing-skill shrinkage: 75% chance quality (xG), 25% actual output.
