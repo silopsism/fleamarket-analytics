@@ -5,6 +5,8 @@ data as JSON, and writes a single static HTML file — servable from any
 static host (home server, python -m http.server, nginx).
 """
 import json
+import os
+import urllib.request
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
@@ -17,16 +19,65 @@ exec(compile(src, 'model.py', 'exec'), ns)
 players, teams = ns['players'], ns['teams']
 pos_name = ns['pos_name']
 
-# The submitted GW1 squad. Bench order is the autosub order, so it is
-# meaningful and kept as given: Rodon, Hughes, Diop.
-MY_XI = [('Kinsky', 'TOT'), ('Virgil', 'LIV'), ('Calafiori', 'ARS'),
-         ('Maguire', 'MUN'), ('B.Fernandes', 'MUN'), ('Szoboszlai', 'LIV'),
-         ('Tzolis', 'ARS'), ('E.Le Fée', 'SUN'), ('Haaland', 'MCI'),
-         ('João Pedro', 'CHE'), ('Calvert-Lewin', 'LEE')]
-MY_BENCH = [('Verbruggen', 'BHA'), ('Rodon', 'LEE'), ('Hughes', 'CRY'),
-            ('Diop', 'IPS')]
-MY_CAPTAIN = ('Haaland', 'MCI')
-MY_VICE = ('B.Fernandes', 'MUN')
+# Last resort only. A hardcoded squad goes stale the first time a transfer is
+# made, and silently: the markers keep pointing at players who left.
+_FALLBACK_XI = [('Kinsky', 'TOT'), ('Virgil', 'LIV'), ('Calafiori', 'ARS'),
+                ('Maguire', 'MUN'), ('B.Fernandes', 'MUN'), ('Szoboszlai', 'LIV'),
+                ('Tzolis', 'ARS'), ('E.Le Fée', 'SUN'), ('Haaland', 'MCI'),
+                ('João Pedro', 'CHE'), ('Calvert-Lewin', 'LEE')]
+_FALLBACK_BENCH = [('Verbruggen', 'BHA'), ('Rodon', 'LEE'), ('Hughes', 'CRY'),
+                   ('Diop', 'IPS')]
+
+
+def _my_squad():
+    """The squad as it actually stands, from the last locked gameweek.
+
+    Team id comes from FPL_TEAM_ID or a gitignored my_team.json - not from
+    source, because this is a public repository. Falls back to the GW1 squad if
+    the API cannot be reached, and says so, because quietly marking the wrong
+    eleven is worse than admitting the data is old.
+    """
+    tid = os.environ.get('FPL_TEAM_ID')
+    if not tid and os.path.exists('my_team.json'):
+        try:
+            tid = str(json.load(open('my_team.json', encoding='utf-8')).get('team_id') or '')
+        except Exception:  # noqa: BLE001
+            tid = ''
+    if not tid:
+        print('my squad: no FPL_TEAM_ID - falling back to the GW1 squad')
+        return _FALLBACK_XI, _FALLBACK_BENCH, ('Haaland', 'MCI'), ('B.Fernandes', 'MUN')
+    try:
+        ua = {'User-Agent': 'Mozilla/5.0 (fleamarket-analytics; personal FPL tool)'}
+        api = 'https://fantasy.premierleague.com/api'
+        boot = ns['d']
+        now = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+        gw = max((e['id'] for e in boot['events'] if e['deadline_time'] <= now), default=None)
+        if not gw:
+            raise RuntimeError('no locked gameweek yet')
+        req = urllib.request.Request(f'{api}/entry/{tid}/event/{gw}/picks/', headers=ua)
+        picks = json.loads(urllib.request.urlopen(req, timeout=25).read())
+        by_id = {e['id']: e for e in boot['elements']}
+        xi, bench, cap, vice = [], [], None, None
+        for pk in sorted(picks['picks'], key=lambda k: k['position']):
+            e = by_id.get(pk['element'])
+            if not e:
+                continue
+            key = (e['web_name'], teams[e['team']])
+            (xi if pk['position'] <= 11 else bench).append(key)
+            if pk.get('is_captain'):
+                cap = key
+            if pk.get('is_vice_captain'):
+                vice = key
+        if len(xi) + len(bench) != 15:
+            raise RuntimeError(f'got {len(xi) + len(bench)} picks')
+        print(f'my squad: GW{gw} picks for entry {tid}')
+        return xi, bench, cap, vice
+    except Exception as exc:  # noqa: BLE001
+        print(f'my squad: live picks unavailable ({exc}) - falling back to GW1')
+        return _FALLBACK_XI, _FALLBACK_BENCH, ('Haaland', 'MCI'), ('B.Fernandes', 'MUN')
+
+
+MY_XI, MY_BENCH, MY_CAPTAIN, MY_VICE = _my_squad()
 MY_SQUAD = set(MY_XI) | set(MY_BENCH)
 
 
@@ -787,7 +838,10 @@ if(!SQUAD.length){(function(){
   JSON.parse(s).forEach(line=>{
    const parts=line.trim().split(' '), t=parts.pop(), n=parts.join(' ');
    const i=idx.get(n+'|'+t);
-   if(i!=null){DATA[i].v4=true; rows.push(DATA[i]);}
+   // must be `mine`: that is the flag the charts, planner and tooltips read.
+   // Setting `v4` here meant nothing anywhere consumed it, so a reader's own
+   // squad was never marked on the public page at all.
+   if(i!=null){DATA[i].mine=true; rows.push(DATA[i]);}
   });
   if(!rows.length)return;
   const minR={GKP:1,DEF:3,MID:2,FWD:1}, maxR={GKP:1,DEF:5,MID:5,FWD:3};

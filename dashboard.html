@@ -562,8 +562,8 @@ clean sheets, defensive contributions), season expectations, and fixtures. </p>
 
 <footer>Phase 1 model: built on prior-season Opta rates, expected minutes, transfer
 context, season expectations and fixtures — a value lens, not an oracle.
-<br>FPL data pulled Sat 12 Sep 09:51 UK · refreshed hourly · fixtures priced by bookmaker odds: 10 · fixture model k(attack)=0.78, k(opponent defence)=0.80, home ×1.10, rmse 0.182
-<br><span class="build">build 2133994+dirty · Stop the chip headline contradicting its own runner-up · generated Sat 12 Sep 09:51 UK</span></footer>
+<br>FPL data pulled Sat 12 Sep 09:59 UK · refreshed hourly · fixtures priced by bookmaker odds: 10 · fixture model k(attack)=0.78, k(opponent defence)=0.80, home ×1.10, rmse 0.182
+<br><span class="build">build 1a2f52e+dirty · Trim the chip planner's explanatory text · generated Sat 12 Sep 09:59 UK</span></footer>
 </div>
 <div class="tip" id="tip"></div>
 <script>
@@ -1111,7 +1111,10 @@ if(!SQUAD.length){(function(){
   JSON.parse(s).forEach(line=>{
    const parts=line.trim().split(' '), t=parts.pop(), n=parts.join(' ');
    const i=idx.get(n+'|'+t);
-   if(i!=null){DATA[i].v4=true; rows.push(DATA[i]);}
+   // must be `mine`: that is the flag the charts, planner and tooltips read.
+   // Setting `v4` here meant nothing anywhere consumed it, so a reader's own
+   // squad was never marked on the public page at all.
+   if(i!=null){DATA[i].mine=true; rows.push(DATA[i]);}
   });
   if(!rows.length)return;
   const minR={GKP:1,DEF:3,MID:2,FWD:1}, maxR={GKP:1,DEF:5,MID:5,FWD:3};
