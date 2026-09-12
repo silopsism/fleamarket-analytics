@@ -147,13 +147,6 @@ clean sheets, defensive contributions), season expectations, and fixtures. __SUB
 </section>
 
 <section class="card">
- <h2>Market movements <span class="mut">__MOVEWIN__</span></h2>
- <p class="note">Who the crowd is buying and selling right now, from our own snapshot history.
- Full detail and news cross-checks on the <a href="/news">News</a> tab.</p>
- <div class="cols" id="movecols">__MOVES__</div>
-</section>
-
-<section class="card">
  <h2>Top stories</h2>
  <p class="note">Highest-signal headlines from the last few days, checked against the model's
  assumptions. All of them, plus off-radar finds, on the <a href="/news">News</a> tab.</p>
@@ -1141,7 +1134,21 @@ _moves_html, _move_win, _stories_html = '', '', ''
 try:
     import momentum as _mom
     _els = {e['id']: e for e in ns['d']['elements']}
-    _ris, _fal, _meta = _mom.recent_moves(_els, teams, hours=6)
+    # "since the deadline" is the window a manager actually thinks in: a six-hour
+    # slice cuts across the middle of a gameweek and answers a question nobody
+    # asked. Cap it so an early-season long gap does not swallow the whole run.
+    _prev_dl = max((e['deadline_time'] for e in ns['d']['events']
+                    if e['deadline_time'] <= datetime.now(timezone.utc)
+                    .strftime('%Y-%m-%dT%H:%M:%SZ')), default=None)
+    _win_h = 6.0
+    _cur_gw = next((e['id'] for e in ns['d']['events']
+                    if e['deadline_time'] == _prev_dl), None)
+    if _prev_dl:
+        _since = (datetime.now(timezone.utc)
+                  - datetime.strptime(_prev_dl, '%Y-%m-%dT%H:%M:%SZ')
+                  .replace(tzinfo=timezone.utc)).total_seconds() / 3600
+        _win_h = max(min(_since, 200.0), 3.0)
+    _ris, _fal, _meta = _mom.recent_moves(_els, teams, hours=_win_h)
 
     def _mv_table(rows, label):
         if not rows:
@@ -1158,13 +1165,23 @@ try:
 
     if _meta['ready'] and (_ris or _fal):
         _moves_html = _mv_table(_ris, 'Moving in') + _mv_table(_fal, 'Moving out')
-        _move_win = f"last {_meta['hours']:.0f}h"
+        _move_win = (f"since the GW{_cur_gw} deadline" if _prev_dl
+                     else f"last {_meta['hours']:.0f}h")
     else:
         _moves_html = ("<p class='note'>Collecting baseline — movement appears once we have "
                        "a few hours of snapshots and the gameweek opens.</p>")
         _move_win = f"{_meta.get('snapshots', 0)} snapshots so far"
 except Exception as _e:
     _moves_html = f"<p class='note'>Movements unavailable ({_html.escape(str(_e)[:60])}).</p>"
+    _move_win = ''
+# Movements belong with the rest of "what changed this week", which is the News
+# page - the Overview is for the reader's own team. Published as a fragment so
+# app.py can render it without recomputing the snapshot history.
+try:
+    with open('movements.html', 'w', encoding='utf-8') as _f:
+        _f.write("<!--" + _move_win + "-->" + chr(10) + _moves_html)
+except Exception as _e2:  # noqa: BLE001
+    print('movements fragment skipped:', _e2)
 
 try:
     _news = json.load(open('news_cache.json', encoding='utf-8'))
@@ -1225,8 +1242,7 @@ def emit(path, personal):
                 .replace('__ODDSNOTE__', _odds_note)
                 .replace('__TEAMS__', json.dumps(TEAMS, ensure_ascii=False))
                 .replace('__TRSRC__', TR_SRC)
-                .replace('__MOVES__', _moves_html)
-                .replace('__MOVEWIN__', _move_win)
+
                 .replace('__STORIES__', _stories_html)
                 .replace('__PULLED__', (datetime.now(timezone.utc) + timedelta(hours=1)).strftime('%a %d %b %H:%M'))
                 .replace('__SHA__', _BUILD['sha'])

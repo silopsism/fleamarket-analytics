@@ -1418,6 +1418,23 @@ def news_page(refresh: str = ''):
         feed = '<p class="note">No player headlines in the window.</p>'
 
     when = p['ts'].replace('T', ' ')[:16]
+    # Market movements live here rather than on the Overview: both answer
+    # "what changed this week in FPL", while the Overview is about the reader's
+    # own team. dashboard.py publishes the fragment so this route does not have
+    # to recompute the snapshot history on every request.
+    moves, move_win = '', ''
+    try:
+        raw = open('movements.html', encoding='utf-8').read()
+        if raw.startswith('<!--'):
+            move_win, raw = raw[4:raw.index('-->')], raw[raw.index('-->') + 3:]
+        moves = (f'<div class="card"><h2 style="font-size:16px">Market movements '
+                 f'<span class="mut">{_h.escape(move_win)}</span></h2>'
+                 f'<p class="note">Who the crowd is buying and selling, from our own '
+                 f'snapshot history.</p><div class="cols">{raw}</div></div>')
+    except FileNotFoundError:
+        pass
+    except Exception as exc:  # noqa: BLE001
+        moves = f'<p class="note">Movements unavailable ({_h.escape(str(exc)[:60])}).</p>'
     body = (
         '<h1>Player news</h1>'
         f'<p class="sub">Headlines from the last {p["days"]} days for the '
@@ -1434,6 +1451,7 @@ def news_page(refresh: str = ''):
         f'<p class="note">Found the other way round — reading all 20 clubs\' team-news feeds and '
         f'matching any player, then keeping the ones our model does <i>not</i> rate. Ranked by how '
         f'much they should change our view.</p>{disc}</div>'
+        + moves +
         f'<div class="card"><h2 style="font-size:16px">Everything we found</h2>{feed}</div>'
         f'<p class="note">Swept {when} UTC · re-sweeps every few hours · '
         f'<a href="/news?refresh=1">↻ sweep now</a>{hist_note}</p>')
