@@ -6,8 +6,10 @@ static host (home server, python -m http.server, nginx).
 """
 import json
 from collections import defaultdict
+from datetime import datetime, timedelta, timezone
 
 import theme
+import version
 
 src = open('model.py', encoding='utf-8').read().split('# --- SCORES-END ---')[0]
 ns = {}
@@ -230,7 +232,8 @@ __VALUEBANDS__
 
 <footer>Phase 1 model: built on prior-season Opta rates, expected minutes, transfer
 context, season expectations and fixtures — a value lens, not an oracle.
-<br>FPL data pulled __PULLED__ UK · refreshed hourly · __ODDSNOTE__</footer>
+<br>FPL data pulled __PULLED__ UK · refreshed hourly · __ODDSNOTE__
+<br><span class="build">build __SHA__ · __SUBJECT__ · generated __BUILT__ UK</span></footer>
 </div>
 <div class="tip" id="tip"></div>
 <script>
@@ -649,6 +652,17 @@ BANDS = {
 }
 
 
+_BUILD = version.write_stamp()
+_BUILD['sha'] = _BUILD['sha'][:7] if _BUILD['sha'] != 'unknown' else 'unknown'
+if version.dirty():
+    _BUILD['sha'] += '+dirty'
+_BUILT_UK = (datetime.now(timezone.utc) + timedelta(hours=1)).strftime('%a %d %b %H:%M')
+
+
+def _esc(t):
+    return (t.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'))
+
+
 def band_tables(personal):
     v4set = set(MY_XI) | set(MY_BENCH)
     cols = []
@@ -923,6 +937,9 @@ def emit(path, personal):
                 .replace('__OPTTOTAL__', f"{OPT['totals'] and round(sum(OPT['totals']) - OPT['hitpen'], 1) or '–'}" if OPT else '–')
                 .replace('__OPTSUB__', _opt_sub)
                 .replace('__PULLED__', (datetime.now(timezone.utc) + timedelta(hours=1)).strftime('%a %d %b %H:%M'))
+                .replace('__SHA__', _BUILD['sha'])
+                .replace('__SUBJECT__', _esc(_BUILD['subject'] or 'no subject')[:68])
+                .replace('__BUILT__', _BUILT_UK)
                 .replace('__DL_TIME__', tile_deadline).replace('__DL_GW__', tile_dl_gw)
                 .replace('__TV_NAME__', _tv['name'])
                 .replace('__TV_SUB__', f"£{_tv['price']:.1f} · {_tv['xpts']:.2f} xPts · {teams[_tv['team']]}")

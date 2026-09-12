@@ -813,6 +813,37 @@ def home():
 _plan_cache = {}
 
 
+@app.get('/health')
+def health():
+    """What build is running and how fresh its data is.
+
+    Public and deliberately dull - a commit sha, some file timestamps, no squad
+    and no secrets. It exists because the app once served three weeks of stale
+    logic behind a perfectly healthy hourly data refresh, and nothing anywhere
+    said which commit the answers came from.
+    """
+    import version
+
+    def age(fn):
+        try:
+            ts = os.path.getmtime(fn)
+        except OSError:
+            return None
+        return {'mtime': datetime.fromtimestamp(ts, timezone.utc)
+                .isoformat(timespec='seconds'),
+                'age_minutes': round((time.time() - ts) / 60, 1)}
+
+    data = {fn: age(fn) for fn in
+            ('bootstrap.json', 'fixtures.json', 'dashboard.html', 'odds_cache.json')}
+    stale = [fn for fn, a in data.items()
+             if a is None or a['age_minutes'] > 180]
+    return {'status': 'stale' if stale else 'ok',
+            'stale': stale,
+            'build': version.info(),
+            'now': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+            'data': data}
+
+
 @app.get('/api/notify')
 def api_notify(key: str = '', force: str = '1'):
     """Send a digest on demand. Guarded by NOTIFY_KEY so a public URL can't be

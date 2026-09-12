@@ -376,6 +376,8 @@ th.gwsel:hover{color:var(--accent)}
 button,input,textarea,select{font-family:Archivo,system-ui,sans-serif}
 footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--grid);
  font-size:12px;color:var(--muted);max-width:74ch}
+footer .build{display:inline-block;margin-top:6px;font-family:ui-monospace,
+ SFMono-Regular,Menlo,monospace;font-size:11px;opacity:.75}
 """
 
 

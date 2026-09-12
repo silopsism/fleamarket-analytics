@@ -15,3 +15,4 @@ odds_cache.json
 transfers_cache.json
 wt.json
 .odds.env
+build_stamp.json
