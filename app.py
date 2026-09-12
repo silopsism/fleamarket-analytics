@@ -1297,7 +1297,6 @@ TAG_LABEL = {'out': 'unavailable', 'doubt': 'fitness doubt', 'rotation': 'rotati
              'transfer': 'transfer'}
 
 
-@app.get('/news', response_class=HTMLResponse)
 def movements_html():
     """Market movements, as published by dashboard.py.
 
@@ -1323,6 +1322,7 @@ def movements_html():
             f'snapshot history.</p><div class="cols">{raw}</div></div>')
 
 
+@app.get('/news', response_class=HTMLResponse)
 def news_page(refresh: str = ''):
     import html as _h
     if refresh:
