@@ -350,6 +350,8 @@ th.gwsel:hover{color:var(--accent)}
 .psugg button{margin-left:8px;background:var(--accent);color:#fff;border:0;border-radius:7px;
  padding:5px 11px;font:600 12.5px system-ui;cursor:pointer}
 
+.benchstrip .blab{align-self:center;font:700 10px/1 Archivo;letter-spacing:.13em;
+ text-transform:uppercase;color:var(--muted);margin-right:2px}
 .benchstrip{display:flex;justify-content:center;gap:8px;flex-wrap:nowrap;
  margin-top:10px;padding:12px 8px;border-radius:12px;background:var(--sunk);
  border:1px solid var(--ring)}

@@ -318,6 +318,8 @@ th.gwsel:hover{color:var(--accent)}
 .psugg button{margin-left:8px;background:var(--accent);color:#fff;border:0;border-radius:7px;
  padding:5px 11px;font:600 12.5px system-ui;cursor:pointer}
 
+.benchstrip .blab{align-self:center;font:700 10px/1 Archivo;letter-spacing:.13em;
+ text-transform:uppercase;color:var(--muted);margin-right:2px}
 .benchstrip{display:flex;justify-content:center;gap:8px;flex-wrap:nowrap;
  margin-top:10px;padding:12px 8px;border-radius:12px;background:var(--sunk);
  border:1px solid var(--ring)}
@@ -449,6 +451,13 @@ clean sheets, defensive contributions), season expectations, and fixtures. </p>
  <div class="tile" id="tile-link" hidden><div class="tl">No team linked</div><div class="tv" style="font-size:17px"><a href="/squads">Import your team</a></div><div class="ts">rank, value, transfers and chips appear here</div></div>
 </div>
 
+<section class="card" id="ovsquad" hidden>
+ <h2>Your squad <span class="mut" id="ovgw"></span></h2>
+ <p class="note" id="ovnote"></p>
+ <div class="pitch" id="ovpitch"></div>
+ <div class="benchstrip" id="ovbench"></div>
+</section>
+
 <section class="card" id="mysec" hidden>
  <h2>Your squad — what needs attention</h2>
  <p class="note" id="mysecnote"></p>
@@ -546,8 +555,8 @@ clean sheets, defensive contributions), season expectations, and fixtures. </p>
 </section>
 </div>
 
-<footer>FPL data pulled Sat 12 Sep 11:39 UK · refreshed hourly · fixtures priced by bookmaker odds: 10 · fixture model k(attack)=0.78, k(opponent defence)=0.80, home ×1.10, rmse 0.182
-<br><span class="build">build be8b6de+dirty · Refuse to deploy a page whose JavaScript is broken · generated Sat 12 Sep 11:39 UK</span></footer>
+<footer>FPL data pulled Sat 12 Sep 11:41 UK · refreshed hourly · fixtures priced by bookmaker odds: 10 · fixture model k(attack)=0.78, k(opponent defence)=0.80, home ×1.10, rmse 0.182
+<br><span class="build">build 5700689+dirty · Chips: say what you mean, and stop guessing a template · generated Sat 12 Sep 11:41 UK</span></footer>
 </div>
 <div class="tip" id="tip"></div>
 <script>
@@ -854,6 +863,79 @@ function renderSquadTable(rows, el){
      m.chips.length?('expire after GW'+m.chips[0].until):'all spent this half');
   }
  }).catch(()=>{if(link)link.hidden=false});
+})();
+
+// ---- Your squad, on a pitch -------------------------------------------
+(function(){
+ const pit=document.getElementById('ovpitch'); if(!pit)return;
+ const MIN={GKP:1,DEF:3,MID:2,FWD:1}, MAX={GKP:1,DEF:5,MID:5,FWD:3};
+ // HEAT is a list of {team, gws:[GW1..GW6]}, so gameweek N is index N-1
+ const OPP={}; HEAT.forEach(h=>OPP[h.team]=h.gws);
+ function opp(t,gw){
+  const g=(OPP[t]||[])[gw-1];
+  if(!g)return '—';
+  return g.h ? String(g.o).toUpperCase() : String(g.o).toLowerCase();
+ }
+ function card(r,role){
+  const wk=GWL.slice(0,3);
+  const cells=wk.map((gw,i)=>
+    `<span class="c"><b>${(r.g[i]!=null?r.g[i]:0).toFixed(1)}</b>`+
+    `<i>${esc(opp(r.t,gw))}</i></span>`).join('');
+  const badge = role==='C' ? '<span class="badge" title="captain">C</span>'
+              : role==='V' ? '<span class="badge v" title="vice-captain">V</span>' : '';
+  return `<div class="pcard">${badge}`+
+   `<img class="shirt" src="/shirts/${r.t}${r.p==='GKP'?'_gk':''}.png" alt="">`+
+   `<div class="pn">${esc(r.n)}</div><div class="px">${cells}</div></div>`;
+ }
+ function draw(sq,roles,gw){
+  const val=r=>(r.g&&r.g[0]!=null)?r.g[0]:0;
+  const byName=new Map(sq.map((r,i)=>[r,roles?roles[i]:'']));
+  let xi,bench;
+  if(roles&&roles.length===sq.length&&/[XB]/.test(roles)){
+   xi=sq.filter((r,i)=>roles[i]!=='B'); bench=sq.filter((r,i)=>roles[i]==='B');
+  }else{
+   const by={GKP:[],DEF:[],MID:[],FWD:[]};
+   sq.forEach(r=>(by[r.p]||by.MID).push(r));
+   Object.values(by).forEach(a=>a.sort((x,y)=>val(y)-val(x)));
+   xi=[]; Object.keys(MIN).forEach(k=>xi.push(...by[k].slice(0,MIN[k])));
+   const rest=sq.filter(r=>!xi.includes(r)).sort((x,y)=>val(y)-val(x));
+   while(xi.length<11&&rest.length){
+    const nx=rest.shift();
+    if(xi.filter(z=>z.p===nx.p).length<MAX[nx.p])xi.push(nx);
+   }
+   bench=sq.filter(r=>!xi.includes(r));
+  }
+  const rows=['GKP','DEF','MID','FWD'].map(p=>xi.filter(r=>r.p===p));
+  pit.innerHTML='<div class="goalbox b18"></div><div class="goalbox b6"></div>'+
+   rows.map(row=>'<div class="pline">'+row.map(r=>card(r,byName.get(r))).join('')+'</div>').join('');
+  const bo=[...bench].sort((a,b)=>(a.p==='GKP'?0:1)-(b.p==='GKP'?0:1));
+  document.getElementById('ovbench').innerHTML=
+   '<span class="blab">Bench</span>'+bo.map(r=>card(r,byName.get(r))).join('');
+  const tot=xi.reduce((a,r)=>a+val(r),0)
+            + xi.reduce((m,r)=>Math.max(m, byName.get(r)==='C'?val(r):0),0);
+  document.getElementById('ovgw').textContent='GW'+gw;
+  document.getElementById('ovnote').textContent=
+   'Projected '+tot.toFixed(1)+' this gameweek, captain included. '+
+   'Each card shows the next three gameweeks against its fixtures.';
+  document.getElementById('ovsquad').hidden=false;
+ }
+ function fromLines(lines){
+  const idx=new Map(DATA.map(d=>[d.n+'|'+d.t,d]));
+  return lines.map(l=>{const q=l.trim().split(' '),t=q.pop();return idx.get(q.join(' ')+'|'+t)})
+              .filter(Boolean);
+ }
+ const tid=localStorage.getItem('fpl_team_id');
+ if(tid){
+  fetch('/api/team/'+encodeURIComponent(tid)).then(r=>r.json()).then(d=>{
+   const sq=fromLines((d&&d.lines)||[]);
+   if(sq.length>=15)draw(sq,(d&&d.roles)||'',GWL[0]);
+  }).catch(()=>{});
+  return;
+ }
+ try{
+  const sv=localStorage.getItem('fpl_my_squad');
+  if(sv){const sq=fromLines(JSON.parse(sv)); if(sq.length>=15)draw(sq,'',GWL[0]);}
+ }catch(e){}
 })();
 
 // ---- Chip planner -----------------------------------------------------
