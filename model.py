@@ -44,10 +44,21 @@ pos_name = {1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD'}
 fdr = defaultdict(list)
 next_event = min(e['id'] for e in d['events'] if not e['finished'])
 HORIZON_EVENTS = list(range(next_event, next_event + HORIZON))
+# Chips are decided months out, so they need a longer view than the transfer
+# planner does. Kept separate: widening HORIZON would change avg_fdr and with it
+# every existing projection, which is not what a chip question should do.
+CHIP_HORIZON = 10
+CHIP_EVENTS = list(range(next_event, next_event + CHIP_HORIZON))
 ev_fdr = defaultdict(lambda: defaultdict(list))
 ev_opp = defaultdict(lambda: defaultdict(list))
+ev_opp_long = defaultdict(lambda: defaultdict(list))
 for f in fx:
-    if f['event'] and f['event'] in HORIZON_EVENTS:
+    if not f['event']:
+        continue
+    if f['event'] in CHIP_EVENTS:
+        ev_opp_long[f['team_h']][f['event']].append(f['team_a'])
+        ev_opp_long[f['team_a']][f['event']].append(f['team_h'])
+    if f['event'] in HORIZON_EVENTS:
         fdr[f['team_h']].append(f['team_h_difficulty'])
         fdr[f['team_a']].append(f['team_a_difficulty'])
         ev_fdr[f['team_h']][f['event']].append(f['team_h_difficulty'])
@@ -167,7 +178,7 @@ for e in d['elements']:
     # and still carry enough threat to spoil a clean sheet.
     _fix_team = FIXMAP.get(teams[e['team']]) or {}
     ev_adjs = {}
-    for ev in HORIZON_EVENTS:
+    for ev in CHIP_EVENTS:
         o = _fix_team.get(str(ev))
         if o:
             # af is already this fixture's expected goals relative to the team's
@@ -179,7 +190,7 @@ for e in d['elements']:
             # fixmodel unavailable: still split the two directions rather than
             # leaning on FPL's single rating, which conflates them
             adjs = []
-            for _opp in ev_opp[e['team']].get(ev, []):
+            for _opp in ev_opp_long[e['team']].get(ev, []):
                 leaky = (team_xgc90[_opp] / med_xgc90) ** 0.6      # good for us
                 threat = (team_att[_opp] / med_att) ** 0.8         # bad for us
                 adjs.append((min(max(leaky, 0.6), 1.6),
@@ -198,11 +209,12 @@ for e in d['elements']:
     # a player's minutes can climb across the horizon rather than sit flat (a new
     # signing bedding in, someone short of pre-season), so every component is
     # evaluated per gameweek at that week's minutes
+    allgws = [0.0] * CHIP_HORIZON
     ramp = XMINS[e['id']].get('ramp')
     # past the end of a ramp the player has reached his settled minutes;
     # falling back to the flat mean would drag a finished climb back down
     xmins_gw = [(ramp[i] if i < len(ramp) else ramp[-1]) if ramp else xmins
-                for i in range(HORIZON)]
+                for i in range(CHIP_HORIZON)]
 
     if xmins_mode == 'rates':
         # finishing-skill shrinkage: 75% chance quality (xG), 25% actual output.
@@ -273,14 +285,21 @@ for e in d['elements']:
             return (2 * frac + goals + assists + cs + r_saves / 3 * frac + defcon
                     + r_bonus * frac + pen - gc - r_yc * frac)
 
-        gws = [sum(_pts(a, g, min(mm / 90, 1.0)) for a, g in ev_adjs[ev])
-               for ev, mm in zip(HORIZON_EVENTS, xmins_gw)]
+        allgws = [sum(_pts(a, g, min(mm / 90, 1.0)) for a, g in ev_adjs[ev])
+                  for ev, mm in zip(CHIP_EVENTS, xmins_gw)]
+        gws = allgws[:HORIZON]
         # headline xPts is the mean of the actual fixtures, so bookmaker odds
         # reach the value tables too (it used to use the FDR average only)
         xpts = sum(gws) / len(gws) if gws else _pts(att_adj, xgc, min(xmins / 90, 1.0))
     elif xmins_mode == 'out':
         xpts = 0.0
         gws = [0.0] * HORIZON
+        # allgws must be reset here too: it is a loop-local that every other
+        # branch rebuilds, so leaving it alone hands this player the PREVIOUS
+        # player's chip projections. That put Marc Guiu - who has left for RB
+        # Leipzig and is unavailable - top of the board at 6.69 for GW4, and
+        # into the Free Hit optimum as its captain.
+        allgws = [0.0] * CHIP_HORIZON
     else:
         # No PL record of his own, so stand in the median player of his price and
         # position from last season and score him the normal way. The old flat
@@ -310,14 +329,17 @@ for e in d['elements']:
             return (2 * frac + goals + assists + cs + defcon + p_bonus * frac
                     + pen - gc)
 
-        gws = [sum(_prior(a, g, min(mm / 90, 1.0)) for a, g in ev_adjs[ev])
-               for ev, mm in zip(HORIZON_EVENTS, xmins_gw)]
+        allgws = [sum(_prior(a, g, min(mm / 90, 1.0)) for a, g in ev_adjs[ev])
+                  for ev, mm in zip(CHIP_EVENTS, xmins_gw)]
+        gws = allgws[:HORIZON]
         xpts = sum(gws) / len(gws) if gws else _prior(att_adj, xgc, min(xmins / 90, 1.0))
 
     players.append({
         'id': e['id'], 'name': e['web_name'], 'team': e['team'], 'pos': pos,
         'price': price, 'sel': float(e['selected_by_percent']),
         'xpts': xpts, 'xnext': gws[0], 'gws': [round(g, 2) for g in gws],
+        # the same projection carried out to the chip horizon
+        'chip_gws': [round(g, 2) for g in allgws],
         'tot4': round(sum(gws), 2), 'xmins': round(xmins), 'src': xmins_src,
         'xmins_gws': [round(m) for m in xmins_gw] if ramp else None,
     })

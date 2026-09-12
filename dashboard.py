@@ -61,7 +61,7 @@ for p in pts:
     pct, lik = _price_move(p['id'])
     data.append({'n': p['name'], 't': teams[p['team']], 'p': pos_name[p['pos']],
                  'c': p['price'], 'x': round(p['xpts'], 2), 'xn': round(p['xnext'], 2),
-                 'g': p['gws'], 'tt': p['tot4'], 'pc': pct, 'pl': lik,
+                 'g': p['gws'], 'cg': p['chip_gws'], 'tt': p['tot4'], 'pc': pct, 'pl': lik,
                  's': p['sel'], 'mine': pkey(p) in MY_SQUAD, 'xi': pkey(p) in set(MY_XI),
                  'xm': p['xmins'], 'xmg': p['xmins_gws'], 'why': p['src']})
 gw_labels = ns['HORIZON_EVENTS']
@@ -250,6 +250,8 @@ const SQUAD = __SQUAD__;
 const LEAGUE = __LEAGUE__;
 const WEEK = __WEEK__;
 const CHIPS = __CHIPS__;
+const FHBEST = __FHBEST__;
+const CHIPEV = __CHIPEV__;
 const GWL = __GWL__;
 // tab routing (hash-based, default overview)
 const panes=[...document.querySelectorAll('.tabpane')];
@@ -591,56 +593,109 @@ function renderSquadTable(rows, el){
  }).catch(()=>{if(link)link.hidden=false});
 })();
 
-// ---- Chip planner -----------------------------------------------------
+// ---- Chip planner: what each chip is worth, week by week --------------
 (function(){
- const grid=document.getElementById('chipgrid'); if(!grid||!CHIPS.length)return;
- const META={tc:['Triple Captain','the single best attacking fixture on the board'],
-             bb:['Bench Boost','all fifteen playing a good fixture at once'],
-             fh:['Free Hit','a week that hurts most squads and rewards a few']};
- const wk=g=>CHIPS.find(r=>r.gw===g);
- function why(k,r){
-  const bits=[];
-  if(r.doubles.length)bits.push(r.doubles.length+' double'+(r.doubles.length>1?'s':'')+' ('+r.doubles.join(', ')+')');
-  if(r.blanks.length)bits.push(r.blanks.length+' blank'+(r.blanks.length>1?'s':''));
-  if(k==='tc'&&r.best)bits.push(r.best.team+' v '+r.best.opp+' at ×'+r.best.af.toFixed(2));
-  if(!bits.length)bits.push('no doubles or blanks — a flat week');
-  return bits.join(' · ');
+ const grid=document.getElementById('chipgrid'); if(!grid)return;
+ const META={tc:['Triple Captain','one extra copy of your captain'],
+             bb:['Bench Boost','your four bench players actually scoring'],
+             fh:['Free Hit','the best XI money can buy, for one week only']};
+ const MIN={GKP:1,DEF:3,MID:2,FWD:1}, MAX={GKP:1,DEF:5,MID:5,FWD:3};
+
+ // best legal XI from a fifteen. Only per-position caps and a total of eleven
+ // bind here, so taking the minimums then the best of the rest is optimal.
+ function bestXI(sq,i){
+  const val=r=>(r.cg&&r.cg[i]!=null)?r.cg[i]:0;
+  const by={GKP:[],DEF:[],MID:[],FWD:[]};
+  sq.forEach(r=>(by[r.p]||by.MID).push(r));
+  Object.values(by).forEach(a=>a.sort((x,y)=>val(y)-val(x)));
+  const xi=[]; Object.keys(MIN).forEach(k=>xi.push(...by[k].slice(0,MIN[k])));
+  const rest=sq.filter(r=>!xi.includes(r))
+    .filter(r=>xi.filter(z=>z.p===r.p).length<MAX[r.p])
+    .sort((x,y)=>val(y)-val(x));
+  while(xi.length<11&&rest.length){
+   const nx=rest.shift();
+   if(xi.filter(z=>z.p===nx.p).length<MAX[nx.p])xi.push(nx);
+  }
+  const bench=sq.filter(r=>!xi.includes(r));
+  const tot=xi.reduce((a,r)=>a+val(r),0);
+  const cap=xi.reduce((m,r)=>Math.max(m,val(r)),0);
+  return {xi,bench,tot,cap,benchSum:bench.reduce((a,r)=>a+val(r),0)};
  }
- // a pick is only worth making if it actually stands out; otherwise say hold
- function render(have){
+
+ function gains(sq){
+  return CHIPEV.map((ev,i)=>{
+   const b=bestXI(sq,i);
+   const fh=FHBEST[i];
+   return {gw:ev,
+    tc:b.cap,                                   // the third multiplier
+    bb:b.benchSum,                              // what the bench would add
+    fh:fh?Math.max(fh.total-(b.tot+b.cap),0):null,
+    fhcap:fh?fh.cap:null, own:b.tot+b.cap};
+  });
+ }
+
+ function render(rows,have,note){
   grid.innerHTML=Object.keys(META).filter(k=>have.includes(k.toUpperCase())).map(k=>{
-   const rank=[...CHIPS].sort((a,b)=>b[k]-a[k]);
+   const ok=rows.filter(r=>r[k]!=null);
+   if(!ok.length)return `<div class="chipcard"><div class="tl">${META[k][0]}</div>`+
+     `<div class="tv">?</div><div class="ts">not enough data to price this chip</div></div>`;
+   const rank=[...ok].sort((a,b)=>b[k]-a[k]);
    const top=rank[0], next=rank[1];
-   const edge=next?top[k]-next[k]:0;
-   const flat=edge < 0.15;
+   const extra = k==='fh'&&top.fhcap?` · captain ${esc(top.fhcap)}`:'';
    return `<div class="chipcard"><div class="tl">${META[k][0]}</div>`+
-    `<div class="tv">${flat?'Hold':'GW'+top.gw}</div>`+
-    `<div class="ts">${flat
-      ? 'nothing separates these weeks yet — GW'+top.gw+' leads by only '+edge.toFixed(2)
-      : esc(why(k,top))}</div>`+
-    `<div class="ts runner">${flat
-      ? 'GW'+top.gw+': '+esc(why(k,top))
-      : (next?('next best GW'+next.gw+' · '+esc(why(k,next))):'')}</div>`+
-    `<div class="ts mut">wants ${META[k][1]}</div></div>`;
+    `<div class="tv">GW${top.gw}</div>`+
+    `<div class="gain">+${top[k].toFixed(1)} pts</div>`+
+    `<div class="ts">against your current squad${extra}</div>`+
+    `<div class="ts runner">${next?`next best GW${next.gw} at +${next[k].toFixed(1)}`:''}</div>`+
+    `<div class="ts mut">worth ${META[k][1]}</div></div>`;
   }).join('')||'<p class="note">No chips left in this half of the season.</p>';
+
   const t=document.getElementById('chiptable');
   if(t)t.innerHTML='<tr><th class="num">GW</th><th>Doubles</th><th>Blanks</th>'+
-   '<th>Best single fixture</th><th class="num">TC</th><th class="num">BB</th><th class="num">FH</th></tr>'+
-   CHIPS.map(r=>`<tr><td class="num"><b>${r.gw}</b></td><td>${r.doubles.join(', ')||'—'}</td>`+
-    `<td>${r.blanks.join(', ')||'—'}</td>`+
-    `<td>${r.best?esc(r.best.team+' v '+r.best.opp)+' <span class="mut2">×'+r.best.af.toFixed(2)+'</span>':'—'}</td>`+
-    `<td class="num">${r.tc.toFixed(2)}</td><td class="num">${r.bb.toFixed(2)}</td>`+
-    `<td class="num">${r.fh.toFixed(2)}</td></tr>`).join('');
+   '<th class="num">Your XI</th><th class="num">TC gain</th><th class="num">BB gain</th>'+
+   '<th class="num">FH gain</th></tr>'+
+   rows.map(r=>{
+    const f=CHIPS.find(c=>c.gw===r.gw)||{doubles:[],blanks:[]};
+    const hi=(v,best)=>v!=null&&Math.abs(v-best)<0.05?' style="color:var(--accent);font-weight:700"':'';
+    const bTC=Math.max(...rows.map(x=>x.tc)), bBB=Math.max(...rows.map(x=>x.bb));
+    const fhv=rows.map(x=>x.fh).filter(v=>v!=null), bFH=fhv.length?Math.max(...fhv):null;
+    return `<tr><td class="num"><b>${r.gw}</b></td><td>${f.doubles.join(', ')||'—'}</td>`+
+     `<td>${f.blanks.join(', ')||'—'}</td><td class="num">${r.own.toFixed(1)}</td>`+
+     `<td class="num"${hi(r.tc,bTC)}>+${r.tc.toFixed(1)}</td>`+
+     `<td class="num"${hi(r.bb,bBB)}>+${r.bb.toFixed(1)}</td>`+
+     `<td class="num"${bFH!=null?hi(r.fh,bFH):''}>${r.fh==null?'—':'+'+r.fh.toFixed(1)}</td></tr>`;
+   }).join('');
+  const n=document.getElementById('chipnote'); if(n&&note)n.textContent=note;
  }
- // which chips the reader still holds; without a linked team, show them all
+
+ function squadFromLines(lines){
+  const idx=new Map(DATA.map(d=>[d.n+'|'+d.t,d]));
+  return lines.map(l=>{const q=l.trim().split(' '),t=q.pop();return idx.get(q.join(' ')+'|'+t)})
+              .filter(Boolean);
+ }
+ function noSquad(){
+  grid.innerHTML='<p class="note">Link your team on the <a href="/squads">Manager</a> page '+
+   'and each chip is priced against your actual fifteen — until then there is no squad to '+
+   'compare a Free Hit or a Bench Boost against.</p>';
+  const t=document.getElementById('chiptable'); if(t)t.innerHTML='';
+ }
+
  const tid=localStorage.getItem('fpl_team_id');
- if(!tid){render(['TC','BB','FH']);return}
+ if(!tid){
+  const saved=localStorage.getItem('fpl_my_squad');
+  if(!saved)return noSquad();
+  try{const sq=squadFromLines(JSON.parse(saved));
+      if(sq.length<15)return noSquad();
+      return render(gains(sq),['TC','BB','FH'],'from your saved squad');}
+  catch(e){return noSquad()}
+ }
  fetch('/api/team/'+encodeURIComponent(tid)).then(r=>r.json()).then(d=>{
+  const sq=squadFromLines((d&&d.lines)||[]);
+  if(sq.length<15)return noSquad();
   const c=d&&d.summary?d.summary.chips:undefined;
-  // unknown falls back to showing every chip - better an extra card than a
-  // flat "you have none left", which is a claim we cannot actually support
-  render(c==null?['TC','BB','FH']:c.map(x=>x.name));
- }).catch(()=>render(['TC','BB','FH']));
+  render(gains(sq), c==null?['TC','BB','FH']:c.map(x=>x.name),
+         c==null?'chip status unavailable — showing all three':'');
+ }).catch(noSquad);
 })();
 
 // ---- Football: league table and the week's kick-offs -------------------
@@ -977,6 +1032,55 @@ def week_fixtures(fixtures, team_name, event, table):
     return out
 
 
+def free_hit_ceiling(pts, gw_events, budget=100.0):
+    """Best legal fifteen, week by week, scored as an XI with a captain.
+
+    A Free Hit is worth the difference between the team you have and the team
+    you could field for one week, so the honest number needs the second half of
+    that comparison actually solved rather than guessed. One small MILP per
+    gameweek: 2/5/5/3, at most three per club, inside the budget, best eleven
+    from the fifteen, captain doubled - the same rules the chip is played under.
+    """
+    import pulp
+    pool = [q for q in pts if q['price'] > 0 and sum(q['chip_gws']) > 0]
+    out = []
+    for i, ev in enumerate(gw_events):
+        xp = [q['chip_gws'][i] if i < len(q['chip_gws']) else 0.0 for q in pool]
+        prob = pulp.LpProblem(f'fh{ev}', pulp.LpMaximize)
+        sq = [pulp.LpVariable(f's{j}', cat='Binary') for j in range(len(pool))]
+        xi = [pulp.LpVariable(f'x{j}', cat='Binary') for j in range(len(pool))]
+        cp = [pulp.LpVariable(f'c{j}', cat='Binary') for j in range(len(pool))]
+        prob += pulp.lpSum(xi[j] * xp[j] + cp[j] * xp[j] for j in range(len(pool)))
+        prob += pulp.lpSum(sq) == 15
+        prob += pulp.lpSum(xi) == 11
+        prob += pulp.lpSum(cp) == 1
+        prob += pulp.lpSum(sq[j] * pool[j]['price'] for j in range(len(pool))) <= budget
+        for j in range(len(pool)):
+            prob += xi[j] <= sq[j]
+            prob += cp[j] <= xi[j]
+        for code, quota, lo, hi in ((1, 2, 1, 1), (2, 5, 3, 5), (3, 5, 2, 5), (4, 3, 1, 3)):
+            idx = [j for j in range(len(pool)) if pool[j]['pos'] == code]
+            prob += pulp.lpSum(sq[j] for j in idx) == quota
+            prob += pulp.lpSum(xi[j] for j in idx) >= lo
+            prob += pulp.lpSum(xi[j] for j in idx) <= hi
+        clubs = {}
+        for j in range(len(pool)):
+            clubs.setdefault(pool[j]['team'], []).append(j)
+        for idx in clubs.values():
+            prob += pulp.lpSum(sq[j] for j in idx) <= 3
+        prob.solve(pulp.PULP_CBC_CMD(msg=0, timeLimit=20))
+        if pulp.LpStatus[prob.status] != 'Optimal':
+            out.append(None)
+            continue
+        chosen = [j for j in range(len(pool)) if xi[j].value() and xi[j].value() > 0.5]
+        capj = next((j for j in range(len(pool)) if cp[j].value() and cp[j].value() > 0.5), None)
+        out.append({'gw': ev,
+                    'total': round(sum(xp[j] for j in chosen)
+                                   + (xp[capj] if capj is not None else 0), 2),
+                    'cap': pool[capj]['name'] if capj is not None else None})
+    return out
+
+
 def chip_plan(fixtures, team_name, heat, from_gw, half_end=19, horizon=10):
     """Rank the remaining gameweeks in this half for each chip.
 
@@ -1039,6 +1143,14 @@ _fx_all = json.load(open('fixtures.json', encoding='utf-8'))
 LEAGUE = league_table(_fx_all, teams)
 WEEK = week_fixtures(_fx_all, teams, gw_labels[0], LEAGUE)
 CHIPS = chip_plan(_fx_all, teams, FIXMAP, gw_labels[0])
+CHIP_EVENTS = ns['CHIP_EVENTS']
+try:
+    FHBEST = free_hit_ceiling(pts, CHIP_EVENTS)
+    print('free hit ceiling: %d/%d gameweeks solved'
+          % (sum(1 for r in FHBEST if r), len(FHBEST)))
+except Exception as _fhe:  # noqa: BLE001 - chips degrade, page still builds
+    print('free hit ceiling skipped:', _fhe)
+    FHBEST = []
 
 _ev = next(e for e in ns['d']['events'] if e['id'] == gw_labels[0])
 _dl = datetime.strptime(_ev['deadline_time'], '%Y-%m-%dT%H:%M:%SZ') + timedelta(hours=1)  # UK summer time
@@ -1234,19 +1346,23 @@ def chip_html(rows):
     if not rows:
         return ('<section class="card"><h2>Chips</h2><p class="note">'
                 'No gameweeks left in this half to plan against.</p></section>')
-    out = ['<section class="card"><h2>Chip planner '
-           f'<span class="mut">GW{rows[0]["gw"]}–{rows[-1]["gw"]}</span></h2>'
-           '<p class="note">Each chip wants a different kind of gameweek, so each is ranked on '
-           'its own terms. Doubles and blanks move these scores more than fixture quality does, '
-           'so early in a season — before the cup competitions cut into the calendar — the '
-           'weeks look flat and the honest answer is <b>hold</b>. '
-           'Chips you have already spent are not shown.</p>'
-           '<div class="chipgrid" id="chipgrid"></div></section>']
-    out.append('<section class="card"><h2>Every gameweek, scored</h2>'
-               '<p class="note">The same numbers in full, so a close call is visible rather than '
-               'hidden behind a single pick.</p>'
-               '<div class="scroll"><table id="chiptable"></table></div></section>')
-    return ''.join(out)
+    return (
+        '<section class="card"><h2>Chip planner '
+        f'<span class="mut">GW{rows[0]["gw"]}–{rows[-1]["gw"]}</span></h2>'
+        '<p class="note">What each chip is worth, in points, against the squad you actually own. '
+        '<b>Triple Captain</b> is one extra copy of your best player that week. '
+        '<b>Bench Boost</b> is what your four bench players would add. '
+        '<b>Free Hit</b> is the best legal fifteen money can buy for that week — solved under '
+        'the real rules, 2/5/5/3, three per club, inside budget — minus what your own eleven '
+        'would have scored. Chips already spent are not shown.</p>'
+        '<p class="note" id="chipnote"></p>'
+        '<div class="chipgrid" id="chipgrid"></div></section>'
+        '<section class="card"><h2>Every gameweek, priced</h2>'
+        '<p class="note">The same numbers in full, so a close call is visible rather than hidden '
+        'behind one pick. Best week for each chip is highlighted. Projections thin out the '
+        'further ahead they run, and blanks and doubles are not yet scheduled this far out — '
+        'both will move these numbers.</p>'
+        '<div class="scroll"><table id="chiptable"></table></div></section>')
 
 
 def emit(path, personal):
@@ -1276,7 +1392,9 @@ def emit(path, personal):
                 .replace('__SQUAD__', json.dumps(squad_rows if personal else [], ensure_ascii=False))
                 .replace('__LEAGUE__', json.dumps(LEAGUE, ensure_ascii=False))
                 .replace('__WEEK__', json.dumps(WEEK, ensure_ascii=False))
-                .replace('__CHIPS__', json.dumps(CHIPS, ensure_ascii=False)))
+                .replace('__CHIPS__', json.dumps(CHIPS, ensure_ascii=False))
+                .replace('__FHBEST__', json.dumps(FHBEST, ensure_ascii=False))
+                .replace('__CHIPEV__', json.dumps(CHIP_EVENTS)))
     open(path, 'w', encoding='utf-8').write(page)
 
 

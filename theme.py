@@ -162,6 +162,8 @@ a{color:var(--accent)}
 .chipcard{background:var(--surface);border:1px solid var(--ring);border-radius:12px;padding:14px 16px}
 .chipcard .tv{font:400 27px/1.05 Anton,Impact,sans-serif;margin:6px 0 6px}
 .chipcard .ts{font-size:12px;color:var(--ink2);margin-top:4px}
+.chipcard .gain{font:700 19px/1.1 system-ui;color:var(--up);margin-top:2px;
+ font-variant-numeric:tabular-nums}
 .chipcard .runner{color:var(--muted);font-size:11.5px}
 
 /* league table: European places and the drop, plus a form strip */
