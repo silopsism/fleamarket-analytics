@@ -214,7 +214,6 @@ __SQUADSEC__
  <div class="chips" id="plannerchips"></div>
  <div class="scroll"><table id="planner"></table></div>
 </section>
-__VALUEBANDS__
 <section class="card">
  <h2>Differentials &amp; traps — the model vs the crowd</h2>
  <p class="note">Ownership against model score. Top-left: gems the crowd hasn't found.
@@ -288,9 +287,7 @@ __CHIPPLAN__
 </section>
 </div>
 
-<footer>Phase 1 model: built on prior-season Opta rates, expected minutes, transfer
-context, season expectations and fixtures — a value lens, not an oracle.
-<br>FPL data pulled __PULLED__ UK · refreshed hourly · __ODDSNOTE__
+<footer>FPL data pulled __PULLED__ UK · refreshed hourly · __ODDSNOTE__
 <br><span class="build">build __SHA__ · __SUBJECT__ · generated __BUILT__ UK</span></footer>
 </div>
 <div class="tip" id="tip"></div>
@@ -321,7 +318,7 @@ setTab();
 
 const COL = {DEF:'var(--def)',MID:'var(--mid)',FWD:'var(--fwd)',GKP:'var(--gkp)'};
 const dsvg=document.getElementById('diff'),
-      fsvg=document.getElementById('frontier'), tip = document.getElementById('tip');
+       tip = document.getElementById('tip');
 const W=940,L=52,R=16,T=14;
 const xmax=Math.max(...DATA.map(d=>d.c))+0.4, xmin=3.6;
 const ymax=Math.max(...DATA.map(d=>d.x))+0.4, ymin=0;
@@ -397,69 +394,7 @@ function drawDiff(f){
  dsvg.innerHTML=g;
 }
 
-function drawFrontier(f){
- const H=460,B=44;
- const X=v=>L+(v-xmin)/(xmax-xmin)*(W-L-R), Y=v=>H-B-(v-ymin)/(ymax-ymin)*(H-T-B);
- let g='';
- for(let p=Math.ceil(ymin);p<=ymax;p++) g+=`<line x1="${L}" x2="${W-R}" y1="${Y(p)}" y2="${Y(p)}" stroke="var(--grid)"/>`+
-  `<text x="${L-8}" y="${Y(p)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${p}</text>`;
- for(let c=4;c<=xmax;c+=1) g+=`<text x="${X(c)}" y="${H-B+18}" text-anchor="middle" font-size="11" fill="var(--muted)">£${c}</text>`;
- g+=`<line x1="${L}" x2="${W-R}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--axis)"/>`;
- g+=`<text x="${(L+W-R)/2}" y="${H-8}" text-anchor="middle" font-size="11.5" fill="var(--ink2)">Price (£m)</text>`;
- // faint field
- DATA.forEach((d,i)=>{
-  if(!show(d,f))return;
-  g+=`<g class="dot" data-i="${i}" opacity="0.22">${d.p==='GKP'?`<rect x="${X(d.c)-3.5}" y="${Y(d.x)-3.5}" width="7" height="7" fill="${COL[d.p]}"/>`:`<circle cx="${X(d.c)}" cy="${Y(d.x)}" r="3.8" fill="${COL[d.p]}"/>`}<circle cx="${X(d.c)}" cy="${Y(d.x)}" r="10" fill="transparent"/></g>`;
- });
- // running-best frontier: sorted by price, keep only new maxima
- const sorted=DATA.map((d,i)=>({d,i})).filter(o=>show(o.d,f)&&o.d.x>0)
-  .sort((a,b)=>a.d.c-b.d.c||b.d.x-a.d.x);
- const fr=[]; let best=-1;
- sorted.forEach(o=>{if(o.d.x>best){best=o.d.x;fr.push(o)}});
- if(fr.length){
-  let path=`M ${X(fr[0].d.c)} ${Y(fr[0].d.x)}`;
-  for(let k=1;k<fr.length;k++) path+=` L ${X(fr[k].d.c)} ${Y(fr[k-1].d.x)} L ${X(fr[k].d.c)} ${Y(fr[k].d.x)}`;
-  g+=`<path d="${path}" fill="none" stroke="var(--accent)" stroke-width="1.6" opacity="0.75"/>`;
-  fr.forEach(o=>{
-   g+=mark(o.d,o.i,X(o.d.c),Y(o.d.x));
-   g+=`<text x="${X(o.d.c)+9}" y="${Y(o.d.x)-7}" font-size="10.5" font-weight="600" fill="var(--ink2)">${esc(o.d.n)}</text>`;
-  });
- }
- fsvg.innerHTML=g;
-}
-
-function bindTips(el){
- el.addEventListener('pointermove',e=>{
-  const t=e.target.closest('.dot');
-  if(!t){tip.style.opacity=0;return}
-  const d=DATA[+t.dataset.i];
-  tip.innerHTML=`<b>${esc(d.n)}</b> <span class="r">${d.t} · ${d.p}</span><br>£${d.c.toFixed(1)}m · <b>${d.x}</b> xPts (next 4 GWs) · GW1: <b>${d.xn}</b><br><span class="r">${d.s}% owned${d.mine?' · in your squad':''}</span>`;
-  tip.style.opacity=1;
-  tip.style.left=Math.min(e.clientX+14,innerWidth-250)+'px';
-  tip.style.top=(e.clientY+14)+'px';
- });
- el.addEventListener('pointerleave',()=>tip.style.opacity=0);
-}
-bindTips(dsvg);bindTips(fsvg);
-
-function radios(id, fn){
- const box=document.getElementById(id);
- if(!box)return;
- ['All','DEF','MID','FWD','GKP'].forEach((p,idx)=>{
-  const b=document.createElement('button');
-  b.className='chip';b.dataset.p=p;
-  b.setAttribute('aria-pressed', idx===0 ? 'true' : 'false');
-  b.innerHTML=(p==='All'?'':`<span class="sw" style="background:${COL[p]}"></span>`)+p;
-  b.onclick=()=>{
-   box.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed','false'));
-   b.setAttribute('aria-pressed','true');
-   fn(p);
-  };
-  box.appendChild(b);
- });
-}
 radios('chips2', drawDiff);
-radios('chips3', drawFrontier);
 // fixture grid, scored in two directions and never collapsed into one. Both
 // bands are absolute expected goals so the colours mean the same thing in every
 // row; the multiplier against that team's own average — which is what the xPts
@@ -970,21 +905,6 @@ trapped = sorted((p for p in players if p['sel'] >= 15 and p['xpts'] < 3.2
                   and mins_by_id.get(p['id'], 0) >= 900),
                  key=lambda p: -p['sel'])[:8]
 
-# best players per price band per position (value-for-money tables)
-# exact 0.5m price points; only the sparse premium tail is grouped
-BANDS = {
-    1: [(4.0, 4.0, 3), (4.5, 4.5, 3), (5.0, 5.0, 3), (5.5, 6.5, 3)],
-    2: [(4.0, 4.0, 3), (4.5, 4.5, 3), (5.0, 5.0, 3), (5.5, 5.5, 3),
-        (6.0, 6.0, 3), (6.5, 8.5, 5)],
-    3: [(4.5, 4.5, 3), (5.0, 5.0, 3), (5.5, 5.5, 3), (6.0, 6.0, 3),
-        (6.5, 6.5, 3), (7.0, 7.0, 3), (7.5, 7.5, 3), (8.0, 8.0, 3),
-        (8.5, 9.5, 3), (10.0, 16.0, 3)],
-    4: [(4.5, 4.5, 3), (5.0, 5.0, 3), (5.5, 5.5, 3), (6.0, 6.0, 3),
-        (6.5, 6.5, 3), (7.0, 7.0, 3), (7.5, 7.5, 3), (8.0, 8.0, 3),
-        (8.5, 16.0, 5)],
-}
-
-
 _BUILD = version.write_stamp()
 _BUILD['sha'] = _BUILD['sha'][:7] if _BUILD['sha'] != 'unknown' else 'unknown'
 if version.dirty():
@@ -994,53 +914,6 @@ _BUILT_UK = (datetime.now(timezone.utc) + timedelta(hours=1)).strftime('%a %d %b
 
 def _esc(t):
     return (t.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'))
-
-
-def band_tables(personal):
-    v4set = set(MY_XI) | set(MY_BENCH)
-    cols = []
-    for pos_id in [2, 3, 4, 1]:
-        rows = ''
-        prev = None                       # top of the shelf below this one
-        bands = BANDS[pos_id]
-        for i, (lo, hi, n) in enumerate(bands):
-            last = (i == len(bands) - 1)
-            # A shelf is what a budget BUYS, not an exact price tag. FPL prices
-            # drift in 0.1 steps once the season is running, so testing for the
-            # exact 0.5 point quietly emptied every shelf of everyone who had
-            # risen or fallen a notch - leaving only the players still sitting
-            # on a round number, every one of them matching the shelf label.
-            top = 16.0 if last else hi
-            cand = sorted((p for p in players if p['pos'] == pos_id
-                           and (prev is None or p['price'] > prev)
-                           and p['price'] <= top and p['xmins'] >= 45),
-                          key=lambda p: -p['xpts'])[:n]
-            label = (f'over £{prev:.1f}' if last and prev is not None
-                     else f'£{hi:.1f}')
-            prev = hi
-            if not cand:
-                continue
-            rows += (f"<tr><th colspan='4' style='padding-top:10px'>{label}</th></tr>"
-                     + ''.join(
-                f"<tr><td>{'● ' if personal and pkey(p) in v4set else ''}<b>{p['name']}</b> "
-                f"<span style='color:var(--muted)'>{teams[p['team']]}</span></td>"
-                f"<td class='num'>{p['price']:.1f}</td><td class='num'>{p['sel']:.0f}%</td>"
-                f"<td class='num'><b>{p['xpts']:.2f}</b></td></tr>" for p in cand))
-        cols.append(f"<div><h3>{pos_name[pos_id]}</h3><div class='scroll'><table>"
-                    f"<tr><th>Player</th><th class='num'>£m</th><th class='num'>Own</th>"
-                    f"<th class='num'>xPts</th></tr>{rows}</table></div></div>")
-    note = ('<p class="note" style="margin:8px 0 0">● = our squad. ' if personal else
-            '<p class="note" style="margin:8px 0 0">')
-    return ('<section class="card"><h2>Best at every price point</h2>'
-            '<p class="note">The frontier chart shows every player faintly, with the best score at '
-            'each price bolded, named, and joined by a running-best line — anyone ON the line is '
-            'the strongest buy at that money. Each table shelf is what that budget buys: '
-            '£5.0 means anyone from just over £4.5 up to £5.0, so a risen £4.6 shows there. '
-            'Only players expected to start (45+ expected minutes).</p>'
-            '<div class="chips" id="chips3"></div>'
-            '<svg id="frontier" viewBox="0 0 940 460" role="img" aria-label="Value frontier: expected points against price"></svg>'
-            f"<div class='cols' style='margin-top:18px'><div class='stack'>{cols[0]}{cols[2]}</div><div class='stack'>{cols[1]}{cols[3]}</div></div>"
-            + note + 'Scores are per team gameweek and price in availability.</p></section>')
 
 
 SQUAD_SEC = """<section class="card">
@@ -1558,7 +1431,6 @@ def emit(path, personal):
     # flags in the embedded JSON) so nothing about our team leaks pre-deadline
     dat = data if personal else [{**r, 'mine': False, 'xi': False} for r in data]
     page = (html.replace('__STYLE__', theme.style_block())
-                .replace('__VALUEBANDS__', band_tables(personal))
                 .replace('__CHIPPLAN__', chip_html(CHIPS))
                 .replace('__SQUADSEC__', SQUAD_SEC if personal else '')
                 .replace('__ODDSNOTE__', _odds_note)

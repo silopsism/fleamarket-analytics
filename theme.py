@@ -402,7 +402,7 @@ th.gwsel:hover{color:var(--accent)}
 .mini .row:last-child{border-bottom:0}
 
 /* charts */
-#scat,#diff,#frontier{width:100%;height:auto;display:block}
+#scat,#diff{width:100%;height:auto;display:block}
 .tip{position:fixed;pointer-events:none;background:var(--surface);border:1px solid var(--axis);
  border-radius:9px;padding:9px 12px;font-size:12.5px;box-shadow:0 6px 20px rgba(0,0,0,.22);
  opacity:0;transition:opacity .12s;z-index:9;max-width:240px}
