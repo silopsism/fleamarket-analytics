@@ -120,7 +120,7 @@ __STYLE__
 <p class="sub" style="margin-top:16px">Every player scored from last season's Opta rates (xG, xA,
 clean sheets, defensive contributions), season expectations, and fixtures. __SUBNOTE__</p>
 <div class="tiles">
- <div class="tile urgent"><div class="tl">Deadline</div><div class="tv" id="tile-cd">__DL_TIME__</div><div class="ts">__DL_GW__</div></div>
+ <div class="tile urgent"><div class="tl">Deadline</div><div class="tv" id="tile-cd">__DL_TIME__</div><div class="dlwhen" id="tile-dl">__DL_TIME__</div><div class="ts">__DL_GW__</div></div>
  <div class="tile me" id="tile-rank" hidden><div class="tl">Overall rank</div><div class="tv" id="tile-rank-v">–</div><div class="ts" id="tile-rank-s">–</div></div>
  <div class="tile me" id="tile-val" hidden><div class="tl">Team value</div><div class="tv" id="tile-val-v">–</div><div class="ts" id="tile-val-s">all 15 players</div></div>
  <div class="tile me" id="tile-ft" hidden><div class="tl">Free transfers</div><div class="tv" id="tile-ft-v">–</div><div class="ts" id="tile-ft-s">–</div></div>
@@ -530,6 +530,18 @@ function renderSquadTable(rows, el){
  const el=document.getElementById('tile-cd'), when=Date.parse('__DL_ISO__');
  if(!el||isNaN(when))return;
  const tile=el.closest('.tile');
+ // the deadline in the READER's timezone, not the league's. UK time is what
+ // every FPL site quotes, so it stays as the small print for cross-reference,
+ // but the time you actually have to act by is the one on your own clock.
+ const wh=document.getElementById('tile-dl');
+ if(wh){
+  const d=new Date(when);
+  try{
+   const f=new Intl.DateTimeFormat(undefined,{weekday:'short',day:'numeric',month:'short',
+     hour:'2-digit',minute:'2-digit',hour12:false,timeZoneName:'short'});
+   wh.textContent=f.format(d).replace(',','');
+  }catch(e){ wh.textContent=d.toLocaleString(); }
+ }
  function tick(){
   let ms=when-Date.now();
   if(ms<=0){el.textContent='Deadline passed';tile.classList.remove('urgent');return}
@@ -569,7 +581,10 @@ function renderSquadTable(rows, el){
   if(m.free_transfers!=null)
    show('tile-ft', m.free_transfers, m.free_transfers>=5
      ? 'at the cap — use one or lose it' : 'banked, up to 5');
-  if(m.chips){
+  // null means we could not read them; [] means they are genuinely gone
+  if(m.chips===null||m.chips===undefined){
+   show('tile-chips','?','could not read chip status');
+  }else{
    show('tile-chips', m.chips.length?m.chips.map(c=>c.name).join(' · '):'none',
      m.chips.length?('expire after GW'+m.chips[0].until):'all spent this half');
   }
@@ -620,9 +635,12 @@ function renderSquadTable(rows, el){
  // which chips the reader still holds; without a linked team, show them all
  const tid=localStorage.getItem('fpl_team_id');
  if(!tid){render(['TC','BB','FH']);return}
- fetch('/api/team/'+encodeURIComponent(tid)).then(r=>r.json())
-  .then(d=>render(((d&&d.summary&&d.summary.chips)||[]).map(c=>c.name)))
-  .catch(()=>render(['TC','BB','FH']));
+ fetch('/api/team/'+encodeURIComponent(tid)).then(r=>r.json()).then(d=>{
+  const c=d&&d.summary?d.summary.chips:undefined;
+  // unknown falls back to showing every chip - better an extra card than a
+  // flat "you have none left", which is a claim we cannot actually support
+  render(c==null?['TC','BB','FH']:c.map(x=>x.name));
+ }).catch(()=>render(['TC','BB','FH']));
 })();
 
 // ---- Football: league table and the week's kick-offs -------------------
@@ -1025,7 +1043,7 @@ CHIPS = chip_plan(_fx_all, teams, FIXMAP, gw_labels[0])
 _ev = next(e for e in ns['d']['events'] if e['id'] == gw_labels[0])
 _dl = datetime.strptime(_ev['deadline_time'], '%Y-%m-%dT%H:%M:%SZ') + timedelta(hours=1)  # UK summer time
 tile_deadline = _dl.strftime('%a %d %b, %H:%M')
-tile_dl_gw = f"GW{gw_labels[0]} · {_dl.strftime('%a %H:%M')} UK"
+tile_dl_gw = f"GW{gw_labels[0]} · {_dl.strftime('%H:%M')} UK"
 # the raw instant, so the tile can count down live rather than print a date the
 # reader then has to subtract today from
 _dl_iso = _ev['deadline_time'].replace('Z', '+00:00')

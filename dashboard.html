@@ -112,6 +112,9 @@ a{color:var(--accent)}
 .tile .ts{font-size:12px;color:var(--ink2);margin-top:3px}
 /* the deadline is the one number on this page with a clock on it */
 .tile.urgent{--tint:var(--warn)}
+/* the deadline instant itself: readable, not small print */
+.tile .dlwhen{font:700 16px/1.25 system-ui;color:var(--ink);margin-top:6px;
+ font-variant-numeric:tabular-nums;white-space:nowrap}
 .tile.urgent .tv{color:var(--warn);font-variant-numeric:tabular-nums}
 .tile .tv a{color:inherit;text-decoration:none;border-bottom:2px solid var(--accent)}
 .tile.me .ts .up,.tile.me .ts .down{font-size:12px}
@@ -395,7 +398,7 @@ footer .build{display:inline-block;margin-top:6px;font-family:ui-monospace,
 <p class="sub" style="margin-top:16px">Every player scored from last season's Opta rates (xG, xA,
 clean sheets, defensive contributions), season expectations, and fixtures. </p>
 <div class="tiles">
- <div class="tile urgent"><div class="tl">Deadline</div><div class="tv" id="tile-cd">Sat 12 Sep, 13:30</div><div class="ts">GW4 · Sat 13:30 UK</div></div>
+ <div class="tile urgent"><div class="tl">Deadline</div><div class="tv" id="tile-cd">Sat 12 Sep, 13:30</div><div class="dlwhen" id="tile-dl">Sat 12 Sep, 13:30</div><div class="ts">GW4 · 13:30 UK</div></div>
  <div class="tile me" id="tile-rank" hidden><div class="tl">Overall rank</div><div class="tv" id="tile-rank-v">–</div><div class="ts" id="tile-rank-s">–</div></div>
  <div class="tile me" id="tile-val" hidden><div class="tl">Team value</div><div class="tv" id="tile-val-v">–</div><div class="ts" id="tile-val-s">all 15 players</div></div>
  <div class="tile me" id="tile-ft" hidden><div class="tl">Free transfers</div><div class="tv" id="tile-ft-v">–</div><div class="ts" id="tile-ft-s">–</div></div>
@@ -514,8 +517,8 @@ clean sheets, defensive contributions), season expectations, and fixtures. </p>
 
 <footer>Phase 1 model: built on prior-season Opta rates, expected minutes, transfer
 context, season expectations and fixtures — a value lens, not an oracle.
-<br>FPL data pulled Sat 12 Sep 09:00 UK · refreshed hourly · fixtures priced by bookmaker odds: 10 · fixture model k(attack)=0.78, k(opponent defence)=0.80, home ×1.10, rmse 0.182
-<br><span class="build">build 238c94d+dirty · Market movements move to News, windowed on the gameweek · generated Sat 12 Sep 09:00 UK</span></footer>
+<br>FPL data pulled Sat 12 Sep 09:06 UK · refreshed hourly · fixtures priced by bookmaker odds: 10 · fixture model k(attack)=0.78, k(opponent defence)=0.80, home ×1.10, rmse 0.182
+<br><span class="build">build 8b53374+dirty · Reattach the /news route to news_page · generated Sat 12 Sep 09:06 UK</span></footer>
 </div>
 <div class="tip" id="tip"></div>
 <script>
@@ -806,6 +809,18 @@ function renderSquadTable(rows, el){
  const el=document.getElementById('tile-cd'), when=Date.parse('2026-09-12T12:30:00+00:00');
  if(!el||isNaN(when))return;
  const tile=el.closest('.tile');
+ // the deadline in the READER's timezone, not the league's. UK time is what
+ // every FPL site quotes, so it stays as the small print for cross-reference,
+ // but the time you actually have to act by is the one on your own clock.
+ const wh=document.getElementById('tile-dl');
+ if(wh){
+  const d=new Date(when);
+  try{
+   const f=new Intl.DateTimeFormat(undefined,{weekday:'short',day:'numeric',month:'short',
+     hour:'2-digit',minute:'2-digit',hour12:false,timeZoneName:'short'});
+   wh.textContent=f.format(d).replace(',','');
+  }catch(e){ wh.textContent=d.toLocaleString(); }
+ }
  function tick(){
   let ms=when-Date.now();
   if(ms<=0){el.textContent='Deadline passed';tile.classList.remove('urgent');return}
@@ -845,7 +860,10 @@ function renderSquadTable(rows, el){
   if(m.free_transfers!=null)
    show('tile-ft', m.free_transfers, m.free_transfers>=5
      ? 'at the cap — use one or lose it' : 'banked, up to 5');
-  if(m.chips){
+  // null means we could not read them; [] means they are genuinely gone
+  if(m.chips===null||m.chips===undefined){
+   show('tile-chips','?','could not read chip status');
+  }else{
    show('tile-chips', m.chips.length?m.chips.map(c=>c.name).join(' · '):'none',
      m.chips.length?('expire after GW'+m.chips[0].until):'all spent this half');
   }
@@ -896,9 +914,12 @@ function renderSquadTable(rows, el){
  // which chips the reader still holds; without a linked team, show them all
  const tid=localStorage.getItem('fpl_team_id');
  if(!tid){render(['TC','BB','FH']);return}
- fetch('/api/team/'+encodeURIComponent(tid)).then(r=>r.json())
-  .then(d=>render(((d&&d.summary&&d.summary.chips)||[]).map(c=>c.name)))
-  .catch(()=>render(['TC','BB','FH']));
+ fetch('/api/team/'+encodeURIComponent(tid)).then(r=>r.json()).then(d=>{
+  const c=d&&d.summary?d.summary.chips:undefined;
+  // unknown falls back to showing every chip - better an extra card than a
+  // flat "you have none left", which is a claim we cannot actually support
+  render(c==null?['TC','BB','FH']:c.map(x=>x.name));
+ }).catch(()=>render(['TC','BB','FH']));
 })();
 
 // ---- Football: league table and the week's kick-offs -------------------

@@ -218,6 +218,10 @@ def model_data():
         _cache.update(ts=mtime, players={p['id']: p for p in ns['players']},
                       teams=teams, events=boot['events'], heat=heat,
                       gwl=ns['HORIZON_EVENTS'],
+                      # chip windows, which entry_summary needs to work out what
+                      # is still unspent. Leaving them out silently reported every
+                      # chip as gone: the availability loop had nothing to iterate.
+                      chips=boot.get('chips') or [],
                       elements={e['id']: e for e in boot['elements']})
     return _cache
 
@@ -1566,8 +1570,16 @@ def entry_summary(team_id, entry, m):
     # Chips come in two batches. Anything issued for a window we are still in,
     # and not already spent inside it, is available.
     now_gw = (locked_gw(m) or 0) + 1
+    defs = m.get('chips') or []
+    if not defs:
+        # "no chips left" and "we do not know" are different answers, and only
+        # one of them should ever be shown as fact
+        out['chips'] = None
+        out['chips_error'] = 'chip definitions unavailable'
+        out['free_transfers'] = free_transfers(cur, played)
+        return out
     avail = []
-    for c in (m.get('chips') or []):
+    for c in defs:
         lo, hi = c.get('start_event') or 1, c.get('stop_event') or 38
         if not lo <= now_gw <= hi:
             continue

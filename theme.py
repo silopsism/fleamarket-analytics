@@ -144,6 +144,9 @@ a{color:var(--accent)}
 .tile .ts{font-size:12px;color:var(--ink2);margin-top:3px}
 /* the deadline is the one number on this page with a clock on it */
 .tile.urgent{--tint:var(--warn)}
+/* the deadline instant itself: readable, not small print */
+.tile .dlwhen{font:700 16px/1.25 system-ui;color:var(--ink);margin-top:6px;
+ font-variant-numeric:tabular-nums;white-space:nowrap}
 .tile.urgent .tv{color:var(--warn);font-variant-numeric:tabular-nums}
 .tile .tv a{color:inherit;text-decoration:none;border-bottom:2px solid var(--accent)}
 .tile.me .ts .up,.tile.me .ts .down{font-size:12px}
