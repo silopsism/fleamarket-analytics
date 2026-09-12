@@ -277,13 +277,17 @@ PAGE = """<meta charset="utf-8"><meta name="viewport" content="width=device-widt
 <div class="brand"><span class="mark">Flea<em>market</em></span><span class="season">2026/27</span></div>
 <nav class="tabs">
  <a class="tab" href="/#overview">Overview</a>
- <a class="tab" href="/#value">Value</a>
  <a class="tab" href="/#planner">Planner</a>
- <a class="tab" href="/#market">Market</a>
+ <a class="tab" href="/#chips">Chips</a>
  <a class="tab" href="/#fixtures">Fixtures</a>
- <a class="tab" href="/#teams">Teams</a>
- <a class="tab" id="navnews" href="/news">News</a>
  <a class="tab" id="navsquads" href="/squads">Manager</a>
+ <a class="tab" id="navnews" href="/news">News</a>
+</nav>
+<nav class="tabs sub" aria-label="Not about fantasy">
+ <span class="navlbl">Football</span>
+ <a class="tab" href="/#teams">Transfer window</a>
+ <a class="tab" href="/#table">League table</a>
+ <a class="tab" href="/#week">This week</a>
 </nav>
 <script>(function(){{
  var p=location.pathname;
@@ -1294,6 +1298,31 @@ TAG_LABEL = {'out': 'unavailable', 'doubt': 'fitness doubt', 'rotation': 'rotati
 
 
 @app.get('/news', response_class=HTMLResponse)
+def movements_html():
+    """Market movements, as published by dashboard.py.
+
+    Lives on News rather than the Overview: both answer "what changed this week
+    in FPL", while the Overview is about the reader's own team. Read from a
+    published fragment so this route never recomputes the snapshot history, and
+    kept OUT of the news-sweep branches - movements do not depend on the sweep,
+    and hiding them behind it meant they vanished on every cold container.
+    """
+    import html as _hh
+    try:
+        raw = open('movements.html', encoding='utf-8').read()
+    except FileNotFoundError:
+        return ''
+    except Exception as exc:  # noqa: BLE001
+        return f'<p class="note">Movements unavailable ({_hh.escape(str(exc)[:60])}).</p>'
+    win = ''
+    if raw.startswith('<!--') and '-->' in raw:
+        win, raw = raw[4:raw.index('-->')], raw[raw.index('-->') + 3:]
+    return (f'<div class="card"><h2 style="font-size:16px">Market movements '
+            f'<span class="mut">{_hh.escape(win)}</span></h2>'
+            f'<p class="note">Who the crowd is buying and selling, from our own '
+            f'snapshot history.</p><div class="cols">{raw}</div></div>')
+
+
 def news_page(refresh: str = ''):
     import html as _h
     if refresh:
@@ -1301,14 +1330,14 @@ def news_page(refresh: str = ''):
         return render(title='News', body=(
             '<h1>Sweeping…</h1><p class="sub">Fetching the latest headlines for the '
             'top-projected players — takes about a minute. '
-            '<a href="/news">Reload the news page</a> shortly.</p>'))
+            '<a href="/news">Reload the news page</a> shortly.</p>' + movements_html()))
     p = news_payload()
     if not p:
         if news_is_stale():
             threading.Thread(target=run_news_sweep, daemon=True).start()
         return render(title='News', body=(
             '<h1>Player news</h1><p class="sub">First sweep is running — reload in a '
-            'minute. <a href="/news">Reload</a></p>'))
+            'minute. <a href="/news">Reload</a></p>' + movements_html()))
     if news_is_stale():
         threading.Thread(target=run_news_sweep, daemon=True).start()
 
@@ -1418,23 +1447,7 @@ def news_page(refresh: str = ''):
         feed = '<p class="note">No player headlines in the window.</p>'
 
     when = p['ts'].replace('T', ' ')[:16]
-    # Market movements live here rather than on the Overview: both answer
-    # "what changed this week in FPL", while the Overview is about the reader's
-    # own team. dashboard.py publishes the fragment so this route does not have
-    # to recompute the snapshot history on every request.
-    moves, move_win = '', ''
-    try:
-        raw = open('movements.html', encoding='utf-8').read()
-        if raw.startswith('<!--'):
-            move_win, raw = raw[4:raw.index('-->')], raw[raw.index('-->') + 3:]
-        moves = (f'<div class="card"><h2 style="font-size:16px">Market movements '
-                 f'<span class="mut">{_h.escape(move_win)}</span></h2>'
-                 f'<p class="note">Who the crowd is buying and selling, from our own '
-                 f'snapshot history.</p><div class="cols">{raw}</div></div>')
-    except FileNotFoundError:
-        pass
-    except Exception as exc:  # noqa: BLE001
-        moves = f'<p class="note">Movements unavailable ({_h.escape(str(exc)[:60])}).</p>'
+    moves = movements_html()
     body = (
         '<h1>Player news</h1>'
         f'<p class="sub">Headlines from the last {p["days"]} days for the '
