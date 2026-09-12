@@ -139,6 +139,8 @@ a{color:var(--accent)}
 .chipcard .alts .agw{font-weight:700;color:var(--ink)}
 .chipcard .alts .why{color:var(--muted);overflow:hidden;text-overflow:ellipsis}
 .warn{color:var(--warn)}
+.chipcard .gain.unpriced{font:600 12.5px/1.3 system-ui;color:var(--muted)}
+.chipcard .bestp{color:var(--ink);font-size:11.5px;margin-top:5px}
 .chipcard .warn{font-size:11.5px;line-height:1.4;margin-top:6px}
 p.note.warn{border-left:3px solid var(--warn);padding-left:10px;margin-top:12px}
 
@@ -560,8 +562,8 @@ clean sheets, defensive contributions), season expectations, and fixtures. </p>
 
 <footer>Phase 1 model: built on prior-season Opta rates, expected minutes, transfer
 context, season expectations and fixtures — a value lens, not an oracle.
-<br>FPL data pulled Sat 12 Sep 09:38 UK · refreshed hourly · fixtures priced by bookmaker odds: 10 · fixture model k(attack)=0.78, k(opponent defence)=0.80, home ×1.10, rmse 0.182
-<br><span class="build">build 76836a2+dirty · One origin, and rescue the data stranded on the other · generated Sat 12 Sep 09:38 UK</span></footer>
+<br>FPL data pulled Sat 12 Sep 09:40 UK · refreshed hourly · fixtures priced by bookmaker odds: 10 · fixture model k(attack)=0.78, k(opponent defence)=0.80, home ×1.10, rmse 0.182
+<br><span class="build">build a8ebd8d+dirty · Chips are a calendar decision, so rank fixtures and price only what  · generated Sat 12 Sep 09:40 UK</span></footer>
 </div>
 <div class="tip" id="tip"></div>
 <script>
@@ -994,7 +996,21 @@ function renderSquadTable(rows, el){
    const span=all[0][k]-all[all.length-1][k];
    const base=Math.abs(all[0][k])||1;
    const weak=(span/base)<0.08;
-   const gain=tp&&tp[k]!=null?`<div class="gain">+${tp[k].toFixed(1)} pts</div>`:'';
+   const gain=tp&&tp[k]!=null
+    ? `<div class="gain">+${tp[k].toFixed(1)} pts</div>`
+    : `<div class="gain unpriced">beyond the priced window</div>`;
+   // The list is ordered by FIXTURES, which is the planner's job, but the points
+   // are the better estimate wherever they exist. When the two disagree - and
+   // for a chip like Bench Boost, whose fixture spread is noise, they routinely
+   // will - say so rather than leaving a headline that its own runner-up beats.
+   const pricedRows=CHIPS.filter(r=>priced[r.gw]&&priced[r.gw][k]!=null)
+     .sort((a,b)=>priced[b.gw][k]-priced[a.gw][k]);
+   const bestPriced=pricedRows[0];
+   const disagrees=bestPriced&&(!tp||tp[k]==null||bestPriced.gw!==top.gw);
+   const bestLine=disagrees
+    ? `<div class="ts bestp">On points alone the pick is <b>GW${bestPriced.gw}</b> at `
+      + `+${priced[bestPriced.gw][k].toFixed(1)} — best of the weeks we can price.</div>`
+    : '';
    const alts=rank.slice(1).map(r=>{
     const p=priced[r.gw];
     const val=p&&p[k]!=null?`<b>+${p[k].toFixed(1)}</b>`:'<span class="mut2">fixtures only</span>';
@@ -1008,7 +1024,7 @@ function renderSquadTable(rows, el){
     : '';
    return `<div class="chipcard"><div class="tl">${META[k].name}</div>`+
     `<div class="tv">GW${top.gw}</div>${gain}`+
-    `<div class="ts">${esc(reason(k,top,tp))}</div>${flag}`+
+    `<div class="ts">${esc(reason(k,top,tp))}</div>${bestLine}${flag}`+
     `<ol class="alts">${alts}</ol>`+
     `<div class="ts mut">wants ${META[k].want}</div></div>`;
   }).join('')||'<p class="note">No chips left in this half of the season.</p>';

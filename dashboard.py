@@ -672,7 +672,21 @@ function renderSquadTable(rows, el){
    const span=all[0][k]-all[all.length-1][k];
    const base=Math.abs(all[0][k])||1;
    const weak=(span/base)<0.08;
-   const gain=tp&&tp[k]!=null?`<div class="gain">+${tp[k].toFixed(1)} pts</div>`:'';
+   const gain=tp&&tp[k]!=null
+    ? `<div class="gain">+${tp[k].toFixed(1)} pts</div>`
+    : `<div class="gain unpriced">beyond the priced window</div>`;
+   // The list is ordered by FIXTURES, which is the planner's job, but the points
+   // are the better estimate wherever they exist. When the two disagree - and
+   // for a chip like Bench Boost, whose fixture spread is noise, they routinely
+   // will - say so rather than leaving a headline that its own runner-up beats.
+   const pricedRows=CHIPS.filter(r=>priced[r.gw]&&priced[r.gw][k]!=null)
+     .sort((a,b)=>priced[b.gw][k]-priced[a.gw][k]);
+   const bestPriced=pricedRows[0];
+   const disagrees=bestPriced&&(!tp||tp[k]==null||bestPriced.gw!==top.gw);
+   const bestLine=disagrees
+    ? `<div class="ts bestp">On points alone the pick is <b>GW${bestPriced.gw}</b> at `
+      + `+${priced[bestPriced.gw][k].toFixed(1)} — best of the weeks we can price.</div>`
+    : '';
    const alts=rank.slice(1).map(r=>{
     const p=priced[r.gw];
     const val=p&&p[k]!=null?`<b>+${p[k].toFixed(1)}</b>`:'<span class="mut2">fixtures only</span>';
@@ -686,7 +700,7 @@ function renderSquadTable(rows, el){
     : '';
    return `<div class="chipcard"><div class="tl">${META[k].name}</div>`+
     `<div class="tv">GW${top.gw}</div>${gain}`+
-    `<div class="ts">${esc(reason(k,top,tp))}</div>${flag}`+
+    `<div class="ts">${esc(reason(k,top,tp))}</div>${bestLine}${flag}`+
     `<ol class="alts">${alts}</ol>`+
     `<div class="ts mut">wants ${META[k].want}</div></div>`;
   }).join('')||'<p class="note">No chips left in this half of the season.</p>';

@@ -171,6 +171,8 @@ a{color:var(--accent)}
 .chipcard .alts .agw{font-weight:700;color:var(--ink)}
 .chipcard .alts .why{color:var(--muted);overflow:hidden;text-overflow:ellipsis}
 .warn{color:var(--warn)}
+.chipcard .gain.unpriced{font:600 12.5px/1.3 system-ui;color:var(--muted)}
+.chipcard .bestp{color:var(--ink);font-size:11.5px;margin-top:5px}
 .chipcard .warn{font-size:11.5px;line-height:1.4;margin-top:6px}
 p.note.warn{border-left:3px solid var(--warn);padding-left:10px;margin-top:12px}
 
