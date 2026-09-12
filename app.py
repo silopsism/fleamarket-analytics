@@ -292,14 +292,9 @@ PAGE = """<meta charset="utf-8"><meta name="viewport" content="width=device-widt
  <a class="tab" href="/#planner">Planner</a>
  <a class="tab" href="/#chips">Chips</a>
  <a class="tab" href="/#fixtures">Fixtures</a>
+ <a class="tab" href="/#football">Football</a>
  <a class="tab" id="navsquads" href="/squads">Manager</a>
  <a class="tab" id="navnews" href="/news">News</a>
-</nav>
-<nav class="tabs sub" aria-label="Not about fantasy">
- <span class="navlbl">Football</span>
- <a class="tab" href="/#teams">Transfer window</a>
- <a class="tab" href="/#table">League table</a>
- <a class="tab" href="/#week">This week</a>
 </nav>
 <script>(function(){{
  var p=location.pathname;

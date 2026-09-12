@@ -151,12 +151,6 @@ a{color:var(--accent)}
 .tile .tv a{color:inherit;text-decoration:none;border-bottom:2px solid var(--accent)}
 .tile.me .ts .up,.tile.me .ts .down{font-size:12px}
 
-/* the secondary nav: present, but visibly not the main event */
-.tabs.sub{margin-top:-4px;gap:6px;opacity:.82;border-top:1px dashed var(--grid);padding-top:8px}
-.tabs.sub .tab{font-size:12px;padding:5px 10px}
-.navlbl{font:700 10px/1 Archivo;letter-spacing:.13em;text-transform:uppercase;
- color:var(--muted);align-self:center;margin-right:2px}
-
 /* chip planner cards */
 .chipgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:14px}
 .chipcard{background:var(--surface);border:1px solid var(--ring);border-radius:12px;padding:14px 16px}
@@ -451,9 +445,8 @@ EMBLEMS = {
     'planner': _emb("<rect x='3' y='5' width='18' height='16' rx='2'/>"
                     "<path d='M3 10.2h18M8 3v4M16 3v4'/>"
                     "<path d='M7.5 14h3M13.5 14h3M7.5 17.6h3M13.5 17.6h3'/>"),
-    'table': _emb("<rect x='3' y='4' width='18' height='16' rx='2'/>"
-                  "<path d='M3 9.3h18M3 14.6h18M8.5 4v16'/>", sw='1.7'),
-    'week': _emb("<circle cx='12' cy='12' r='8.6'/><path d='M12 6.8V12l3.6 2.2'/>", sw='1.8'),
+    'football': _emb("<rect x='3' y='4' width='18' height='16' rx='2'/>"
+                     "<path d='M3 9.3h18M3 14.6h18M8.5 4v16'/>", sw='1.7'),
     'fixtures': _emb("<rect x='2.5' y='4.5' width='19' height='15' rx='1.5'/>"
                      "<path d='M12 4.5v15'/><circle cx='12' cy='12' r='2.8'/>"
                      "<path d='M2.5 9h3.2v6H2.5M21.5 9h-3.2v6h3.2'/>"),

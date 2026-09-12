@@ -119,12 +119,6 @@ a{color:var(--accent)}
 .tile .tv a{color:inherit;text-decoration:none;border-bottom:2px solid var(--accent)}
 .tile.me .ts .up,.tile.me .ts .down{font-size:12px}
 
-/* the secondary nav: present, but visibly not the main event */
-.tabs.sub{margin-top:-4px;gap:6px;opacity:.82;border-top:1px dashed var(--grid);padding-top:8px}
-.tabs.sub .tab{font-size:12px;padding:5px 10px}
-.navlbl{font:700 10px/1 Archivo;letter-spacing:.13em;text-transform:uppercase;
- color:var(--muted);align-self:center;margin-right:2px}
-
 /* chip planner cards */
 .chipgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:14px}
 .chipcard{background:var(--surface);border:1px solid var(--ring);border-radius:12px;padding:14px 16px}
@@ -396,7 +390,7 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--grid);
  font-size:12px;color:var(--muted);max-width:74ch}
 footer .build{display:inline-block;margin-top:6px;font-family:ui-monospace,
  SFMono-Regular,Menlo,monospace;font-size:11px;opacity:.75}
-:root{--emb:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.3%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%279%27/%3E%3Cpath%20d%3D%27M12%206.4l3.4%202.5-1.3%204h-4.2l-1.3-4z%27/%3E%3Cpath%20d%3D%27M12%203v3.4M4.4%209.3l2.9%201.1M19.6%209.3l-2.9%201.1M7.2%2019.7l1.7-3.2M16.8%2019.7l-1.7-3.2%27/%3E%3C/svg%3E");--emb-ball:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.3%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%279%27/%3E%3Cpath%20d%3D%27M12%206.4l3.4%202.5-1.3%204h-4.2l-1.3-4z%27/%3E%3Cpath%20d%3D%27M12%203v3.4M4.4%209.3l2.9%201.1M19.6%209.3l-2.9%201.1M7.2%2019.7l1.7-3.2M16.8%2019.7l-1.7-3.2%27/%3E%3C/svg%3E")}.tabpane[data-tab="overview"],.sec-overview{--emb:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.3%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%279%27/%3E%3Cpath%20d%3D%27M12%206.4l3.4%202.5-1.3%204h-4.2l-1.3-4z%27/%3E%3Cpath%20d%3D%27M12%203v3.4M4.4%209.3l2.9%201.1M19.6%209.3l-2.9%201.1M7.2%2019.7l1.7-3.2M16.8%2019.7l-1.7-3.2%27/%3E%3C/svg%3E")}.tabpane[data-tab="chips"],.sec-chips{--emb:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.6%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M7.5%203.5h9l4%206-8.5%2011L3.5%209.5z%27/%3E%3Cpath%20d%3D%27M3.5%209.5h17M9%203.5l3%206%203-6M12%209.5v11%27/%3E%3C/svg%3E")}.tabpane[data-tab="planner"],.sec-planner{--emb:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.3%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%273%27%20y%3D%275%27%20width%3D%2718%27%20height%3D%2716%27%20rx%3D%272%27/%3E%3Cpath%20d%3D%27M3%2010.2h18M8%203v4M16%203v4%27/%3E%3Cpath%20d%3D%27M7.5%2014h3M13.5%2014h3M7.5%2017.6h3M13.5%2017.6h3%27/%3E%3C/svg%3E")}.tabpane[data-tab="table"],.sec-table{--emb:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.7%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%273%27%20y%3D%274%27%20width%3D%2718%27%20height%3D%2716%27%20rx%3D%272%27/%3E%3Cpath%20d%3D%27M3%209.3h18M3%2014.6h18M8.5%204v16%27/%3E%3C/svg%3E")}.tabpane[data-tab="week"],.sec-week{--emb:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%278.6%27/%3E%3Cpath%20d%3D%27M12%206.8V12l3.6%202.2%27/%3E%3C/svg%3E")}.tabpane[data-tab="fixtures"],.sec-fixtures{--emb:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.3%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%272.5%27%20y%3D%274.5%27%20width%3D%2719%27%20height%3D%2715%27%20rx%3D%271.5%27/%3E%3Cpath%20d%3D%27M12%204.5v15%27/%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%272.8%27/%3E%3Cpath%20d%3D%27M2.5%209h3.2v6H2.5M21.5%209h-3.2v6h3.2%27/%3E%3C/svg%3E")}.tabpane[data-tab="news"],.sec-news{--emb:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.3%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M3.8%2010.2v3.6l10%204V6.2l-10%204z%27/%3E%3Cpath%20d%3D%27M13.8%208.6c2.6.8%204.2%202%204.2%203.4s-1.6%202.6-4.2%203.4%27/%3E%3Cpath%20d%3D%27M6.2%2014.6V19h3v-3.5%27/%3E%3C/svg%3E")}.tabpane[data-tab="squads"],.sec-squads{--emb:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.3%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M9%203.4%204.4%206l1.6%204.2%202-.8V20.6h8V9.4l2%20.8L19.6%206%2015%203.4c-.9%201.3-1.8%201.9-3%201.9s-2.1-.6-3-1.9z%27/%3E%3C/svg%3E")}</style><script>
+:root{--emb:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.3%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%279%27/%3E%3Cpath%20d%3D%27M12%206.4l3.4%202.5-1.3%204h-4.2l-1.3-4z%27/%3E%3Cpath%20d%3D%27M12%203v3.4M4.4%209.3l2.9%201.1M19.6%209.3l-2.9%201.1M7.2%2019.7l1.7-3.2M16.8%2019.7l-1.7-3.2%27/%3E%3C/svg%3E");--emb-ball:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.3%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%279%27/%3E%3Cpath%20d%3D%27M12%206.4l3.4%202.5-1.3%204h-4.2l-1.3-4z%27/%3E%3Cpath%20d%3D%27M12%203v3.4M4.4%209.3l2.9%201.1M19.6%209.3l-2.9%201.1M7.2%2019.7l1.7-3.2M16.8%2019.7l-1.7-3.2%27/%3E%3C/svg%3E")}.tabpane[data-tab="overview"],.sec-overview{--emb:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.3%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%279%27/%3E%3Cpath%20d%3D%27M12%206.4l3.4%202.5-1.3%204h-4.2l-1.3-4z%27/%3E%3Cpath%20d%3D%27M12%203v3.4M4.4%209.3l2.9%201.1M19.6%209.3l-2.9%201.1M7.2%2019.7l1.7-3.2M16.8%2019.7l-1.7-3.2%27/%3E%3C/svg%3E")}.tabpane[data-tab="chips"],.sec-chips{--emb:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.6%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M7.5%203.5h9l4%206-8.5%2011L3.5%209.5z%27/%3E%3Cpath%20d%3D%27M3.5%209.5h17M9%203.5l3%206%203-6M12%209.5v11%27/%3E%3C/svg%3E")}.tabpane[data-tab="planner"],.sec-planner{--emb:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.3%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%273%27%20y%3D%275%27%20width%3D%2718%27%20height%3D%2716%27%20rx%3D%272%27/%3E%3Cpath%20d%3D%27M3%2010.2h18M8%203v4M16%203v4%27/%3E%3Cpath%20d%3D%27M7.5%2014h3M13.5%2014h3M7.5%2017.6h3M13.5%2017.6h3%27/%3E%3C/svg%3E")}.tabpane[data-tab="football"],.sec-football{--emb:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.7%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%273%27%20y%3D%274%27%20width%3D%2718%27%20height%3D%2716%27%20rx%3D%272%27/%3E%3Cpath%20d%3D%27M3%209.3h18M3%2014.6h18M8.5%204v16%27/%3E%3C/svg%3E")}.tabpane[data-tab="fixtures"],.sec-fixtures{--emb:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.3%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%272.5%27%20y%3D%274.5%27%20width%3D%2719%27%20height%3D%2715%27%20rx%3D%271.5%27/%3E%3Cpath%20d%3D%27M12%204.5v15%27/%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%272.8%27/%3E%3Cpath%20d%3D%27M2.5%209h3.2v6H2.5M21.5%209h-3.2v6h3.2%27/%3E%3C/svg%3E")}.tabpane[data-tab="news"],.sec-news{--emb:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.3%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M3.8%2010.2v3.6l10%204V6.2l-10%204z%27/%3E%3Cpath%20d%3D%27M13.8%208.6c2.6.8%204.2%202%204.2%203.4s-1.6%202.6-4.2%203.4%27/%3E%3Cpath%20d%3D%27M6.2%2014.6V19h3v-3.5%27/%3E%3C/svg%3E")}.tabpane[data-tab="squads"],.sec-squads{--emb:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.3%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M9%203.4%204.4%206l1.6%204.2%202-.8V20.6h8V9.4l2%20.8L19.6%206%2015%203.4c-.9%201.3-1.8%201.9-3%201.9s-2.1-.6-3-1.9z%27/%3E%3C/svg%3E")}</style><script>
 (function(){
  var KEYS=['fpl_team_id','fpl_my_squad','fpl_squads_v1','fpl_primary'];
  function readCookie(k){
@@ -437,14 +431,9 @@ footer .build{display:inline-block;margin-top:6px;font-family:ui-monospace,
  <a class="tab" href="#planner">Planner</a>
  <a class="tab" href="#chips">Chips</a>
  <a class="tab" href="#fixtures">Fixtures</a>
+ <a class="tab" href="#football">Football</a>
  <a class="tab" href="/squads">Manager ↗</a>
  <a class="tab" href="/news">News ↗</a>
-</nav>
-<nav class="tabs sub" aria-label="Not about fantasy">
- <span class="navlbl">Football</span>
- <a class="tab" href="#teams">Transfer window</a>
- <a class="tab" href="#table">League table</a>
- <a class="tab" href="#week">This week</a>
 </nav>
 
 <div class="tabpane" data-tab="overview">
@@ -477,12 +466,6 @@ clean sheets, defensive contributions), season expectations, and fixtures. </p>
  price watch for your own players.</p>
 </section>
 
-<section class="card">
- <h2>Top stories</h2>
- <p class="note">Highest-signal headlines from the last few days, checked against the model's
- assumptions. All of them, plus off-radar finds, on the <a href="/news">News</a> tab.</p>
- <div style='border-top:1px solid var(--grid);padding:9px 0'><b>Haaland</b> <span style='color:var(--muted);font-size:12.5px'>MCI · return/fitness boost; model assumes 78 mins</span><div style='font-size:13.5px'>“Premier League Top Scorer Odds: 9/1 Isak eyes return to form with Haaland favourite once again”</div><div class='note' style='margin:0'>Betfred Insights 20 Aug 15:33</div></div><div style='border-top:1px solid var(--grid);padding:9px 0'><b>Mbeumo</b> <span style='color:var(--muted);font-size:12.5px'>MUN · team-news/lineup mention</span><div style='font-size:13.5px'>“Hull v Man Utd team news: Amad out, Mbeumo + Cunha start”</div><div class='note' style='margin:0'>fantasyfootballscout.co.uk 22 Aug 12:04</div></div><div style='border-top:1px solid var(--grid);padding:9px 0'><b>Watkins</b> <span style='color:var(--muted);font-size:12.5px'>AVL · exit/loan chatter — minutes assumption at risk</span><div style='font-size:13.5px'>“Aston Villa reject £45m Watkins bid as striker pushes for Al-Hilal move”</div><div class='note' style='margin:0'>Read Aston Villa 21 Aug 15:20</div></div><div style='border-top:1px solid var(--grid);padding:9px 0'><b>Matheus N.</b> <span style='color:var(--muted);font-size:12.5px'>MCI · availability news but model assumes 77 mins</span><div style='font-size:13.5px'>“Man City injury, suspension news and return dates for Bournemouth clash: Doku, Nunes, Marmoush, Savinho latest”</div><div class='note' style='margin:0'>Sports Mole </div></div><div style='border-top:1px solid var(--grid);padding:9px 0'><b>Amad</b> <span style='color:var(--muted);font-size:12.5px'>MUN · availability news but model assumes 46 mins</span><div style='font-size:13.5px'>“Hull v Man Utd team news: Amad out, Mbeumo + Cunha start”</div><div class='note' style='margin:0'>fantasyfootballscout.co.uk </div></div><div style='border-top:1px solid var(--grid);padding:9px 0'><b>Solanke</b> <span style='color:var(--muted);font-size:12.5px'>TOT · availability news but model assumes 50 mins</span><div style='font-size:13.5px'>“Tottenham injury, suspension list and return dates vs. Brentford: Dominic Solanke, Mohammed Kudus latest”</div><div class='note' style='margin:0'>Sports Mole </div></div>
-</section>
 
 </div>
 
@@ -507,7 +490,20 @@ clean sheets, defensive contributions), season expectations, and fixtures. </p>
 <section class="card"><h2>Chip planner <span class="mut">GW4–13</span></h2><p class="note" id="chipnote"></p><div class="chipgrid" id="chipgrid"></div></section><section class="card"><h2>Every gameweek, priced</h2><p class="note">Every week, both readings side by side: the fixture scores that rank the windows, then the points they are worth against your current squad where that can still be said. Blanks and doubles are not scheduled this far out yet, and they move these numbers more than fixture quality does — expect the back half to shift.</p><div class="scroll"><table id="chiptable"></table></div></section>
 </div>
 
-<div class="tabpane" data-tab="teams">
+<div class="tabpane" data-tab="football">
+<section class="card">
+ <h2>League table</h2>
+ <p class="note">Actual Premier League standings, from results so far. Nothing fantasy about it —
+ it is here because form and table position are the backdrop everything else is read against.</p>
+ <div class="scroll"><table id="ltable"></table></div>
+</section>
+
+<section class="card">
+ <h2>This week's fixtures <span class="mut" id="weekgw"></span></h2>
+ <p class="note">Kick-offs for the coming gameweek, in UK time, with each side's league position.</p>
+ <div class="scroll"><table id="wktable"></table></div>
+</section>
+
 <section class="card">
  <h2>Summer window — who changed most</h2>
  <p class="note">Fees and moves from Wikipedia's English transfer list (2026-08-22 14:53 UTC).
@@ -526,23 +522,6 @@ clean sheets, defensive contributions), season expectations, and fixtures. </p>
  <h3 style="margin-top:20px">Where the squad stands</h3>
  <div class="scroll"><table id="clubpos"></table></div>
  <p class="note" id="clubcaveat" style="margin-top:10px"></p>
-</section>
-</div>
-
-<div class="tabpane" data-tab="table">
-<section class="card">
- <h2>League table</h2>
- <p class="note">Actual Premier League standings, from results so far. Nothing fantasy about it —
- it is here because form and table position are the backdrop everything else is read against.</p>
- <div class="scroll"><table id="ltable"></table></div>
-</section>
-</div>
-
-<div class="tabpane" data-tab="week">
-<section class="card">
- <h2>This week's fixtures <span class="mut" id="weekgw"></span></h2>
- <p class="note">Kick-offs for the coming gameweek, in UK time, with each side's league position.</p>
- <div class="scroll"><table id="wktable"></table></div>
 </section>
 </div>
 
@@ -567,8 +546,8 @@ clean sheets, defensive contributions), season expectations, and fixtures. </p>
 </section>
 </div>
 
-<footer>FPL data pulled Sat 12 Sep 11:05 UK · refreshed hourly · fixtures priced by bookmaker odds: 10 · fixture model k(attack)=0.78, k(opponent defence)=0.80, home ×1.10, rmse 0.182
-<br><span class="build">build 213200f+dirty · Restore radios(), removed with drawFrontier by accident · generated Sat 12 Sep 11:05 UK</span></footer>
+<footer>FPL data pulled Sat 12 Sep 11:39 UK · refreshed hourly · fixtures priced by bookmaker odds: 10 · fixture model k(attack)=0.78, k(opponent defence)=0.80, home ×1.10, rmse 0.182
+<br><span class="build">build be8b6de+dirty · Refuse to deploy a page whose JavaScript is broken · generated Sat 12 Sep 11:39 UK</span></footer>
 </div>
 <div class="tip" id="tip"></div>
 <script>
@@ -577,7 +556,7 @@ const HEAT = [{"team": "EVE", "gws": [{"o": "CRY", "h": 1, "fdr": 3, "a": 1.23, 
 const SQUAD = [];
 const LEAGUE = [{"team": "MCI", "p": 3, "w": 3, "d": 0, "l": 0, "gf": 7, "ga": 2, "pts": 9, "form": "WWW", "pos": 1, "gd": 5}, {"team": "ARS", "p": 3, "w": 3, "d": 0, "l": 0, "gf": 6, "ga": 1, "pts": 9, "form": "WWW", "pos": 2, "gd": 5}, {"team": "HUL", "p": 3, "w": 2, "d": 1, "l": 0, "gf": 3, "ga": 0, "pts": 7, "form": "WWD", "pos": 3, "gd": 3}, {"team": "CHE", "p": 3, "w": 2, "d": 0, "l": 1, "gf": 8, "ga": 7, "pts": 6, "form": "WWL", "pos": 4, "gd": 1}, {"team": "BRE", "p": 3, "w": 1, "d": 2, "l": 0, "gf": 5, "ga": 2, "pts": 5, "form": "WDD", "pos": 5, "gd": 3}, {"team": "LIV", "p": 3, "w": 1, "d": 2, "l": 0, "gf": 6, "ga": 4, "pts": 5, "form": "DDW", "pos": 6, "gd": 2}, {"team": "NEW", "p": 3, "w": 1, "d": 2, "l": 0, "gf": 6, "ga": 4, "pts": 5, "form": "DWD", "pos": 7, "gd": 2}, {"team": "EVE", "p": 3, "w": 1, "d": 2, "l": 0, "gf": 5, "ga": 3, "pts": 5, "form": "WDD", "pos": 8, "gd": 2}, {"team": "LEE", "p": 3, "w": 1, "d": 2, "l": 0, "gf": 3, "ga": 2, "pts": 5, "form": "WDD", "pos": 9, "gd": 1}, {"team": "BHA", "p": 3, "w": 1, "d": 1, "l": 1, "gf": 8, "ga": 5, "pts": 4, "form": "WLD", "pos": 10, "gd": 3}, {"team": "MUN", "p": 3, "w": 1, "d": 1, "l": 1, "gf": 7, "ga": 6, "pts": 4, "form": "LWD", "pos": 11, "gd": 1}, {"team": "SUN", "p": 3, "w": 1, "d": 1, "l": 1, "gf": 3, "ga": 3, "pts": 4, "form": "LWD", "pos": 12, "gd": 0}, {"team": "CRY", "p": 3, "w": 1, "d": 0, "l": 2, "gf": 4, "ga": 8, "pts": 3, "form": "LLW", "pos": 13, "gd": -4}, {"team": "IPS", "p": 3, "w": 1, "d": 0, "l": 2, "gf": 4, "ga": 8, "pts": 3, "form": "WLL", "pos": 14, "gd": -4}, {"team": "BOU", "p": 3, "w": 0, "d": 2, "l": 1, "gf": 4, "ga": 5, "pts": 2, "form": "LDD", "pos": 15, "gd": -1}, {"team": "NFO", "p": 3, "w": 0, "d": 2, "l": 1, "gf": 2, "ga": 3, "pts": 2, "form": "LDD", "pos": 16, "gd": -1}, {"team": "AVL", "p": 3, "w": 0, "d": 1, "l": 2, "gf": 0, "ga": 5, "pts": 1, "form": "LLD", "pos": 17, "gd": -5}, {"team": "TOT", "p": 3, "w": 0, "d": 1, "l": 2, "gf": 0, "ga": 5, "pts": 1, "form": "LLD", "pos": 18, "gd": -5}, {"team": "FUL", "p": 3, "w": 0, "d": 0, "l": 3, "gf": 4, "ga": 7, "pts": 0, "form": "LLL", "pos": 19, "gd": -3}, {"team": "COV", "p": 3, "w": 0, "d": 0, "l": 3, "gf": 0, "ga": 5, "pts": 0, "form": "LLL", "pos": 20, "gd": -5}];
 const WEEK = [{"h": "AVL", "a": "NFO", "hp": 17, "ap": 16, "when": "Sat 12 Sep · 15:00", "done": false, "score": ""}, {"h": "BOU", "a": "BRE", "hp": 15, "ap": 5, "when": "Sat 12 Sep · 15:00", "done": false, "score": ""}, {"h": "CHE", "a": "HUL", "hp": 4, "ap": 3, "when": "Sat 12 Sep · 15:00", "done": false, "score": ""}, {"h": "CRY", "a": "IPS", "hp": 13, "ap": 14, "when": "Sat 12 Sep · 15:00", "done": false, "score": ""}, {"h": "LIV", "a": "FUL", "hp": 6, "ap": 19, "when": "Sat 12 Sep · 15:00", "done": false, "score": ""}, {"h": "TOT", "a": "EVE", "hp": 18, "ap": 8, "when": "Sat 12 Sep · 17:30", "done": false, "score": ""}, {"h": "SUN", "a": "ARS", "hp": 12, "ap": 2, "when": "Sat 12 Sep · 20:00", "done": false, "score": ""}, {"h": "COV", "a": "BHA", "hp": 20, "ap": 10, "when": "Sun 13 Sep · 14:00", "done": false, "score": ""}, {"h": "MUN", "a": "MCI", "hp": 11, "ap": 1, "when": "Sun 13 Sep · 16:30", "done": false, "score": ""}, {"h": "LEE", "a": "NEW", "hp": 9, "ap": 7, "when": "Mon 14 Sep · 20:00", "done": false, "score": ""}];
-const CHIPS = [{"gw": 4, "doubles": [], "blanks": [], "tc": 2.73, "tcfix": {"team": "CHE", "opp": "HUL", "home": 1, "gf": 2.73}, "bb": 1.418, "bbmean": 1.458, "rough": 2, "fh": 0.2, "fhedge": 0.2, "template": 65.58, "field": 65.78, "weak": [{"n": "Haaland", "t": "MCI", "sel": 71.2, "cost": 0.44}, {"n": "B.Fernandes", "t": "MUN", "sel": 43.1, "cost": 0.23}, {"n": "Cherki", "t": "MCI", "sel": 29.3, "cost": 0.12}]}, {"gw": 5, "doubles": [], "blanks": [], "tc": 2.43, "tcfix": {"team": "MCI", "opp": "SUN", "home": 1, "gf": 2.43}, "bb": 1.394, "bbmean": 1.434, "rough": 2, "fh": 6.44, "fhedge": 6.44, "template": 61.05, "field": 67.49, "weak": [{"n": "João Pedro", "t": "CHE", "sel": 73.5, "cost": 0.37}, {"n": "Rogers", "t": "CHE", "sel": 33.6, "cost": 0.2}, {"n": "De Cuyper", "t": "BHA", "sel": 22.1, "cost": 0.18}]}, {"gw": 6, "doubles": [], "blanks": [], "tc": 2.18, "tcfix": {"team": "CHE", "opp": "BOU", "home": 1, "gf": 2.18}, "bb": 1.377, "bbmean": 1.417, "rough": 2, "fh": 1.77, "fhedge": 1.77, "template": 62.91, "field": 64.68, "weak": [{"n": "Haaland", "t": "MCI", "sel": 71.2, "cost": 0.56}, {"n": "Cherki", "t": "MCI", "sel": 29.3, "cost": 0.15}, {"n": "Szoboszlai", "t": "LIV", "sel": 38.5, "cost": 0.08}]}, {"gw": 7, "doubles": [], "blanks": [], "tc": 2.9, "tcfix": {"team": "MCI", "opp": "IPS", "home": 1, "gf": 2.9}, "bb": 1.409, "bbmean": 1.45, "rough": 2, "fh": 2.71, "fhedge": 2.71, "template": 65.62, "field": 68.33, "weak": [{"n": "João Pedro", "t": "CHE", "sel": 73.5, "cost": 0.21}, {"n": "Szoboszlai", "t": "LIV", "sel": 38.5, "cost": 0.1}, {"n": "Rogers", "t": "CHE", "sel": 33.6, "cost": 0.09}]}, {"gw": 8, "doubles": [], "blanks": [], "tc": 2.19, "tcfix": {"team": "ARS", "opp": "EVE", "home": 1, "gf": 2.19}, "bb": 1.367, "bbmean": 1.427, "rough": 3, "fh": 1.59, "fhedge": 1.59, "template": 63.77, "field": 65.36, "weak": [{"n": "Haaland", "t": "MCI", "sel": 71.2, "cost": 0.2}, {"n": "De Cuyper", "t": "BHA", "sel": 22.1, "cost": 0.16}, {"n": "João Pedro", "t": "CHE", "sel": 73.5, "cost": 0.14}]}, {"gw": 9, "doubles": [], "blanks": [], "tc": 2.24, "tcfix": {"team": "MCI", "opp": "BHA", "home": 1, "gf": 2.24}, "bb": 1.332, "bbmean": 1.412, "rough": 4, "fh": 5.13, "fhedge": 5.13, "template": 58.23, "field": 63.36, "weak": [{"n": "Calafiori", "t": "ARS", "sel": 49.0, "cost": 0.29}, {"n": "B.Fernandes", "t": "MUN", "sel": 43.1, "cost": 0.28}, {"n": "Szoboszlai", "t": "LIV", "sel": 38.5, "cost": 0.26}]}, {"gw": 10, "doubles": [], "blanks": [], "tc": 2.32, "tcfix": {"team": "ARS", "opp": "HUL", "home": 1, "gf": 2.32}, "bb": 1.425, "bbmean": 1.446, "rough": 1, "fh": 2.62, "fhedge": 2.62, "template": 65.65, "field": 68.27, "weak": [{"n": "João Pedro", "t": "CHE", "sel": 73.5, "cost": 0.23}, {"n": "Haaland", "t": "MCI", "sel": 71.2, "cost": 0.14}, {"n": "Rogers", "t": "CHE", "sel": 33.6, "cost": 0.08}]}, {"gw": 11, "doubles": [], "blanks": [], "tc": 2.74, "tcfix": {"team": "MCI", "opp": "FUL", "home": 1, "gf": 2.74}, "bb": 1.383, "bbmean": 1.444, "rough": 3, "fh": 0.99, "fhedge": 0.99, "template": 65.68, "field": 66.67, "weak": [{"n": "B.Fernandes", "t": "MUN", "sel": 43.1, "cost": 0.29}, {"n": "Calafiori", "t": "ARS", "sel": 49.0, "cost": 0.05}, {"n": "Gabriel", "t": "ARS", "sel": 24.0, "cost": 0.02}]}, {"gw": 12, "doubles": [], "blanks": [], "tc": 1.95, "tcfix": {"team": "MUN", "opp": "BRE", "home": 1, "gf": 1.95}, "bb": 1.388, "bbmean": 1.408, "rough": 1, "fh": 5.76, "fhedge": 5.76, "template": 58.2, "field": 63.96, "weak": [{"n": "Haaland", "t": "MCI", "sel": 71.2, "cost": 1.19}, {"n": "Cherki", "t": "MCI", "sel": 29.3, "cost": 0.31}, {"n": "João Pedro", "t": "CHE", "sel": 73.5, "cost": 0.25}]}, {"gw": 13, "doubles": [], "blanks": [], "tc": 2.38, "tcfix": {"team": "MCI", "opp": "LEE", "home": 1, "gf": 2.38}, "bb": 1.365, "bbmean": 1.425, "rough": 3, "fh": 2.92, "fhedge": 2.92, "template": 63.24, "field": 66.16, "weak": [{"n": "Calafiori", "t": "ARS", "sel": 49.0, "cost": 0.26}, {"n": "Raya", "t": "ARS", "sel": 39.1, "cost": 0.22}, {"n": "Gabriel", "t": "ARS", "sel": 24.0, "cost": 0.14}]}];
+const CHIPS = [{"gw": 4, "doubles": [], "blanks": [], "tc": 2.73, "tcfix": {"team": "CHE", "opp": "HUL", "home": 1, "gf": 2.73}, "bb": 0.0, "fh": 0.583, "clashes": ["MUN v MCI"], "held": [{"t": "MCI", "af": 0.82}, {"t": "MUN", "af": 0.82}, {"t": "BRE", "af": 0.86}, {"t": "ARS", "af": 0.93}], "field": 65.78}, {"gw": 5, "doubles": [], "blanks": [], "tc": 2.43, "tcfix": {"team": "MCI", "opp": "SUN", "home": 1, "gf": 2.43}, "bb": 0.0, "fh": 0.705, "clashes": ["BRE v CHE", "BHA v ARS"], "held": [{"t": "BHA", "af": 0.63}, {"t": "ARS", "af": 0.87}, {"t": "CHE", "af": 0.88}, {"t": "LIV", "af": 0.95}], "field": 67.49}, {"gw": 6, "doubles": [], "blanks": [], "tc": 2.18, "tcfix": {"team": "CHE", "opp": "BOU", "home": 1, "gf": 2.18}, "bb": 0.0, "fh": 0.478, "clashes": ["LIV v MCI"], "held": [{"t": "MCI", "af": 0.77}, {"t": "LIV", "af": 0.92}, {"t": "BRE", "af": 0.93}, {"t": "NEW", "af": 0.95}], "field": 64.68}, {"gw": 7, "doubles": [], "blanks": [], "tc": 2.9, "tcfix": {"team": "MCI", "opp": "IPS", "home": 1, "gf": 2.9}, "bb": 0.0, "fh": 0.315, "clashes": ["EVE v CHE"], "held": [{"t": "LIV", "af": 0.89}, {"t": "ARS", "af": 0.93}, {"t": "MUN", "af": 0.94}, {"t": "CHE", "af": 0.96}], "field": 68.33}, {"gw": 8, "doubles": [], "blanks": [], "tc": 2.19, "tcfix": {"team": "ARS", "opp": "EVE", "home": 1, "gf": 2.19}, "bb": 0.0, "fh": 0.789, "clashes": ["ARS v EVE", "LIV v BHA"], "held": [{"t": "EVE", "af": 0.53}, {"t": "BHA", "af": 0.77}, {"t": "MCI", "af": 0.92}, {"t": "CHE", "af": 0.99}], "field": 65.36}, {"gw": 9, "doubles": [], "blanks": [], "tc": 2.24, "tcfix": {"team": "MCI", "opp": "BHA", "home": 1, "gf": 2.24}, "bb": 0.0, "fh": 1.064, "clashes": ["CHE v MUN", "MCI v BHA", "LIV v ARS"], "held": [{"t": "LIV", "af": 0.63}, {"t": "BHA", "af": 0.76}, {"t": "ARS", "af": 0.76}, {"t": "MUN", "af": 0.8}], "field": 63.36}, {"gw": 10, "doubles": [], "blanks": [], "tc": 2.32, "tcfix": {"team": "ARS", "opp": "HUL", "home": 1, "gf": 2.32}, "bb": 0.0, "fh": 0.22, "clashes": ["BHA v BRE"], "held": [{"t": "BRE", "af": 0.89}, {"t": "MCI", "af": 0.94}, {"t": "CHE", "af": 0.95}], "field": 68.27}, {"gw": 11, "doubles": [], "blanks": [], "tc": 2.74, "tcfix": {"team": "MCI", "opp": "FUL", "home": 1, "gf": 2.74}, "bb": 0.0, "fh": 0.753, "clashes": ["LIV v MUN", "NEW v ARS"], "held": [{"t": "NEW", "af": 0.63}, {"t": "MUN", "af": 0.78}, {"t": "ARS", "af": 0.85}, {"t": "LIV", "af": 0.99}], "field": 66.67}, {"gw": 12, "doubles": [], "blanks": [], "tc": 1.95, "tcfix": {"team": "MUN", "opp": "BRE", "home": 1, "gf": 1.95}, "bb": 0.0, "fh": 0.853, "clashes": ["ARS v MCI", "BHA v NEW", "EVE v LIV"], "held": [{"t": "MCI", "af": 0.52}, {"t": "NEW", "af": 0.89}, {"t": "ARS", "af": 0.9}, {"t": "CHE", "af": 0.94}], "field": 63.96}, {"gw": 13, "doubles": [], "blanks": [], "tc": 2.38, "tcfix": {"team": "MCI", "opp": "LEE", "home": 1, "gf": 2.38}, "bb": 0.0, "fh": 0.384, "clashes": ["NEW v MUN"], "held": [{"t": "MUN", "af": 0.86}, {"t": "ARS", "af": 0.87}, {"t": "EVE", "af": 0.93}, {"t": "BHA", "af": 0.95}], "field": 66.16}];
 const FHBEST = [{"gw": 4, "total": 65.78, "cap": "João Pedro"}, {"gw": 5, "total": 67.49, "cap": "Haaland"}, {"gw": 6, "total": 64.68, "cap": "B.Fernandes"}, {"gw": 7, "total": 68.33, "cap": "Haaland"}, {"gw": 8, "total": 65.36, "cap": "B.Fernandes"}, {"gw": 9, "total": 63.36, "cap": "Haaland"}, {"gw": 10, "total": 68.27, "cap": "B.Fernandes"}, {"gw": 11, "total": 66.67, "cap": "Haaland"}, {"gw": 12, "total": 63.96, "cap": "B.Fernandes"}, {"gw": 13, "total": 66.16, "cap": "Haaland"}];
 const CHIPEV = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 const GWL = [4, 5, 6, 7];
@@ -877,16 +856,15 @@ function renderSquadTable(rows, el){
  }).catch(()=>{if(link)link.hidden=false});
 })();
 
-// ---- Chip planner: ranked windows, priced where a squad still means something
+// ---- Chip planner -----------------------------------------------------
 (function(){
  const grid=document.getElementById('chipgrid'); if(!grid||!CHIPS.length)return;
- // Beyond about five gameweeks the squad is fiction - it will have turned over
- // several times - so points stop being claimed and the fixture read stands alone.
+ // Past about five gameweeks the squad is fiction, so points stop being claimed.
  const SQUAD_WEEKS=5, SHOW=5;
  const MIN={GKP:1,DEF:3,MID:2,FWD:1}, MAX={GKP:1,DEF:5,MID:5,FWD:3};
- const META={tc:{name:'Triple Captain'},bb:{name:'Bench Boost'},fh:{name:'Free Hit'}};
+ const NAME={tc:'Triple Captain',bb:'Bench Boost',fh:'Free Hit'};
 
- function bestXI(sq,i){
+ function split(sq,i){
   const val=r=>(r.cg&&r.cg[i]!=null)?r.cg[i]:0;
   const by={GKP:[],DEF:[],MID:[],FWD:[]};
   sq.forEach(r=>(by[r.p]||by.MID).push(r));
@@ -899,20 +877,20 @@ function renderSquadTable(rows, el){
   }
   const bench=sq.filter(r=>!xi.includes(r));
   return {tot:xi.reduce((a,r)=>a+val(r),0), cap:xi.reduce((m,r)=>Math.max(m,val(r)),0),
-          benchSum:bench.reduce((a,r)=>a+val(r),0), bench:bench,
+          bench, benchSum:bench.reduce((a,r)=>a+val(r),0),
           capName:(xi.slice().sort((a,b)=>val(b)-val(a))[0]||{}).n};
  }
 
- // points, but only inside the window where a squad is still a real object
  function price(sq){
   const out={};
+  if(!sq)return out;
   CHIPEV.forEach((ev,i)=>{
-   if(!sq||i>=SQUAD_WEEKS)return;
-   const b=bestXI(sq,i), fh=FHBEST[i];
-   out[ev]={tc:b.cap, capName:b.capName, bb:b.benchSum,
-            fh:fh?Math.max(fh.total-(b.tot+b.cap),0):null,
-            fhcap:fh?fh.cap:null, own:b.tot+b.cap,
-            weak:b.bench.filter(r=>(r.xm||0)<45).map(r=>r.n)};
+   if(i>=SQUAD_WEEKS)return;
+   const b=split(sq,i), fh=FHBEST[i];
+   out[ev]={tc:b.cap, capName:b.capName,
+            bb:b.benchSum,
+            weak:b.bench.filter(r=>(r.xm||0)<45).map(r=>r.n),
+            fh:fh?Math.max(fh.total-(b.tot+b.cap),0):null};
   });
   return out;
  }
@@ -921,107 +899,81 @@ function renderSquadTable(rows, el){
   if(k==='tc'){
    const f=r.tcfix;
    if(!f)return 'no fixture priced';
-   return `${f.team} ${f.home?'at home to':'away at'} ${f.opp} · ${f.gf.toFixed(2)} xG`
+   const fx = f.home ? `${f.team} v ${f.opp}` : `${f.opp} v ${f.team}`;
+   return `${fx} · ${f.gf.toFixed(2)} xG`
         + (pt&&pt.capName?` · your best is ${pt.capName}`:'');
   }
   if(k==='bb'){
-   const bits=[];
-   if(r.doubles.length)bits.push(r.doubles.length+' double'+(r.doubles.length>1?'s':''));
-   if(r.blanks.length)bits.push(r.blanks.length+' blank'+(r.blanks.length>1?'s':''));
-   bits.push('board average ×'+r.bbmean.toFixed(2));
-   if(pt&&pt.weak&&pt.weak.length)bits.push('but '+pt.weak.join(', ')+' may not start');
-   return bits.join(' · ');
+   if(!pt)return 'link your team to price this';
+   return pt.weak&&pt.weak.length ? pt.weak.join(', ')+' may not start' : 'all fifteen expected to play';
   }
   const bits=[];
-  if(r.template!=null&&r.field!=null)
-   bits.push(`template ${r.template.toFixed(1)} → best XI ${r.field.toFixed(1)}`);
-  if(r.weak&&r.weak.length)
-   bits.push('template hurt by '+r.weak.map(w=>`${w.n} (${w.sel}% owned)`).join(', '));
+  if(r.clashes&&r.clashes.length)bits.push(r.clashes.join(', '));
+  if(r.held&&r.held.length)
+   bits.push(r.held.map(h=>`${h.t} ×${h.af.toFixed(2)}`).join(', ')+' below par');
   if(r.blanks.length)bits.push(r.blanks.length+' blank'+(r.blanks.length>1?'s':''));
-  return bits.join(' · ')||'no strong edge';
+  return bits.join(' · ')||'no big sides meeting';
  }
 
  function render(have,priced,note){
-  const picks={};
-  grid.innerHTML=Object.keys(META).filter(k=>have.includes(k.toUpperCase())).map(k=>{
-   const all=[...CHIPS].sort((a,b)=>b[k]-a[k]);
-   const rank=all.slice(0,SHOW);
-   const top=rank[0], tp=priced[top.gw];
-   picks[k]=top.gw;
-   // if the whole window scores the same, the ranking is noise and should say so
-   const span=all[0][k]-all[all.length-1][k];
-   const base=Math.abs(all[0][k])||1;
-   const weak=(span/base)<0.08;
-   // Free Hit is measured against the average manager, not against your own
-   // fifteen, so it carries a points figure in every week rather than only the
-   // near ones. TC and BB still need your squad.
-   const own=tp&&tp[k]!=null?tp[k]:null;
-   const gain = k==='fh'
-    ? `<div class="gain">+${top.fh.toFixed(1)} pts <span class="vs">vs the template</span></div>`
-      + (own!=null?`<div class="ts">+${own.toFixed(1)} against your own XI</div>`:'')
-    : (own!=null
-       ? `<div class="gain">+${own.toFixed(1)} pts</div>`
-       : `<div class="gain unpriced">beyond the priced window</div>`);
-   // The list is ordered by FIXTURES, which is the planner's job, but the points
-   // are the better estimate wherever they exist. When the two disagree - and
-   // for a chip like Bench Boost, whose fixture spread is noise, they routinely
-   // will - say so rather than leaving a headline that its own runner-up beats.
-   const pricedRows=CHIPS.filter(r=>priced[r.gw]&&priced[r.gw][k]!=null)
-     .sort((a,b)=>priced[b.gw][k]-priced[a.gw][k]);
-   const bestPriced=pricedRows[0];
-   const disagrees=k!=='fh'&&bestPriced&&(!tp||tp[k]==null||bestPriced.gw!==top.gw);
-   const bestLine=disagrees
-    ? `<div class="ts bestp">On points alone the pick is <b>GW${bestPriced.gw}</b> at `
-      + `+${priced[bestPriced.gw][k].toFixed(1)} — best of the weeks we can price.</div>`
-    : '';
-   const alts=rank.slice(1).map(r=>{
+  const anyDouble=CHIPS.some(r=>r.doubles.length||r.blanks.length);
+  const cards=[];
+  have.forEach(code=>{
+   const k=code.toLowerCase(); if(!NAME[k])return;
+   // Bench Boost is ranked on the bench itself; the other two on the calendar.
+   const rows = k==='bb'
+     ? CHIPS.filter(r=>priced[r.gw]).sort((a,b)=>priced[b.gw].bb-priced[a.gw].bb)
+     : [...CHIPS].sort((a,b)=>b[k]-a[k]);
+   if(!rows.length){
+    cards.push(`<div class="chipcard"><div class="tl">${NAME[k]}</div>`+
+     `<div class="tv">?</div><div class="ts">link your team on the `+
+     `<a href="/squads">Manager</a> page to price this</div></div>`);
+    return;
+   }
+   const top=rows[0], tp=priced[top.gw];
+   let head;
+   if(k==='bb') head=`<div class="gain">${tp.bb.toFixed(1)} pts</div>`;
+   else if(k==='fh') head=(tp&&tp.fh!=null)
+     ? `<div class="gain">+${tp.fh.toFixed(1)} pts</div>`
+     : `<div class="gain unpriced">beyond the priced window</div>`;
+   else head=(tp&&tp.tc!=null)
+     ? `<div class="gain">+${tp.tc.toFixed(1)} pts</div>`
+     : `<div class="gain unpriced">beyond the priced window</div>`;
+   const alts=rows.slice(1,SHOW).map(r=>{
     const p=priced[r.gw];
-    const val = k==='fh' ? `<b>+${r.fh.toFixed(1)}</b>`
-      : (p&&p[k]!=null?`<b>+${p[k].toFixed(1)}</b>`:'<span class="mut2">fixtures only</span>');
-    return `<li><span class="agw">GW${r.gw}</span> ${val}`+
+    const v = k==='bb' ? `<b>${p.bb.toFixed(1)}</b>`
+            : (p&&p[k]!=null?`<b>+${p[k].toFixed(1)}</b>`:'<span class="mut2">fixtures only</span>');
+    return `<li><span class="agw">GW${r.gw}</span> ${v}`+
            `<span class="why">${esc(reason(k,r,p))}</span></li>`;
    }).join('');
-   const flag=weak
-    ? `<div class="ts warn">Fixtures barely separate these weeks (${span.toFixed(2)} across ten).`
-      + ` Treat the order as noise — for this chip the real signal is your own squad,`
-      + ` and the doubles and blanks that are not scheduled yet.</div>`
+   const foot = k==='bb'&&!anyDouble
+    ? '<div class="ts runner">No doubles or blanks scheduled yet — those decide this chip.</div>'
     : '';
-   return `<div class="chipcard"><div class="tl">${META[k].name}</div>`+
-    `<div class="tv">GW${top.gw}</div>${gain}`+
-    `<div class="ts">${esc(reason(k,top,tp))}</div>${bestLine}${flag}`+
-    `<ol class="alts">${alts}</ol></div>`;
-  }).join('')||'<p class="note">No chips left in this half of the season.</p>';
-
-  // one chip per gameweek: if two headline picks collide, say so
-  const clash={};
-  Object.entries(picks).forEach(([k,g])=>(clash[g]=clash[g]||[]).push(META[k].name));
-  const dup=Object.entries(clash).filter(([,v])=>v.length>1);
-  if(dup.length){
-   const w=document.createElement('p');
-   w.className='note warn';
-   w.textContent=dup.map(([g,v])=>
-    `${v.join(' and ')} both point at GW${g}, and only one chip can be played in a gameweek — `+
-    `take the second-choice week for whichever gains less.`).join(' ');
-   grid.parentNode.insertBefore(w, grid.nextSibling);
-  }
+   cards.push(`<div class="chipcard"><div class="tl">${NAME[k]}</div>`+
+    `<div class="tv">GW${top.gw}</div>${head}`+
+    `<div class="ts">${esc(reason(k,top,tp))}</div>`+
+    `<ol class="alts">${alts}</ol>${foot}</div>`);
+  });
+  grid.innerHTML=cards.join('')||'<p class="note">No chips left in this half of the season.</p>';
 
   const t=document.getElementById('chiptable');
   if(t)t.innerHTML='<tr><th class="num">GW</th><th>Doubles</th><th>Blanks</th>'+
-   '<th class="num">TC ceiling</th><th class="num">Board</th><th class="num">FH vs template</th>'+
-   '<th class="num">Your XI</th><th class="num">TC</th><th class="num">BB</th><th class="num">FH</th></tr>'+
+   '<th>Best single fixture</th><th class="num">TC</th><th class="num">Bench</th>'+
+   '<th class="num">FH</th></tr>'+
    CHIPS.map(r=>{
     const p=priced[r.gw]||{};
     const n=v=>v==null?'<span class="mut2">—</span>':'+'+v.toFixed(1);
+    const f=r.tcfix, fx=f?(f.home?`${f.team} v ${f.opp}`:`${f.opp} v ${f.team}`):'—';
     return `<tr><td class="num"><b>${r.gw}</b></td><td>${r.doubles.join(', ')||'—'}</td>`+
      `<td>${r.blanks.join(', ')||'—'}</td>`+
-     `<td class="num">${r.tc.toFixed(2)}</td><td class="num">${r.bbmean.toFixed(2)}</td>`+
-     `<td class="num">${r.fh.toFixed(1)}</td>`+
-     `<td class="num">${p.own!=null?p.own.toFixed(1):'<span class="mut2">—</span>'}</td>`+
-     `<td class="num">${n(p.tc)}</td><td class="num">${n(p.bb)}</td><td class="num">${n(p.fh)}</td></tr>`;
+     `<td>${esc(fx)} <span class="mut2">${f?f.gf.toFixed(2):''}</span></td>`+
+     `<td class="num">${n(p.tc)}</td>`+
+     `<td class="num">${p.bb==null?'<span class="mut2">—</span>':p.bb.toFixed(1)}</td>`+
+     `<td class="num">${n(p.fh)}</td></tr>`;
    }).join('');
   const nel=document.getElementById('chipnote');
-  if(nel)nel.textContent=note||('Points shown for the next '+SQUAD_WEEKS+
-    ' gameweeks only — beyond that your squad will have turned over and the fixture read is all that survives.');
+  if(nel)nel.textContent=note||('Points cover the next '+SQUAD_WEEKS+
+    ' gameweeks; beyond that only the fixtures are knowable.');
  }
 
  function squadFromLines(lines){
@@ -1034,15 +986,16 @@ function renderSquadTable(rows, el){
  if(!tid){
   let sq=null;
   try{const sv=localStorage.getItem('fpl_my_squad'); if(sv)sq=squadFromLines(JSON.parse(sv));}catch(e){}
-  return render(ALL, sq&&sq.length>=15?price(sq):{},
-    sq&&sq.length>=15?null:'Link your team on the Manager page to price these in points — the rankings below are fixtures only.');
+  const ok=sq&&sq.length>=15;
+  return render(ALL, ok?price(sq):{},
+    ok?null:'Link your team on the Manager page to price these.');
  }
  fetch('/api/team/'+encodeURIComponent(tid)).then(r=>r.json()).then(d=>{
   const sq=squadFromLines((d&&d.lines)||[]);
   const c=d&&d.summary?d.summary.chips:undefined;
   render(c==null?ALL:c.map(x=>x.name), sq.length>=15?price(sq):{},
-         sq.length>=15?null:'Squad unavailable — rankings are fixtures only.');
- }).catch(()=>render(ALL,{},'Squad unavailable — rankings are fixtures only.'));
+         sq.length>=15?null:'Squad unavailable — fixtures only.');
+ }).catch(()=>render(ALL,{},'Squad unavailable — fixtures only.'));
 })();
 
 // ---- Football: league table and the week's kick-offs -------------------
