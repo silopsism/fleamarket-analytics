@@ -215,9 +215,9 @@ __SQUADSEC__
  <div class="scroll"><table id="planner"></table></div>
 </section>
 <section class="card">
- <h2>Differentials &amp; traps — the model vs the crowd</h2>
- <p class="note">Ownership against model score. Top-left: gems the crowd hasn't found.
- Bottom-right: popular picks the model doubts. Ownership axis is stretched at the low end.</p>
+ <h2>Ownership vs projection</h2>
+ <p class="note">The ownership axis is stretched at the low end, so the thinly-owned
+ players are readable rather than stacked against the edge.</p>
  <div class="chips" id="chips2"></div>
  <svg id="diff" viewBox="0 0 940 440" role="img" aria-label="Scatter of ownership against expected points per match"></svg>
 </section>
