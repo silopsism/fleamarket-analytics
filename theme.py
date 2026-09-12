@@ -457,4 +457,53 @@ def emblem_css():
 
 def style_block():
     """The full <style> element shared by every page."""
-    return '<style>' + fonts() + TOKENS + BASE + emblem_css() + '</style>'
+    return '<style>' + fonts() + TOKENS + BASE + emblem_css() + '</style>' + ORIGIN_JS
+
+
+# http:// and https:// are DIFFERENT ORIGINS to a browser, with separate
+# localStorage. This site answers on both, so a team linked over one is
+# invisible over the other - and Chrome's HTTPS-First will move you between
+# them without asking, which is how a linked squad silently disappears.
+#
+# Two halves. First, personalisation keys are mirrored into cookies, which are
+# scoped to the DOMAIN rather than the origin and so are shared by both schemes;
+# that rescues whichever side the reader's data is already sitting on. Then the
+# page canonicalises itself to https.
+#
+# The redirect is deliberately done here rather than server-side: a proxy that
+# reports the wrong forwarded scheme turns a server redirect into an infinite
+# loop and takes the site down, whereas the worst this can do is fail to run.
+ORIGIN_JS = r"""<script>
+(function(){
+ var KEYS=['fpl_team_id','fpl_my_squad','fpl_squads_v1','fpl_primary'];
+ function readCookie(k){
+  var parts=(document.cookie||'').split('; ');
+  for(var i=0;i<parts.length;i++){
+   var eq=parts[i].indexOf('=');
+   if(eq>0&&parts[i].slice(0,eq)===k){
+    try{return decodeURIComponent(parts[i].slice(eq+1));}catch(e){return null;}
+   }
+  }
+  return null;
+ }
+ function writeCookie(k,v){
+  try{document.cookie=k+'='+encodeURIComponent(v)+
+   ';path=/;max-age=31536000;samesite=Lax';}catch(e){}
+ }
+ try{
+  KEYS.forEach(function(k){
+   var ls=null; try{ls=localStorage.getItem(k);}catch(e){}
+   var ck=readCookie(k);
+   if(ls!=null&&ls!==ck)writeCookie(k,ls);       // this origin is the fresher one
+   else if(ls==null&&ck!=null){                  // the other origin had it
+    try{localStorage.setItem(k,ck);}catch(e){}
+   }
+  });
+ }catch(e){}
+ // canonicalise last, so the rescue above has already run on this origin
+ var h=location.hostname;
+ if(location.protocol==='http:'&&h!=='localhost'&&h!=='127.0.0.1'&&h!=='[::1]'){
+  location.replace('https://'+location.host+location.pathname+location.search+location.hash);
+ }
+})();
+</script>"""

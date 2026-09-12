@@ -818,6 +818,28 @@ def home():
     return render(title='Fleamarket Analytics', body=FORM)
 
 
+@app.middleware('http')
+async def canonical_https(request: Request, call_next):
+    """Tell browsers to stop asking for http, once we know https works.
+
+    The site answers on both schemes, which a browser treats as two origins with
+    separate localStorage - so a team linked over one vanishes over the other.
+    The page itself does the redirecting (see theme.ORIGIN_JS); this only adds
+    the header that stops the browser trying http in the first place.
+
+    Deliberately NOT a server-side redirect: behind a proxy the app cannot
+    reliably tell which scheme the client used, and guessing wrong turns a
+    redirect into a loop that takes the whole site down. A header that a browser
+    ignores when it does not apply is the safe half of this.
+    """
+    response = await call_next(request)
+    proto = (request.headers.get('x-forwarded-proto') or request.url.scheme or '')
+    if proto.split(',')[0].strip() == 'https':
+        response.headers.setdefault(
+            'Strict-Transport-Security', 'max-age=31536000')
+    return response
+
+
 _plan_cache = {}
 
 
