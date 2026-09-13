@@ -846,6 +846,17 @@ async def canonical_https(request: Request, call_next):
 _plan_cache = {}
 
 
+# the API's own identifiers, in the words a reader uses
+STAT_LABEL = {
+    'minutes': 'Minutes', 'goals_scored': 'Goals', 'assists': 'Assists',
+    'clean_sheets': 'Clean sheet', 'goals_conceded': 'Goals conceded',
+    'own_goals': 'Own goals', 'penalties_saved': 'Penalties saved',
+    'penalties_missed': 'Penalties missed', 'yellow_cards': 'Yellow card',
+    'red_cards': 'Red card', 'saves': 'Saves', 'bonus': 'Bonus',
+    'defensive_contribution': 'Defensive contribution',
+}
+
+
 def live_gw(m):
     """The gameweek being PLAYED, which is not the one you can still change.
 
@@ -884,6 +895,7 @@ def api_live(team_id: int):
     except Exception as exc:  # noqa: BLE001
         return {'error': f'live data unavailable: {str(exc)[:60]}'}
     stats = {e['id']: e['stats'] for e in live.get('elements', [])}
+    expl = {e['id']: e.get('explain') or [] for e in live.get('elements', [])}
     rows = []
     for pk in picks.get('picks', []):
         el = m['elements'].get(pk['element'])
@@ -891,11 +903,24 @@ def api_live(team_id: int):
             continue
         st = stats.get(pk['element'], {})
         mins = int(st.get('minutes') or 0)
+        # The API explains its own scoring, per fixture and per stat, so the
+        # breakdown is reported rather than re-derived - there is no second
+        # implementation of the rules here to drift out of step with theirs.
+        detail = []
+        for fx in expl.get(pk['element'], []):
+            for line in fx.get('stats', []):
+                pts = int(line.get('points') or 0)
+                if not pts and line.get('identifier') != 'minutes':
+                    continue
+                detail.append({'k': STAT_LABEL.get(line['identifier'], line['identifier']),
+                               'v': line.get('value'), 'p': pts})
         rows.append({
             'n': el['web_name'], 't': m['teams'][el['team']],
             'pos': POS_NAME[el['element_type']],
             'pts': int(st.get('total_points') or 0),
             'mins': mins, 'bonus': int(st.get('bonus') or 0),
+            'bps': int(st.get('bps') or 0),
+            'detail': detail,
             'xi': pk['position'] <= 11, 'mult': pk['multiplier'],
             'cap': bool(pk['is_captain']), 'vice': bool(pk['is_vice_captain']),
         })

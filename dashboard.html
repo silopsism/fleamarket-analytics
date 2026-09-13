@@ -569,8 +569,8 @@ clean sheets, defensive contributions), season expectations, and fixtures. </p>
 </section>
 </div>
 
-<footer>FPL data pulled Sun 13 Sep 12:48 UK · refreshed hourly · fixtures priced by bookmaker odds: 10 · fixture model k(attack)=0.78, k(opponent defence)=0.80, home ×1.10, rmse 0.182
-<br><span class="build">build 078fba6+dirty · Predict lineups from injuries and recent starts · generated Sun 13 Sep 12:47 UK</span></footer>
+<footer>FPL data pulled Sun 13 Sep 12:53 UK · refreshed hourly · fixtures priced by bookmaker odds: 10 · fixture model k(attack)=0.78, k(opponent defence)=0.80, home ×1.10, rmse 0.182
+<br><span class="build">build 0987928+dirty · Follow the gameweek being played, not the one that was locked · generated Sun 13 Sep 12:53 UK</span></footer>
 </div>
 <div class="tip" id="tip"></div>
 <script>
@@ -949,13 +949,20 @@ function mySquad(){
   return g.h ? String(g.o).toUpperCase() : String(g.o).toLowerCase();
  }
  function card(r,role,lv){
-  let cells;
+  let cells, tip='';
   if(lv){
    // one wide cell: points so far, and whether he has actually been on
    const state = lv.mins ? (lv.mins+"'") : (lv.done ? 'did not play' : 'to play');
    const tone  = lv.mins ? 'on' : (lv.done ? 'off' : 'wait');
    cells=`<span class="c lv ${tone}"><b>${lv.pts*(lv.mult==null?1:lv.mult)}</b>`+
          `<i>${state}</i></span>`;
+   // the API explains its own scoring; show it rather than a bare total
+   const lines=(lv.detail||[]).map(d=>
+     `${d.k}${d.v!=null&&d.k!=='Bonus'?' ('+d.v+')':''}: ${d.p>0?'+':''}${d.p}`);
+   if(lv.mult>1)lines.push('Captain: doubled');
+   if(lv.mult===0)lines.push('On the bench: does not count');
+   if(lv.bps!=null&&!lv.done)lines.push('BPS '+lv.bps+' — bonus provisional');
+   tip=lines.join(' · ')||(lv.done?'did not play':'yet to play');
   }else{
    cells=GWL.slice(0,3).map((gw,i)=>
      `<span class="c"><b>${(r.g[i]!=null?r.g[i]:0).toFixed(1)}</b>`+
@@ -963,7 +970,8 @@ function mySquad(){
   }
   const badge = role==='C' ? '<span class="badge" title="captain">C</span>'
               : role==='V' ? '<span class="badge v" title="vice-captain">V</span>' : '';
-  return `<div class="pcard">${badge}`+
+  const t = tip || `${r.n} · ${r.t} · £${(r.c||0).toFixed(1)}m`;
+  return `<div class="pcard" title="${esc(t)}">${badge}`+
    `<img class="shirt" src="/shirts/${r.t}${r.p==='GKP'?'_gk':''}.png" alt="">`+
    `<div class="pn">${esc(r.n)}</div><div class="px">${cells}</div></div>`;
  }
@@ -992,7 +1000,7 @@ function mySquad(){
   const lv = (r,benchRow) => {
    if(!lmap)return null;
    const f=lmap.get(r.n+'|'+r.t)||{pts:0,mins:0,mult:1};
-   return {pts:f.pts, mins:f.mins, done:live.finished,
+   return {pts:f.pts, mins:f.mins, done:live.finished, detail:f.detail, bps:f.bps,
            mult: benchRow ? 0 : (f.mult==null?1:f.mult)};
   };
   const rowsByPos=['GKP','DEF','MID','FWD'].map(p=>xi.filter(r=>r.p===p));
