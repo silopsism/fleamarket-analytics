@@ -947,6 +947,7 @@ def api_live(team_id: int):
     hist = picks.get('entry_history') or {}
     return {
         'gw': gw,
+        'chip': picks.get('active_chip'),
         'rows': rows,
         'points': hist.get('points'),
         'total': hist.get('total_points'),

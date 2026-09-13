@@ -171,6 +171,14 @@ a{color:var(--accent)}
 .chipcard .warn{font-size:11.5px;line-height:1.4;margin-top:6px}
 p.note.warn{border-left:3px solid var(--warn);padding-left:10px;margin-top:12px}
 
+/* this week: one heading per kick-off slot, fixtures beneath it */
+#wktable tr.slot th{text-align:left;padding:12px 0 5px;font:700 11px/1 Archivo;
+ letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);border-bottom:1px solid var(--grid)}
+#wktable tr.slot:first-child th{padding-top:2px}
+#wktable td{padding:5px 6px}
+#wktable td.hm{text-align:right}
+#wktable td.inplay{color:var(--warn);font-weight:700}
+
 /* league table: European places and the drop, plus a form strip */
 tr.ucl td:first-child{box-shadow:inset 3px 0 var(--accent)}
 tr.uel td:first-child{box-shadow:inset 3px 0 var(--mid)}

@@ -708,6 +708,8 @@ function mySquad(){
  }
 
  // A small data card rather than a run-on line of text.
+ const CHIPNAME={bboost:'Bench Boost','3xc':'Triple Captain',freehit:'Free Hit',wildcard:'Wildcard'};
+ let bboost=false;
  function popupFor(r, role, lv){
   const head = (tot, sub) =>
    `<div class="hd"><img src="/shirts/${r.t}${r.p==='GKP'?'_gk':''}.png" alt="">`+
@@ -736,7 +738,8 @@ function mySquad(){
              : `${v} ${esc(f.opp)} · full time`);
    }
    if(mult>1)notes.push('<span class="cap">Captain — doubled</span>');
-   if(mult===0)notes.push('On your bench, so it does not count');
+   if(lv.bench&&!bboost)notes.push('On your bench — does not count this week');
+   if(lv.bench&&bboost)notes.push('<span class="cap">Bench Boost — this counts</span>');
    // BPS only means something once he has actually been on the pitch
    if(lv.mins&&!lv.done&&lv.bps!=null)notes.push('BPS '+lv.bps+' · bonus provisional');
    return head(lv.pts*mult, money)+body+
@@ -774,25 +777,36 @@ function mySquad(){
    bench=sq.filter(r=>!xi.includes(r));
   }
   const lmap = live ? new Map(live.rows.map(r=>[r.n+'|'+r.t,r])) : null;
+  // A bench player's score is worth showing even though it does not count: the
+  // strip is already off the pitch and in its own colours, so there is nothing
+  // to confuse. Zeroing it just hid what he did.
   const lv = (r,benchRow) => {
    if(!lmap)return null;
    const f=lmap.get(r.n+'|'+r.t)||{pts:0,mins:0,mult:1};
    return {pts:f.pts, mins:f.mins, done:live.finished, detail:f.detail, bps:f.bps,
-           fx:f.fx, mult: benchRow ? 0 : (f.mult==null?1:f.mult)};
+           fx:f.fx, bench:benchRow, mult: (f.mult==null?1:f.mult)||1};
   };
+  // Bench Boost puts all fifteen on the field, so draw them there rather than
+  // leaving four of the week's scorers in a strip underneath.
+  bboost = !!(live && live.chip==='bboost');
+  if(bboost){ xi=xi.concat(bench); bench=[]; }
   const rowsByPos=['GKP','DEF','MID','FWD'].map(p=>xi.filter(r=>r.p===p));
   pit.innerHTML='<div class="goalbox b18"></div><div class="goalbox b6"></div>'+
    rowsByPos.map(row=>'<div class="pline">'+
      row.map(r=>card(r,byName.get(r),lv(r,false))).join('')+'</div>').join('');
   const bo=[...bench].sort((a,b)=>(a.p==='GKP'?0:1)-(b.p==='GKP'?0:1));
-  document.getElementById('ovbench').innerHTML='<span class="blab">Bench</span>'+
-   bo.map(r=>card(r,byName.get(r),lv(r,true))).join('');
+  const bstrip=document.getElementById('ovbench');
+  bstrip.hidden = bo.length===0;
+  bstrip.innerHTML = bo.length
+   ? '<span class="blab">Bench</span>'+bo.map(r=>card(r,byName.get(r),lv(r,true))).join('')
+   : '';
 
   const gwEl=document.getElementById('ovgw'), note=document.getElementById('ovnote');
   if(live){
    const played=live.rows.filter(r=>r.xi&&r.mins).length;
    gwEl.textContent='GW'+live.gw;
-   note.innerHTML='<b>'+live.points+' points</b> so far'+
+   note.innerHTML=(live.chip?'<span class="cap">'+esc(CHIPNAME[live.chip]||live.chip)+'</span> · ':'')+
+    '<b>'+live.points+' points</b> so far'+
     (live.average!=null?' · average '+live.average:'')+
     ' · '+played+' of 11 have played'+
     (live.bench?' · '+live.bench+' left on the bench':'')+
@@ -1015,7 +1029,8 @@ function mySquad(){
   const cls=r=>r.pos<=4?'ucl':r.pos<=6?'uel':r.pos>=18?'rel':'';
   lt.innerHTML='<tr><th class="num">#</th><th>Club</th><th class="num">P</th><th class="num">W</th>'+
    '<th class="num">D</th><th class="num">L</th><th class="num">GF</th><th class="num">GA</th>'+
-   '<th class="num">GD</th><th class="num">Pts</th><th>Form</th></tr>'+
+   '<th class="num">GD</th><th class="num">Pts</th>'+
+   '<th>Form <span class="mut2">old → new</span></th></tr>'+
    LEAGUE.map(r=>`<tr class="${cls(r)}"><td class="num">${r.pos}</td><td><b>${r.team}</b></td>`+
     [r.p,r.w,r.d,r.l,r.gf,r.ga].map(v=>`<td class="num">${v}</td>`).join('')+
     `<td class="num">${r.gd>0?'+':''}${r.gd}</td><td class="num"><b>${r.pts}</b></td>`+
@@ -1024,11 +1039,25 @@ function mySquad(){
  const wt=document.getElementById('wktable');
  if(wt&&WEEK.length){
   const g=document.getElementById('weekgw'); if(g)g.textContent='GW'+GWL[0];
-  wt.innerHTML='<tr><th>Kick-off</th><th class="num"></th><th>Home</th><th class="num"></th>'+
-   '<th>Away</th><th class="num"></th></tr>'+
-   WEEK.map(f=>`<tr><td>${f.when||'TBC'}</td><td class="num mut2">${f.hp||''}</td>`+
-    `<td><b>${f.h}</b></td><td class="num">${f.done?'<b>'+f.score+'</b>':'v'}</td>`+
-    `<td><b>${f.a}</b></td><td class="num mut2">${f.ap||''}</td></tr>`).join('');
+  // Repeating "Sat 12 Sep · 15:00" on five consecutive rows is five times the
+  // ink for one fact. Kick-offs group, so group them: the slot is a heading and
+  // the fixtures sit under it.
+  const slots=[];
+  WEEK.forEach(f=>{
+   const last=slots[slots.length-1];
+   if(last&&last.when===f.when)last.games.push(f);
+   else slots.push({when:f.when||'Kick-off to be confirmed', games:[f]});
+  });
+  wt.innerHTML=slots.map(s=>
+   `<tr class="slot"><th colspan="5">${esc(s.when)}`+
+   `<span class="mut2"> · ${s.games.length} ${s.games.length===1?'match':'matches'}</span></th></tr>`+
+   s.games.map(f=>{
+    const mid = f.score ? `<b>${esc(f.score)}</b>` : 'v';
+    const cls = f.score && !f.done ? ' class="num inplay"' : ' class="num"';
+    return `<tr><td class="num mut2">${f.hp||''}</td><td class="hm"><b>${esc(f.h)}</b></td>`+
+           `<td${cls}>${mid}</td>`+
+           `<td><b>${esc(f.a)}</b></td><td class="num mut2">${f.ap||''}</td></tr>`;
+   }).join('')).join('');
  }
 })();
 
@@ -1242,8 +1271,12 @@ def league_table(fixtures, team_name):
     """
     tbl = {t: dict(team=t, p=0, w=0, d=0, l=0, gf=0, ga=0, pts=0, form='')
            for t in team_name.values()}
-    for f in sorted((x for x in fixtures if x.get('finished')),
-                    key=lambda x: x.get('event') or 0):
+    # A result counts as soon as there IS one. Waiting for `finished` - which
+    # only flips once bonus is confirmed, hours after the whistle - left the
+    # table a week behind all weekend, showing three games played on a Sunday
+    # when four had been played.
+    for f in sorted((x for x in fixtures if x.get('team_h_score') is not None),
+                    key=lambda x: (x.get('event') or 0, x.get('kickoff_time') or '')):
         hs, as_ = f.get('team_h_score'), f.get('team_a_score')
         if hs is None or as_ is None:
             continue
@@ -1256,6 +1289,7 @@ def league_table(fixtures, team_name):
             res = 'W' if gf > ga else 'D' if gf == ga else 'L'
             r[res.lower()] += 1
             r['pts'] += 3 if res == 'W' else 1 if res == 'D' else 0
+            # appended in fixture order, so the string reads oldest to newest
             r['form'] = (r['form'] + res)[-5:]
     rows = sorted(tbl.values(), key=lambda r: (-r['pts'], -(r['gf'] - r['ga']), -r['gf'], r['team']))
     for i, r in enumerate(rows, 1):
