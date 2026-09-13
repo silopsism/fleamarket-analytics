@@ -1469,7 +1469,7 @@ def chip_plan(fixtures, team_name, fixmap, elements, from_gw, fh_rows=(), tpl_ro
     return rows
 
 
-def recent_news(days=6, per_player=2):
+def recent_news(fixtures, team_name, gw, days=6, per_player=2):
     """Headlines worth showing on a player card, and only those.
 
     Old news is worse than none: a three-week-old injury scare next to a player
@@ -1484,6 +1484,20 @@ def recent_news(days=6, per_player=2):
     # projection. Requiring a tag is the difference between team news and noise.
     keep = {'out', 'doubt', 'return', 'injury', 'suspend', 'lineup', 'rotation',
             'bench', 'transfer', 'fit'}
+    # The match answers the question the news was asking. Once a club has
+    # kicked off, anything written beforehand about that match is spent -
+    # whatever the sweep tagged it. Tag-based expiry was not enough: a match
+    # report reading "joins Drogba, Hazard" got tagged `transfer` and outlived
+    # the game it was reporting on. Time is the reliable test, not the label.
+    from datetime import datetime as _dt, timezone as _tz
+    played_until = {}
+    for f in fixtures:
+        if f.get('event') != gw or not f.get('started') or not f.get('kickoff_time'):
+            continue
+        ko = _dt.strptime(f['kickoff_time'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=_tz.utc)
+        end = ko.timestamp() + 2 * 3600      # whistle, near enough
+        for side in (f['team_h'], f['team_a']):
+            played_until[team_name[side]] = end
     cutoff = _t.time() - days * 86400
     out = {}
     try:
@@ -1491,15 +1505,21 @@ def recent_news(days=6, per_player=2):
     except Exception:  # noqa: BLE001 - no sweep yet is fine
         return out
     for key, items in (cache.get('players') or {}).items():
+        club = key.split('|')[-1]
+        stale_before = played_until.get(club)
         picked = []
         for it in items:
-            if (it.get('ts') or 0) < cutoff:
+            ts = it.get('ts') or 0
+            if ts < cutoff:
                 continue
-            if not (set(it.get('tags') or ()) & keep):
+            tags = set(it.get('tags') or ()) & keep
+            if not tags:
                 continue
+            if stale_before and ts < stale_before:
+                continue          # overtaken by the match it was written about
             picked.append({'t': it.get('title', '')[:120],
                            's': it.get('source', ''), 'w': it.get('when', ''),
-                           'g': sorted(set(it['tags']) & keep)[0]})
+                           'g': sorted(tags)[0]})
             if len(picked) >= per_player:
                 break
         if picked:
@@ -1507,7 +1527,8 @@ def recent_news(days=6, per_player=2):
     return out
 
 
-NEWS_BY_PLAYER = recent_news()
+NEWS_BY_PLAYER = recent_news(json.load(open('fixtures.json', encoding='utf-8')),
+                             teams, gw_labels[0])
 print(f'player news: {len(NEWS_BY_PLAYER)} with something current')
 
 _fx_all = json.load(open('fixtures.json', encoding='utf-8'))
