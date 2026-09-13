@@ -59,6 +59,24 @@ def expected_minutes(d):
             float(e['selected_by_percent']))
     med = {k: sorted(v)[len(v) // 2] for k, v in buckets.items()}
 
+    # Observed starts: who this manager has actually been picking. Two signals
+    # decide a lineup - fitness, and whether he has been starting LATELY - and
+    # recency is what separates a favoured starter from a rotation option
+    # without having to model rotation at all.
+    starts, club_gws = {}, {}
+    try:
+        import lineups
+        done = sorted(ev['id'] for ev in d.get('events', []) if ev.get('finished'))
+        if done:
+            starts = lineups.fetch(done)
+            fx = json.load(open('fixtures.json', encoding='utf-8'))
+            for f in fx:
+                if f.get('finished') and f.get('event'):
+                    for t in (f['team_h'], f['team_a']):
+                        club_gws.setdefault(t, set()).add(f['event'])
+    except Exception as exc:  # noqa: BLE001 - fall back to the season baseline
+        print('minutes: start history unavailable:', exc)
+
     out = {}
     for e in d['elements']:
         okey = f"{e['web_name']}|{teams[e['team']]}"
@@ -116,14 +134,40 @@ def expected_minutes(d):
                     and not e.get('_club_games')):
                 base, src = 75.0, f'crowd signal ({sel:.0f}% owned vs {m:.1f}% typical)'
 
-        # Observed team sheets, blended in as they accumulate. Everything above
-        # is a pre-season estimate; this is the only part that knows what the
-        # manager has actually done. Weight climbs with the games played, so one
-        # rested week does not condemn a player and a month on the bench does.
+        # Observed team sheets. Everything above is a pre-season estimate; this
+        # is the only part that knows what the manager has actually done.
         gp = e.get('_club_games') or 0
-        if gp and e['status'] == 'a':
+        hist = {g: rows[str(e['id'])] for g, rows in starts.items()
+                if str(e['id']) in rows}
+        cg = club_gws.get(e['team'], set())
+        p_start = weeks = None
+        if hist and cg:
+            import lineups
+            p_start, weeks = lineups.start_probability(e, hist, cg)
+        if p_start is not None and weeks >= lineups.MIN_WEEKS:
+            # Split the question in two, because they have different answers:
+            # how likely is he to start, and how long does he last when he does.
+            # A blended minutes-per-club-game average conflates a nailed player
+            # who gets subbed with a rotation option who plays ninety when picked.
+            played = [m for g, (st, m) in hist.items() if st]
+            on_bench = [m for g, (st, m) in hist.items() if not st]
+            # never started: there is no "minutes when he starts" to observe, so
+            # fall back to the season baseline rather than reporting a number the
+            # sample cannot support
+            mins_start = min(sum(played) / len(played), CAP) if played else min(base, CAP)
+            mins_sub = sum(on_bench) / len(on_bench) if on_bench else 0.0
+            base = p_start * mins_start + (1 - p_start) * mins_sub
+            src = f'{p_start:.0%} to start over {weeks} gw'
+            if played:
+                src += f' · {mins_start:.0f} min when he does'
+            elif mins_sub:
+                src += f' · {mins_sub:.0f} min off the bench'
+            else:
+                src += ' · has not featured'
+        elif gp and e['status'] == 'a':
+            # not enough weeks yet: fall back to the crude blend
             obs_mps = min((e.get('_cur_minutes') or 0) / gp, CAP)
-            w_obs = min(gp / 5.0, 0.85)         # ~5 games and the sheet rules
+            w_obs = min(gp / 5.0, 0.85)
             blended = (1 - w_obs) * base + w_obs * obs_mps
             if abs(blended - base) >= 1:
                 src = f'{src}; {gp} played at {obs_mps:.0f}/gm (w={w_obs:.0%})'
