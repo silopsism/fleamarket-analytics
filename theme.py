@@ -287,6 +287,15 @@ th.gwsel:hover{color:var(--accent)}
  background:rgba(255,255,255,.08);color:rgba(255,255,255,.72)}
 .pcard .px .c:first-child b{background:var(--lime);color:var(--lime-ink)}
 .pcard .px .c:first-child i{background:rgba(168,214,0,.24);color:#eaf7bb}
+/* live mode: one wide cell instead of three weeks */
+.pcard .px .c.lv b{font:700 17px/1.25 Archivo}
+.pcard .px .c.lv i{font-size:9.5px;letter-spacing:.04em}
+.pcard .px .c.lv.on b{background:var(--lime);color:var(--lime-ink)}
+.pcard .px .c.lv.on i{background:rgba(168,214,0,.24);color:#eaf7bb}
+.pcard .px .c.lv.wait b{background:rgba(255,255,255,.14);color:rgba(255,255,255,.75)}
+.pcard .px .c.lv.off b{background:rgba(255,255,255,.08);color:rgba(255,255,255,.45)}
+.pcard .px .c.lv.off i{color:rgba(255,255,255,.45)}
+#ovmode{margin:2px 0 10px}
 .pcard .badge{position:absolute;top:-6px;right:-6px;width:19px;height:19px;border-radius:50%;
  font:700 10px/19px Archivo;background:var(--lime);color:var(--lime-ink);
  box-shadow:0 1px 4px rgba(0,0,0,.4)}

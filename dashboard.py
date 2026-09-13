@@ -177,6 +177,10 @@ clean sheets, defensive contributions), season expectations, and fixtures. __SUB
 
 <section class="card" id="ovsquad" hidden>
  <h2>Your squad <span class="mut" id="ovgw"></span></h2>
+ <div class="chips" id="ovmode">
+  <button class="chip" data-m="plan" aria-pressed="true">Planning</button>
+  <button class="chip" data-m="live" aria-pressed="false">Live score</button>
+ </div>
  <p class="note" id="ovnote"></p>
  <div class="pitch" id="ovpitch"></div>
  <div class="benchstrip" id="ovbench"></div>
@@ -575,6 +579,26 @@ function renderSquadTable(rows, el){
   if(m.squad_value!=null)
    show('tile-val','£'+m.squad_value.toFixed(1)+'m',
         m.bank?('£'+m.bank.toFixed(1)+'m in the bank'):'all 15 players, nothing banked');
+  // Rank, value and points all move while a gameweek is being played, and the
+  // entry endpoint only refreshes at the deadline. The live picks carry the
+  // current figures, so let them overwrite the frozen ones.
+  const tid2=localStorage.getItem('fpl_team_id');
+  if(tid2)fetch('/api/live/'+encodeURIComponent(tid2)).then(r=>r.json()).then(L=>{
+   if(!L||L.error)return;
+   if(L.rank!=null){
+    const dl = m.last_rank!=null ? (m.last_rank - L.rank) : null;
+    const arrow = dl==null ? '' :
+      dl>0 ? '<span class="up">▲ '+Math.abs(dl).toLocaleString()+'</span>'
+           : dl<0 ? '<span class="down">▼ '+Math.abs(dl).toLocaleString()+'</span>'
+                  : '<span class="mut">no change</span>';
+    show('tile-rank', L.rank.toLocaleString(),
+     (arrow?arrow+' ':'')+'<span class="mut">GW'+L.gw+' live · '+(L.total||0)+' pts</span>');
+   }
+   if(L.value!=null)
+    show('tile-val','£'+(L.value+(L.bank||0)).toFixed(1)+'m',
+     (L.bank?('£'+L.bank.toFixed(1)+'m in the bank'):'all 15 players, nothing banked')
+     +' · live');
+  }).catch(()=>{});
   if(m.free_transfers!=null)
    show('tile-ft', m.free_transfers, m.free_transfers>=5
      ? 'at the cap — use one or lose it' : 'banked, up to 5');
@@ -630,25 +654,36 @@ function mySquad(){
 (function(){
  const pit=document.getElementById('ovpitch'); if(!pit)return;
  const MIN={GKP:1,DEF:3,MID:2,FWD:1}, MAX={GKP:1,DEF:5,MID:5,FWD:3};
- // HEAT is a list of {team, gws:[GW1..GW6]}, so gameweek N is index N-1
  const OPP={}; HEAT.forEach(h=>OPP[h.team]=h.gws);
+ let MODE='plan', SQ=null, LIVE=null;
  function opp(t,gw){
   const g=(OPP[t]||[])[gw-1];
   if(!g)return '—';
   return g.h ? String(g.o).toUpperCase() : String(g.o).toLowerCase();
  }
- function card(r,role){
-  const wk=GWL.slice(0,3);
-  const cells=wk.map((gw,i)=>
-    `<span class="c"><b>${(r.g[i]!=null?r.g[i]:0).toFixed(1)}</b>`+
-    `<i>${esc(opp(r.t,gw))}</i></span>`).join('');
+ function card(r,role,lv){
+  let cells;
+  if(lv){
+   // one wide cell: points so far, and whether he has actually been on
+   const state = lv.mins ? (lv.mins+"'") : (lv.done ? 'did not play' : 'to play');
+   const tone  = lv.mins ? 'on' : (lv.done ? 'off' : 'wait');
+   cells=`<span class="c lv ${tone}"><b>${lv.pts*(lv.mult==null?1:lv.mult)}</b>`+
+         `<i>${state}</i></span>`;
+  }else{
+   cells=GWL.slice(0,3).map((gw,i)=>
+     `<span class="c"><b>${(r.g[i]!=null?r.g[i]:0).toFixed(1)}</b>`+
+     `<i>${esc(opp(r.t,gw))}</i></span>`).join('');
+  }
   const badge = role==='C' ? '<span class="badge" title="captain">C</span>'
               : role==='V' ? '<span class="badge v" title="vice-captain">V</span>' : '';
   return `<div class="pcard">${badge}`+
    `<img class="shirt" src="/shirts/${r.t}${r.p==='GKP'?'_gk':''}.png" alt="">`+
    `<div class="pn">${esc(r.n)}</div><div class="px">${cells}</div></div>`;
  }
- function draw(sq,roles,gw,meta){
+ function draw(){
+  const m=SQ; if(!m)return;
+  const sq=m.rows, roles=m.roles;
+  const live = MODE==='live' ? LIVE : null;
   const val=r=>(r.g&&r.g[0]!=null)?r.g[0]:0;
   const byName=new Map(sq.map((r,i)=>[r,roles?roles[i]:'']));
   let xi,bench;
@@ -666,26 +701,74 @@ function mySquad(){
    }
    bench=sq.filter(r=>!xi.includes(r));
   }
-  const rows=['GKP','DEF','MID','FWD'].map(p=>xi.filter(r=>r.p===p));
+  const lmap = live ? new Map(live.rows.map(r=>[r.n+'|'+r.t,r])) : null;
+  const lv = (r,benchRow) => {
+   if(!lmap)return null;
+   const f=lmap.get(r.n+'|'+r.t)||{pts:0,mins:0,mult:1};
+   return {pts:f.pts, mins:f.mins, done:live.finished,
+           mult: benchRow ? 0 : (f.mult==null?1:f.mult)};
+  };
+  const rowsByPos=['GKP','DEF','MID','FWD'].map(p=>xi.filter(r=>r.p===p));
   pit.innerHTML='<div class="goalbox b18"></div><div class="goalbox b6"></div>'+
-   rows.map(row=>'<div class="pline">'+row.map(r=>card(r,byName.get(r))).join('')+'</div>').join('');
+   rowsByPos.map(row=>'<div class="pline">'+
+     row.map(r=>card(r,byName.get(r),lv(r,false))).join('')+'</div>').join('');
   const bo=[...bench].sort((a,b)=>(a.p==='GKP'?0:1)-(b.p==='GKP'?0:1));
-  document.getElementById('ovbench').innerHTML=
-   '<span class="blab">Bench</span>'+bo.map(r=>card(r,byName.get(r))).join('');
-  const tot=xi.reduce((a,r)=>a+val(r),0)
-            + xi.reduce((m,r)=>Math.max(m, byName.get(r)==='C'?val(r):0),0);
-  document.getElementById('ovgw').textContent='GW'+gw;
-  const src = meta&&meta.edited
-   ? '<b>Showing '+esc(meta.label)+'</b> — your own edit, not the synced team. '
-   : (meta&&meta.label? 'Showing '+esc(meta.label)+'. ' : '');
-  document.getElementById('ovnote').innerHTML=
-   src+'Projected '+tot.toFixed(1)+' this gameweek, captain included. '+
-   'Each card shows the next three gameweeks against its fixtures. '+
-   '<a href="/squads">Edit or try transfers</a>.';
+  document.getElementById('ovbench').innerHTML='<span class="blab">Bench</span>'+
+   bo.map(r=>card(r,byName.get(r),lv(r,true))).join('');
+
+  const gwEl=document.getElementById('ovgw'), note=document.getElementById('ovnote');
+  if(live){
+   const played=live.rows.filter(r=>r.xi&&r.mins).length;
+   gwEl.textContent='GW'+live.gw;
+   note.innerHTML='<b>'+live.points+' points</b> so far'+
+    (live.average!=null?' · average '+live.average:'')+
+    ' · '+played+' of 11 have played'+
+    (live.bench?' · '+live.bench+' left on the bench':'')+
+    (live.hits?' · −'+live.hits+' for transfers':'')+
+    (live.finished?' · final':' · bonus may still change');
+  }else{
+   const tot=xi.reduce((a,r)=>a+val(r),0)
+             + xi.reduce((mx,r)=>Math.max(mx, byName.get(r)==='C'?val(r):0),0);
+   gwEl.textContent='GW'+GWL[0];
+   const src = m.edited
+    ? '<b>Showing '+esc(m.label)+'</b> — your own edit, not the synced team. '
+    : (m.label? 'Showing '+esc(m.label)+'. ' : '');
+   note.innerHTML=src+'Projected '+tot.toFixed(1)+' this gameweek, captain included. '+
+    'Each card shows the next three gameweeks against its fixtures. '+
+    '<a href="/squads">Edit or try transfers</a>.';
+  }
   document.getElementById('ovsquad').hidden=false;
  }
- mySquad().then(m=>{ if(m)draw(m.rows, m.roles, GWL[0], m); });
+ // the toggle only appears once there is a live gameweek to show
+ function wire(){
+  const box=document.getElementById('ovmode'); if(!box)return;
+  box.hidden=!LIVE;
+  box.querySelectorAll('.chip').forEach(b=>{
+   b.onclick=()=>{
+    MODE=b.dataset.m;
+    box.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true');
+    try{localStorage.setItem('fpl_sqmode',MODE)}catch(e){}
+    draw();
+   };
+   if(b.dataset.m===MODE)b.setAttribute('aria-pressed','true');
+   else b.setAttribute('aria-pressed','false');
+  });
+ }
+ try{MODE=localStorage.getItem('fpl_sqmode')||'plan'}catch(e){}
+ mySquad().then(m=>{
+  if(!m)return;
+  SQ=m; draw();
+  const tid=localStorage.getItem('fpl_team_id');
+  if(!tid||m.edited){wire();return;}   // an edited squad has no live score
+  fetch('/api/live/'+encodeURIComponent(tid)).then(r=>r.json()).then(d=>{
+   if(d&&!d.error&&d.rows&&d.rows.length){LIVE=d;}
+   else MODE='plan';
+   wire(); draw();
+  }).catch(()=>{MODE='plan';wire();});
+ });
 })();
+
 
 // ---- Chip planner -----------------------------------------------------
 (function(){
@@ -1257,10 +1340,16 @@ except Exception as _fhe:  # noqa: BLE001 - chips degrade, page still builds
 CHIPS = chip_plan(_fx_all, teams, FIXMAP, ns['d']['elements'], gw_labels[0],
                   fh_rows=FHBEST)
 
-_ev = next(e for e in ns['d']['events'] if e['id'] == gw_labels[0])
+# The deadline tile must point at the next one you can still ACT on. Once a
+# deadline passes the squad is locked but the gameweek is still being played, so
+# HORIZON_EVENTS[0] is the week in play, not the week to prepare for - and using
+# it left an expired countdown on the page all weekend.
+_now_iso = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+_ev = next((e for e in ns['d']['events'] if e['deadline_time'] > _now_iso),
+           None) or next(e for e in ns['d']['events'] if e['id'] == gw_labels[0])
 _dl = datetime.strptime(_ev['deadline_time'], '%Y-%m-%dT%H:%M:%SZ') + timedelta(hours=1)  # UK summer time
 tile_deadline = _dl.strftime('%a %d %b, %H:%M')
-tile_dl_gw = f"GW{gw_labels[0]} · {_dl.strftime('%H:%M')} UK"
+tile_dl_gw = f"GW{_ev['id']} · {_dl.strftime('%H:%M')} UK"
 # the raw instant, so the tile can count down live rather than print a date the
 # reader then has to subtract today from
 _dl_iso = _ev['deadline_time'].replace('Z', '+00:00')

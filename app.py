@@ -846,6 +846,80 @@ async def canonical_https(request: Request, call_next):
 _plan_cache = {}
 
 
+def live_gw(m):
+    """The gameweek being PLAYED, which is not the one you can still change.
+
+    Once a deadline passes the squad is locked but the matches are still to come,
+    so "current" means two different things and conflating them is how a page
+    ends up showing an expired countdown. This is the played one; next_deadline()
+    is the actionable one.
+    """
+    cur = [e['id'] for e in m['events'] if e.get('is_current')]
+    if cur:
+        return cur[0]
+    return locked_gw(m)
+
+
+def next_deadline(m):
+    """The next deadline that has not passed - GW5 while GW4 is being played."""
+    now = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+    upcoming = [e for e in m['events'] if e['deadline_time'] > now]
+    return upcoming[0] if upcoming else None
+
+
+@app.get('/api/live/{team_id}')
+def api_live(team_id: int):
+    """This gameweek as it stands: every pick's points so far, and the totals.
+
+    Everything here moves during a gameweek - points, rank, squad value - and the
+    static page was showing figures frozen at the last deadline.
+    """
+    m = model_data()
+    gw = live_gw(m)
+    if not gw:
+        return {'error': 'no gameweek in play'}
+    try:
+        picks = fpl_get(f'https://fantasy.premierleague.com/api/entry/{team_id}/event/{gw}/picks/')
+        live = fpl_get(f'https://fantasy.premierleague.com/api/event/{gw}/live/')
+    except Exception as exc:  # noqa: BLE001
+        return {'error': f'live data unavailable: {str(exc)[:60]}'}
+    stats = {e['id']: e['stats'] for e in live.get('elements', [])}
+    rows = []
+    for pk in picks.get('picks', []):
+        el = m['elements'].get(pk['element'])
+        if not el:
+            continue
+        st = stats.get(pk['element'], {})
+        mins = int(st.get('minutes') or 0)
+        rows.append({
+            'n': el['web_name'], 't': m['teams'][el['team']],
+            'pos': POS_NAME[el['element_type']],
+            'pts': int(st.get('total_points') or 0),
+            'mins': mins, 'bonus': int(st.get('bonus') or 0),
+            'xi': pk['position'] <= 11, 'mult': pk['multiplier'],
+            'cap': bool(pk['is_captain']), 'vice': bool(pk['is_vice_captain']),
+        })
+    playing = sum(1 for r in rows if r['xi'] and r['mins'])
+    hist = picks.get('entry_history') or {}
+    return {
+        'gw': gw,
+        'rows': rows,
+        'points': hist.get('points'),
+        'total': hist.get('total_points'),
+        'rank': hist.get('overall_rank'),
+        'gw_rank': hist.get('rank'),
+        'bench': hist.get('points_on_bench'),
+        'value': (hist.get('value') or 0) / 10,
+        'bank': (hist.get('bank') or 0) / 10,
+        'hits': hist.get('event_transfers_cost'),
+        'transfers': hist.get('event_transfers'),
+        'played': playing,
+        'average': next((e.get('average_entry_score') for e in m['events']
+                         if e['id'] == gw), None),
+        'finished': next((e.get('finished') for e in m['events'] if e['id'] == gw), False),
+    }
+
+
 @app.get('/shirts/{name}')
 def shirt_file(name: str):
     """Serve a cached kit image. Name is a club short code, so nothing a caller
