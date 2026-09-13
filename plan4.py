@@ -72,6 +72,16 @@ def solve_plan(players, n_gw=4, budget=100.0, max_hits=4, time_limit=90,
     hits = {g: pulp.LpVariable(f'h{g}', lowBound=0, upBound=max_hits, cat='Integer') for g in TG}
 
     owned0 = set(initial_ids or [])
+    # Per-club headcount the squad STARTS with. The cap can never be tighter
+    # than this: FPL lets a manager keep a player who moves clubs mid-season
+    # even when that takes him to four from one side, so a real squad can begin
+    # above the limit. A hard <= 3 made the whole problem infeasible, which
+    # surfaced as no plan - and, because squad_plan_html returned '' on no plan,
+    # as no squad view at all.
+    start_clubs = {}
+    for _p in P:
+        if _p['id'] in owned0:
+            start_clubs[_p['team']] = start_clubs.get(_p['team'], 0) + 1
 
     def cost(p, g):
         """What this player counts against the budget in gameweek g: his selling
@@ -87,8 +97,11 @@ def solve_plan(players, n_gw=4, budget=100.0, max_hits=4, time_limit=90,
         clubs = {}
         for p in P:
             clubs.setdefault(p['team'], []).append(p)
-        for members in clubs.values():
-            prob += pulp.lpSum(sq[m['id'], g] for m in members) <= 3
+        for _team, members in clubs.items():
+            # "no worse than you started": still forbids a fourth where there
+            # were three, still lets the plan work an existing four back down
+            prob += (pulp.lpSum(sq[m['id'], g] for m in members)
+                     <= max(3, start_clubs.get(_team, 0)))
         prob += pulp.lpSum(xi[p['id'], g] for p in P) == 11
         prob += pulp.lpSum(cp[p['id'], g] for p in P) == 1
         for pos in POS_QUOTA:

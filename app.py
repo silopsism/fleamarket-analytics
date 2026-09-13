@@ -1393,7 +1393,13 @@ def squad_plan_html(entries, m, stored=None, bank=0.0, editable=False):
         plan = plan4.solve_plan(ns['players'], n_gw=len(gwl), budget=budget,
                                 initial_ids=list(ids), time_limit=25)
         if not plan:
-            return ''
+            # Returning '' here deleted the entire squad view - pitch included -
+            # and said nothing, so an unsolvable plan looked like a broken page.
+            # The squad is worth showing whether or not a plan can be built on it.
+            return ('<div class="card"><h2 style="font-size:16px">4-week plan</h2>'
+                    '<p class="note">No legal plan from this squad inside the time '
+                    'limit. The squad itself is unaffected - only the transfer path '
+                    'is missing.</p></div>')
         pool = plan['pool']
         weeks, totals = [], []
         for g, squad in enumerate(plan['gws']):
