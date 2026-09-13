@@ -586,6 +586,7 @@ def paste(squad: str = '', mode: str = '', src: str = '', name: str = '',
     m = model_data()
     pos_name = {1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD'}
     entries, problems, seen, owned = [], [], set(), []
+    notes = []          # true of the squad, but not a fault in it
     lines = [ln for chunk in squad.splitlines() for ln in chunk.split(',')]
     for ln in lines:
         el, note, is_cap = match_line(ln, m)
@@ -617,20 +618,37 @@ def paste(squad: str = '', mode: str = '', src: str = '', name: str = '',
             r['xi'] = i in xi_idx
     for i, r in enumerate(entries):
         r['_i'] = i
-    # legality check (catches the free-text path, which the picker pre-enforces)
+    # Legality checks belong to squads a person is BUILDING. A synced team came
+    # from FPL and is legal by definition - if it breaks a limit, the game has
+    # allowed it, and the usual reason is a player moving clubs mid-season.
+    # Konsa went from Villa to Arsenal, so a squad that held him legitimately
+    # now shows four Arsenal players and stays legal until his owner transfers
+    # someone out. Calling that "illegal" told a manager his own real team was
+    # invalid.
     limits = {1: 2, 2: 5, 3: 5, 4: 3}
-    for pos, cap_n in limits.items():
-        n = sum(1 for r in entries if r['pos'] == pos)
-        if n > cap_n:
-            problems.append(f'<li>Illegal squad: {n}× {POS_NAME[pos]} (max {cap_n})</li>')
     clubs = {}
     for r in entries:
         clubs[r['t']] = clubs.get(r['t'], 0) + 1
-    for club, n in clubs.items():
-        if n > 3:
+    over = {c: n for c, n in clubs.items() if n > 3}
+    if locked:
+        for club, n in over.items():
+            notes.append(
+                f'<li><b>{n} players from {club}</b> — above the usual three. '
+                'A squad keeps players who move clubs mid-season, so this stays '
+                'legal until one of them is transferred out. Transfer suggestions '
+                'below stay inside three per club, so none of them will make it worse.</li>')
+    else:
+        for pos, cap_n in limits.items():
+            n = sum(1 for r in entries if r['pos'] == pos)
+            if n > cap_n:
+                problems.append(f'<li>Illegal squad: {n}× {POS_NAME[pos]} (max {cap_n})</li>')
+        for club, n in over.items():
             problems.append(f'<li>Illegal squad: {n} players from {club} (max 3)</li>')
     prob_html = (f"<div class='card'><b>{len(problems)} issue(s)</b>"
                  f"<ul style='padding-left:20px;margin-top:6px'>{''.join(problems)}</ul></div>") if problems else ''
+    if notes:
+        prob_html += ("<div class='card'><b>Worth knowing</b>"
+                      f"<ul style='padding-left:20px;margin-top:6px'>{''.join(notes)}</ul></div>")
     icon = {'my': '⭐', 'spy': '🕵', 'tinker': '🔧', 'model': '🤖'}.get(type, '')
     if name:
         title = f'{icon} {name}'.strip()
