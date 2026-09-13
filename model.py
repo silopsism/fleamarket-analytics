@@ -342,6 +342,7 @@ for e in d['elements']:
         'chip_gws': [round(g, 2) for g in allgws],
         'tot4': round(sum(gws), 2), 'xmins': round(xmins), 'src': xmins_src,
         'xmins_gws': [round(m) for m in xmins_gw] if ramp else None,
+        'p_start': XMINS[e['id']].get('p_start'),
     })
 
 # --- SCORES-END --- (dashboard.py exec's the file up to this marker)

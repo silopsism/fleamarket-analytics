@@ -66,14 +66,23 @@ def expected_minutes(d):
     starts, club_gws = {}, {}
     try:
         import lineups
-        done = sorted(ev['id'] for ev in d.get('events', []) if ev.get('finished'))
-        if done:
-            starts = lineups.fetch(done)
-            fx = json.load(open('fixtures.json', encoding='utf-8'))
-            for f in fx:
-                if f.get('finished') and f.get('event'):
-                    for t in (f['team_h'], f['team_a']):
-                        club_gws.setdefault(t, set()).add(f['event'])
+        fx = json.load(open('fixtures.json', encoding='utf-8'))
+        # A gameweek counts once it has been PLAYED, not once bonus is confirmed.
+        # `finished` flips hours after the whistle, so waiting for it threw away
+        # the most recent and most informative week: Konsa had started GW3 and
+        # GW4 and the model could only see GW3, reading him at 45% to start.
+        #
+        # Per club, not globally: in a week where seven clubs have played and
+        # three have not, the three must not be scored as though their players
+        # were dropped. A club with no started fixture simply has no sample for
+        # that gameweek.
+        for f in fx:
+            if f.get('event') and f.get('started'):
+                for t in (f['team_h'], f['team_a']):
+                    club_gws.setdefault(t, set()).add(f['event'])
+        played = sorted({g for gs in club_gws.values() for g in gs})
+        if played:
+            starts = lineups.fetch(played)
     except Exception as exc:  # noqa: BLE001 - fall back to the season baseline
         print('minutes: start history unavailable:', exc)
 
@@ -203,6 +212,9 @@ def expected_minutes(d):
             src += f' × {chance}% fit'
 
         out[e['id']] = {'xmins': min(base, CAP), 'src': src,
+                        # the start probability itself, so a caller can say WHY
+                        # rather than asserting "may not start"
+                        'p_start': (round(p_start, 3) if p_start is not None else None),
                         'ramp': [min(v, CAP) for v in ramp] if ramp else None,
                         'trust': bool(over.get(okey, {}).get('trust_rates')),
                         # for a player with no PL record, how much better (or

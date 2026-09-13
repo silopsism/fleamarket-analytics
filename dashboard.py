@@ -114,7 +114,8 @@ for p in pts:
                  'c': p['price'], 'x': round(p['xpts'], 2), 'xn': round(p['xnext'], 2),
                  'g': p['gws'], 'cg': p['chip_gws'], 'tt': p['tot4'], 'pc': pct, 'pl': lik,
                  's': p['sel'], 'mine': pkey(p) in MY_SQUAD, 'xi': pkey(p) in set(MY_XI),
-                 'xm': p['xmins'], 'xmg': p['xmins_gws'], 'why': p['src']})
+                 'xm': p['xmins'], 'xmg': p['xmins_gws'], 'ps': p.get('p_start'),
+                 'why': p['src']})
 gw_labels = ns['HORIZON_EVENTS']
 
 fx = json.load(open('fixtures.json', encoding='utf-8'))
@@ -926,7 +927,10 @@ function mySquad(){
    const b=split(sq,i), fh=FHBEST[i];
    out[ev]={tc:b.cap, capName:b.capName,
             bb:b.benchSum,
-            weak:b.bench.filter(r=>(r.xm||0)<45).map(r=>r.n),
+            // name the doubt AND its evidence. "may not start" on its own is an
+            // assertion the reader cannot check or argue with.
+            weak:b.bench.filter(r=>r.ps!=null&&r.ps<0.75)
+                        .map(r=>`${r.n} ${Math.round(r.ps*100)}% to start`),
             fh:fh?Math.max(fh.total-(b.tot+b.cap),0):null};
   });
   return out;
@@ -942,7 +946,9 @@ function mySquad(){
   }
   if(k==='bb'){
    if(!pt)return 'link your team to price this';
-   return pt.weak&&pt.weak.length ? pt.weak.join(', ')+' may not start' : 'all fifteen expected to play';
+   return pt.weak&&pt.weak.length
+     ? 'rotation risk: '+pt.weak.join(', ')
+     : 'all fifteen are settled starters';
   }
   const bits=[];
   if(r.clashes&&r.clashes.length)bits.push(r.clashes.join(', '));

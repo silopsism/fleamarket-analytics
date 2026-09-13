@@ -43,8 +43,10 @@ def fetch(finished_gws, cache=None):
     """{gw: {player_id: [started, minutes]}} for every finished gameweek."""
     data = _load() if cache is None else cache
     fresh = False
+    live_gw = max(finished_gws) if finished_gws else None
     for gw in finished_gws:
-        if gw in data:
+        # the newest gameweek is still moving, so never serve it from cache
+        if gw in data and gw != live_gw:
             continue
         try:
             req = urllib.request.Request(LIVE.format(gw=gw), headers=UA)
@@ -55,7 +57,7 @@ def fetch(finished_gws, cache=None):
         data[gw] = {str(e['id']): [int(e['stats'].get('starts') or 0),
                                    int(e['stats'].get('minutes') or 0)]
                     for e in live['elements']}
-        fresh = True
+        fresh = gw != live_gw          # only settled weeks are worth caching
     if fresh:
         try:
             with open(CACHE, 'w', encoding='utf-8') as f:
