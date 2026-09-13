@@ -287,6 +287,7 @@ __CHIPPLAN__
 <br><span class="build">build __SHA__ · __SUBJECT__ · generated __BUILT__ UK</span></footer>
 </div>
 <div class="tip" id="tip"></div>
+<div class="sqpop" id="sqpop" hidden></div>
 <script>
 const DATA = __DATA__;
 const HEAT = __HEAT__;
@@ -661,21 +662,15 @@ function mySquad(){
   if(!g)return '—';
   return g.h ? String(g.o).toUpperCase() : String(g.o).toLowerCase();
  }
+ const POP=new Map();         // card key -> what its popup should say
  function card(r,role,lv){
-  let cells, tip='';
+  let cells;
   if(lv){
    // one wide cell: points so far, and whether he has actually been on
    const state = lv.mins ? (lv.mins+"'") : (lv.done ? 'did not play' : 'to play');
    const tone  = lv.mins ? 'on' : (lv.done ? 'off' : 'wait');
    cells=`<span class="c lv ${tone}"><b>${lv.pts*(lv.mult==null?1:lv.mult)}</b>`+
          `<i>${state}</i></span>`;
-   // the API explains its own scoring; show it rather than a bare total
-   const lines=(lv.detail||[]).map(d=>
-     `${d.k}${d.v!=null&&d.k!=='Bonus'?' ('+d.v+')':''}: ${d.p>0?'+':''}${d.p}`);
-   if(lv.mult>1)lines.push('Captain: doubled');
-   if(lv.mult===0)lines.push('On the bench: does not count');
-   if(lv.bps!=null&&!lv.done)lines.push('BPS '+lv.bps+' — bonus provisional');
-   tip=lines.join(' · ')||(lv.done?'did not play':'yet to play');
   }else{
    cells=GWL.slice(0,3).map((gw,i)=>
      `<span class="c"><b>${(r.g[i]!=null?r.g[i]:0).toFixed(1)}</b>`+
@@ -683,10 +678,48 @@ function mySquad(){
   }
   const badge = role==='C' ? '<span class="badge" title="captain">C</span>'
               : role==='V' ? '<span class="badge v" title="vice-captain">V</span>' : '';
-  const t = tip || `${r.n} · ${r.t} · £${(r.c||0).toFixed(1)}m`;
-  return `<div class="pcard" title="${esc(t)}">${badge}`+
+  const key=r.n+'|'+r.t+'|'+(lv?'L':'P');
+  POP.set(key, popupFor(r, role, lv));
+  return `<div class="pcard" data-pop="${esc(key)}">${badge}`+
    `<img class="shirt" src="/shirts/${r.t}${r.p==='GKP'?'_gk':''}.png" alt="">`+
    `<div class="pn">${esc(r.n)}</div><div class="px">${cells}</div></div>`;
+ }
+
+ // A small data card rather than a run-on line of text.
+ function popupFor(r, role, lv){
+  const head = (tot, sub) =>
+   `<div class="hd"><img src="/shirts/${r.t}${r.p==='GKP'?'_gk':''}.png" alt="">`+
+   `<div class="who"><b>${esc(r.n)}</b><span class="meta">${esc(sub)}</span></div>`+
+   `<div class="tot">${tot}</div></div>`;
+  const money = `${r.t} · ${r.p} · £${(r.c||0).toFixed(1)}m`;
+  if(lv){
+   const rows=(lv.detail||[])
+     // a stat worth nothing on a player who never came on is noise
+     .filter(d=>d.p!==0||(d.k==='Minutes'&&lv.mins))
+     .map(d=>`<tr><td>${esc(d.k)}</td><td class="v">${d.v!=null?d.v:''}</td>`+
+             `<td class="p ${d.p>0?'pos':(d.p<0?'neg':'')}">${d.p>0?'+':''}${d.p}</td></tr>`)
+     .join('');
+   const mult=(lv.mult==null?1:lv.mult);
+   const body = rows
+     ? `<table>${rows}</table>`
+     : `<div class="ft">${lv.done?'Did not play':'Yet to play'}</div>`;
+   const notes=[];
+   if(mult>1)notes.push('<span class="cap">Captain — doubled</span>');
+   if(mult===0)notes.push('On your bench, so it does not count');
+   // BPS only means something once he has actually been on the pitch
+   if(lv.mins&&!lv.done&&lv.bps!=null)notes.push('BPS '+lv.bps+' · bonus provisional');
+   return head(lv.pts*mult, money)+body+
+    (notes.length?`<div class="ft">${notes.join(' · ')}</div>`:'');
+  }
+  const rows=GWL.slice(0,3).map((gw,i)=>
+   `<tr><td>GW${gw}</td><td class="v">${esc(opp(r.t,gw))}</td>`+
+   `<td class="p">${(r.g[i]!=null?r.g[i]:0).toFixed(1)}</td></tr>`).join('');
+  const four=(r.g||[]).reduce((a,b)=>a+b,0);
+  const why=r.why?`<div class="ft">${esc(r.why)}</div>`:'';
+  return head(four.toFixed(1), money)+`<table>${rows}</table>`+
+   `<div class="ft">${r.xm!=null?Math.round(r.xm)+' expected minutes':''}`+
+   `${role==='C'?' · <span class="cap">your captain</span>':''}`+
+   `${role==='V'?' · vice-captain':''}</div>`+why;
  }
  function draw(){
   const m=SQ; if(!m)return;
@@ -747,6 +780,40 @@ function mySquad(){
   }
   document.getElementById('ovsquad').hidden=false;
  }
+ // Popup placement. Fixed to the viewport, because .pitch clips its overflow
+ // and anything positioned inside it gets cut at the touchline. Measured only
+ // after unhiding - a hidden element has no size to read - then flipped above
+ // when it would fall off the bottom and clamped to the window either side.
+ const pop=document.getElementById('sqpop');
+ let popKey=null;
+ function showPop(cardEl){
+  const key=cardEl.dataset.pop, html=POP.get(key);
+  if(!html){hidePop();return;}
+  if(popKey===key&&!pop.hidden)return;
+  popKey=key; pop.innerHTML=html; pop.hidden=false;
+  const c=cardEl.getBoundingClientRect(), b=pop.getBoundingClientRect();
+  let left=c.left+c.width/2-b.width/2;
+  left=Math.max(8, Math.min(left, window.innerWidth-b.width-8));
+  let top=c.bottom+8;
+  if(top+b.height>window.innerHeight-8)top=Math.max(8, c.top-b.height-8);
+  pop.style.left=left+'px'; pop.style.top=top+'px';
+ }
+ function hidePop(){pop.hidden=true; popKey=null;}
+ function wirePop(root){
+  root.addEventListener('mouseover',e=>{
+   const c=e.target.closest('.pcard'); if(c&&root.contains(c))showPop(c);
+  });
+  root.addEventListener('mouseleave',hidePop);
+  // touch has no hover: tap opens, tapping again or anywhere else closes
+  root.addEventListener('click',e=>{
+   const c=e.target.closest('.pcard'); if(!c)return;
+   if(popKey===c.dataset.pop&&!pop.hidden)hidePop(); else showPop(c);
+  });
+ }
+ wirePop(pit); wirePop(document.getElementById('ovbench'));
+ document.addEventListener('scroll', hidePop, {passive:true});
+ window.addEventListener('resize', hidePop);
+
  // the toggle only appears once there is a live gameweek to show
  function wire(){
   const box=document.getElementById('ovmode'); if(!box)return;

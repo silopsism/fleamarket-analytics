@@ -411,6 +411,30 @@ th.gwsel:hover{color:var(--accent)}
 .tip{position:fixed;pointer-events:none;background:var(--surface);border:1px solid var(--axis);
  border-radius:9px;padding:9px 12px;font-size:12.5px;box-shadow:0 6px 20px rgba(0,0,0,.22);
  opacity:0;transition:opacity .12s;z-index:9;max-width:240px}
+/* squad card popup: a small data card, not a line of text. Fixed to the
+   viewport because .pitch clips its own overflow, so anything absolutely
+   positioned inside it is cut off at the touchline. */
+.sqpop{position:fixed;z-index:40;width:236px;background:var(--surface);
+ border:1px solid var(--ring);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.28);
+ padding:0;overflow:hidden;font-size:12.5px;color:var(--ink)}
+.sqpop .hd{display:flex;align-items:center;gap:9px;padding:10px 12px;
+ background:var(--sunk);border-bottom:1px solid var(--grid)}
+.sqpop .hd img{width:30px;height:auto;flex:none}
+.sqpop .hd .who{flex:1;min-width:0}
+.sqpop .hd b{display:block;font:700 13.5px/1.2 Archivo;white-space:nowrap;
+ overflow:hidden;text-overflow:ellipsis}
+.sqpop .hd .meta{font-size:11px;color:var(--muted)}
+.sqpop .hd .tot{font:400 26px/1 Anton,Impact,sans-serif;color:var(--ink)}
+.sqpop table{width:100%;border-collapse:collapse}
+.sqpop td{padding:4px 12px;border-bottom:1px solid var(--grid)}
+.sqpop tr:last-child td{border-bottom:0}
+.sqpop td.v{text-align:right;color:var(--muted);width:38px}
+.sqpop td.p{text-align:right;width:40px;font-weight:700}
+.sqpop td.p.pos{color:var(--up)}
+.sqpop td.p.neg{color:var(--down)}
+.sqpop .ft{padding:7px 12px;background:var(--sunk);color:var(--muted);
+ font-size:11px;border-top:1px solid var(--grid)}
+.sqpop .cap{color:var(--accent);font-weight:700}
 .tip b{font-size:13.5px}
 .tip .r{color:var(--ink2)}
 
