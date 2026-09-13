@@ -896,6 +896,19 @@ def api_live(team_id: int):
         return {'error': f'live data unavailable: {str(exc)[:60]}'}
     stats = {e['id']: e['stats'] for e in live.get('elements', [])}
     expl = {e['id']: e.get('explain') or [] for e in live.get('elements', [])}
+    # per-club fixture state, so a card can say WHO and WHEN rather than a zero
+    fxs = {}
+    try:
+        for f in fpl_get(f'https://fantasy.premierleague.com/api/fixtures/?event={gw}'):
+            state = ('done' if (f.get('finished') or f.get('finished_provisional'))
+                     else ('live' if f.get('started') else 'pre'))
+            ko = f.get('kickoff_time')
+            for side, opp, home in ((f['team_h'], f['team_a'], 1),
+                                    (f['team_a'], f['team_h'], 0)):
+                fxs.setdefault(m['teams'][side], []).append(
+                    {'opp': m['teams'][opp], 'home': home, 'state': state, 'ko': ko})
+    except Exception as exc:  # noqa: BLE001 - cards degrade to a bare score
+        print('live fixtures skipped:', exc)
     rows = []
     for pk in picks.get('picks', []):
         el = m['elements'].get(pk['element'])
@@ -914,9 +927,15 @@ def api_live(team_id: int):
                     continue
                 detail.append({'k': STAT_LABEL.get(line['identifier'], line['identifier']),
                                'v': line.get('value'), 'p': pts})
+        club_fx = fxs.get(m['teams'][el['team']]) or []
+        # a blank has no fixture at all; a double has two, and the one that
+        # matters is whichever has not finished
+        fx_now = next((x for x in club_fx if x['state'] != 'done'), None) or (
+            club_fx[0] if club_fx else None)
         rows.append({
             'n': el['web_name'], 't': m['teams'][el['team']],
             'pos': POS_NAME[el['element_type']],
+            'fx': fx_now,
             'pts': int(st.get('total_points') or 0),
             'mins': mins, 'bonus': int(st.get('bonus') or 0),
             'bps': int(st.get('bps') or 0),

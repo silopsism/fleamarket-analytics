@@ -297,6 +297,7 @@ const WEEK = __WEEK__;
 const CHIPS = __CHIPS__;
 const FHBEST = __FHBEST__;
 const CHIPEV = __CHIPEV__;
+const PNEWS = __PNEWS__;
 const GWL = __GWL__;
 // tab routing (hash-based, default overview)
 const panes=[...document.querySelectorAll('.tabpane')];
@@ -657,6 +658,18 @@ function mySquad(){
  const MIN={GKP:1,DEF:3,MID:2,FWD:1}, MAX={GKP:1,DEF:5,MID:5,FWD:3};
  const OPP={}; HEAT.forEach(h=>OPP[h.team]=h.gws);
  let MODE='plan', SQ=null, LIVE=null;
+ // kick-off in the reader's own timezone, short enough for a 78px card
+ function koLabel(iso){
+  const d=new Date(iso); if(isNaN(d))return 'to play';
+  const now=new Date();
+  const sameDay = d.toDateString()===now.toDateString();
+  try{
+   const t=new Intl.DateTimeFormat(undefined,{hour:'2-digit',minute:'2-digit',hour12:false}).format(d);
+   if(sameDay)return t;
+   const w=new Intl.DateTimeFormat(undefined,{weekday:'short'}).format(d);
+   return w+' '+t;
+  }catch(e){ return d.toLocaleString(); }
+ }
  function opp(t,gw){
   const g=(OPP[t]||[])[gw-1];
   if(!g)return '—';
@@ -666,11 +679,20 @@ function mySquad(){
  function card(r,role,lv){
   let cells;
   if(lv){
-   // one wide cell: points so far, and whether he has actually been on
-   const state = lv.mins ? (lv.mins+"'") : (lv.done ? 'did not play' : 'to play');
-   const tone  = lv.mins ? 'on' : (lv.done ? 'off' : 'wait');
-   cells=`<span class="c lv ${tone}"><b>${lv.pts*(lv.mult==null?1:lv.mult)}</b>`+
-         `<i>${state}</i></span>`;
+   const fx=lv.fx, st=fx?fx.state:(lv.done?'done':'pre');
+   let big, sub, tone;
+   if(st==='pre'){
+    // nothing has happened yet, so a zero says nothing. Name the opponent and
+    // when they play instead - that IS the useful content before kick-off.
+    big = fx ? (fx.home?fx.opp:fx.opp.toLowerCase()) : '—';
+    sub = fx&&fx.ko ? koLabel(fx.ko) : 'to play';
+    tone='wait';
+   }else{
+    big = lv.pts*(lv.mult==null?1:lv.mult);
+    sub = lv.mins ? (lv.mins+"'") : (st==='done'?'did not play':'not on yet');
+    tone = st==='live' ? 'inplay' : (lv.mins?'on':'off');
+   }
+   cells=`<span class="c lv ${tone}"><b>${big}</b><i>${sub}</i></span>`;
   }else{
    cells=GWL.slice(0,3).map((gw,i)=>
      `<span class="c"><b>${(r.g[i]!=null?r.g[i]:0).toFixed(1)}</b>`+
@@ -692,6 +714,8 @@ function mySquad(){
    `<div class="who"><b>${esc(r.n)}</b><span class="meta">${esc(sub)}</span></div>`+
    `<div class="tot">${tot}</div></div>`;
   const money = `${r.t} · ${r.p} · £${(r.c||0).toFixed(1)}m`;
+  const news=(PNEWS[r.n+'|'+r.t]||[]).map(x=>
+    `<div class="nw"><span>${esc(x.t)}</span><em>${esc(x.s)} · ${esc(x.w)}</em></div>`).join('');
   if(lv){
    const rows=(lv.detail||[])
      // a stat worth nothing on a player who never came on is noise
@@ -704,22 +728,28 @@ function mySquad(){
      ? `<table>${rows}</table>`
      : `<div class="ft">${lv.done?'Did not play':'Yet to play'}</div>`;
    const notes=[];
+   if(lv.fx){
+    const f=lv.fx, v=f.home?'v':'at';
+    notes.push(f.state==='pre' ? `${v} ${esc(f.opp)} · ${koLabel(f.ko)}`
+             : f.state==='live' ? `<span class="inplay">${v} ${esc(f.opp)} · in play</span>`
+             : `${v} ${esc(f.opp)} · full time`);
+   }
    if(mult>1)notes.push('<span class="cap">Captain — doubled</span>');
    if(mult===0)notes.push('On your bench, so it does not count');
    // BPS only means something once he has actually been on the pitch
    if(lv.mins&&!lv.done&&lv.bps!=null)notes.push('BPS '+lv.bps+' · bonus provisional');
    return head(lv.pts*mult, money)+body+
-    (notes.length?`<div class="ft">${notes.join(' · ')}</div>`:'');
+    (notes.length?`<div class="ft">${notes.join(' · ')}</div>`:'')+news;
   }
   const rows=GWL.slice(0,3).map((gw,i)=>
    `<tr><td>GW${gw}</td><td class="v">${esc(opp(r.t,gw))}</td>`+
    `<td class="p">${(r.g[i]!=null?r.g[i]:0).toFixed(1)}</td></tr>`).join('');
   const four=(r.g||[]).reduce((a,b)=>a+b,0);
-  const why=r.why?`<div class="ft">${esc(r.why)}</div>`:'';
+  const why=r.why?`<div class="ft why">${esc(r.why)}</div>`:'';
   return head(four.toFixed(1), money)+`<table>${rows}</table>`+
    `<div class="ft">${r.xm!=null?Math.round(r.xm)+' expected minutes':''}`+
    `${role==='C'?' · <span class="cap">your captain</span>':''}`+
-   `${role==='V'?' · vice-captain':''}</div>`+why;
+   `${role==='V'?' · vice-captain':''}</div>`+news+why;
  }
  function draw(){
   const m=SQ; if(!m)return;
@@ -747,7 +777,7 @@ function mySquad(){
    if(!lmap)return null;
    const f=lmap.get(r.n+'|'+r.t)||{pts:0,mins:0,mult:1};
    return {pts:f.pts, mins:f.mins, done:live.finished, detail:f.detail, bps:f.bps,
-           mult: benchRow ? 0 : (f.mult==null?1:f.mult)};
+           fx:f.fx, mult: benchRow ? 0 : (f.mult==null?1:f.mult)};
   };
   const rowsByPos=['GKP','DEF','MID','FWD'].map(p=>xi.filter(r=>r.p===p));
   pit.innerHTML='<div class="goalbox b18"></div><div class="goalbox b6"></div>'+
@@ -801,7 +831,10 @@ function mySquad(){
  function hidePop(){pop.hidden=true; popKey=null;}
  function wirePop(root){
   root.addEventListener('mouseover',e=>{
-   const c=e.target.closest('.pcard'); if(c&&root.contains(c))showPop(c);
+   const c=e.target.closest('.pcard');
+   // leaving a card for the grass between cards should close it, not wait until
+   // the pointer has left the whole pitch
+   if(c&&root.contains(c))showPop(c); else hidePop();
   });
   root.addEventListener('mouseleave',hidePop);
   // touch has no hover: tap opens, tapping again or anywhere else closes
@@ -1401,6 +1434,42 @@ def chip_plan(fixtures, team_name, fixmap, elements, from_gw, fh_rows=(), tpl_ro
     return rows
 
 
+def recent_news(days=6, per_player=2):
+    """Headlines worth showing on a player card, and only those.
+
+    Old news is worse than none: a three-week-old injury scare next to a player
+    who has started twice since reads as a current doubt. So anything past the
+    window is dropped, and so is anything the sweep tagged as neither a fitness
+    nor a selection matter.
+    """
+    import time as _t
+    keep = {'out', 'doubt', 'return', 'injury', 'suspend', 'start', 'bench',
+            'rotation', 'fit', 'news'}
+    cutoff = _t.time() - days * 86400
+    out = {}
+    try:
+        cache = json.load(open('news_cache.json', encoding='utf-8'))
+    except Exception:  # noqa: BLE001 - no sweep yet is fine
+        return out
+    for key, items in (cache.get('players') or {}).items():
+        picked = []
+        for it in items:
+            if (it.get('ts') or 0) < cutoff:
+                continue
+            if it.get('tags') and not (set(it['tags']) & keep):
+                continue
+            picked.append({'t': it.get('title', '')[:120],
+                           's': it.get('source', ''), 'w': it.get('when', '')})
+            if len(picked) >= per_player:
+                break
+        if picked:
+            out[key] = picked
+    return out
+
+
+NEWS_BY_PLAYER = recent_news()
+print(f'player news: {len(NEWS_BY_PLAYER)} with something current')
+
 _fx_all = json.load(open('fixtures.json', encoding='utf-8'))
 LEAGUE = league_table(_fx_all, teams)
 WEEK = week_fixtures(_fx_all, teams, gw_labels[0], LEAGUE)
@@ -1655,7 +1724,8 @@ def emit(path, personal):
                 .replace('__WEEK__', json.dumps(WEEK, ensure_ascii=False))
                 .replace('__CHIPS__', json.dumps(CHIPS, ensure_ascii=False))
                 .replace('__FHBEST__', json.dumps(FHBEST, ensure_ascii=False))
-                .replace('__CHIPEV__', json.dumps(CHIP_EVENTS)))
+                .replace('__CHIPEV__', json.dumps(CHIP_EVENTS))
+                .replace('__PNEWS__', json.dumps(NEWS_BY_PLAYER, ensure_ascii=False)))
     open(path, 'w', encoding='utf-8').write(page)
 
 

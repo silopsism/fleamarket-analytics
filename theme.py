@@ -292,7 +292,16 @@ th.gwsel:hover{color:var(--accent)}
 .pcard .px .c.lv i{font-size:9.5px;letter-spacing:.04em}
 .pcard .px .c.lv.on b{background:var(--lime);color:var(--lime-ink)}
 .pcard .px .c.lv.on i{background:rgba(168,214,0,.24);color:#eaf7bb}
-.pcard .px .c.lv.wait b{background:rgba(255,255,255,.14);color:rgba(255,255,255,.75)}
+/* a match in progress is not the same as a finished one: the number can still
+   move, so it gets its own colour rather than reading as settled */
+.pcard .px .c.lv.inplay b{background:var(--warn);color:#25190a}
+.pcard .px .c.lv.inplay i{background:rgba(240,170,40,.26);color:#ffe2ab;
+ animation:livepulse 2.4s ease-in-out infinite}
+@keyframes livepulse{0%,100%{opacity:1}50%{opacity:.55}}
+.sqpop .inplay{color:var(--warn);font-weight:700}
+/* pre-match: the club it faces, not a zero */
+.pcard .px .c.lv.wait b{background:rgba(255,255,255,.14);color:rgba(255,255,255,.8);
+ font:700 13px/1.6 Archivo;letter-spacing:.04em}
 .pcard .px .c.lv.off b{background:rgba(255,255,255,.08);color:rgba(255,255,255,.45)}
 .pcard .px .c.lv.off i{color:rgba(255,255,255,.45)}
 #ovmode{margin:2px 0 10px}
@@ -434,6 +443,13 @@ th.gwsel:hover{color:var(--accent)}
 .sqpop td.p.neg{color:var(--down)}
 .sqpop .ft{padding:7px 12px;background:var(--sunk);color:var(--muted);
  font-size:11px;border-top:1px solid var(--grid)}
+/* a curated override can run to a paragraph; keep it to three lines so one
+   verbose note cannot turn the popup into an essay */
+.sqpop .ft.why{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;
+ overflow:hidden;line-height:1.45}
+.sqpop .nw{padding:7px 12px;border-top:1px solid var(--grid);background:var(--bg)}
+.sqpop .nw span{display:block;font-size:11.5px;line-height:1.35;color:var(--ink)}
+.sqpop .nw em{display:block;margin-top:2px;font-style:normal;font-size:10px;color:var(--muted)}
 .sqpop .cap{color:var(--accent);font-weight:700}
 .tip b{font-size:13.5px}
 .tip .r{color:var(--ink2)}
