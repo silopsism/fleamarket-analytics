@@ -418,6 +418,9 @@ th.gwsel:hover{color:var(--accent)}
 .sqpop .nw{padding:7px 12px;border-top:1px solid var(--grid);background:var(--bg)}
 .sqpop .nw span{display:block;font-size:11.5px;line-height:1.35;color:var(--ink)}
 .sqpop .nw em{display:block;margin-top:2px;font-style:normal;font-size:10px;color:var(--muted)}
+.sqpop .nw .tag{display:inline-block;font:700 9px/1.5 Archivo;letter-spacing:.08em;
+ text-transform:uppercase;background:var(--warn);color:#25190a;border-radius:3px;
+ padding:0 4px;margin-right:4px;vertical-align:1px}
 .sqpop .cap{color:var(--accent);font-weight:700}
 .tip b{font-size:13.5px}
 .tip .r{color:var(--ink2)}
@@ -609,8 +612,8 @@ clean sheets, defensive contributions), season expectations, and fixtures. </p>
 </section>
 </div>
 
-<footer>FPL data pulled Sun 13 Sep 13:13 UK · refreshed hourly · fixtures priced by bookmaker odds: 10 · fixture model k(attack)=0.78, k(opponent defence)=0.80, home ×1.10, rmse 0.182
-<br><span class="build">build 625a5cb+dirty · Give the squad card a real popup instead of a browser tooltip · generated Sun 13 Sep 13:13 UK</span></footer>
+<footer>FPL data pulled Sun 13 Sep 13:16 UK · refreshed hourly · fixtures priced by bookmaker odds: 10 · fixture model k(attack)=0.78, k(opponent defence)=0.80, home ×1.10, rmse 0.182
+<br><span class="build">build 381d5b2+dirty · Live cards say who and when before kick-off, and mark matches in pla · generated Sun 13 Sep 13:16 UK</span></footer>
 </div>
 <div class="tip" id="tip"></div>
 <div class="sqpop" id="sqpop" hidden></div>
@@ -623,7 +626,7 @@ const WEEK = [{"h": "AVL", "a": "NFO", "hp": 17, "ap": 16, "when": "Sat 12 Sep �
 const CHIPS = [{"gw": 4, "doubles": [], "blanks": [], "tc": 2.73, "tcfix": {"team": "CHE", "opp": "HUL", "home": 1, "gf": 2.73}, "bb": 0.0, "fh": 0.583, "clashes": ["MUN v MCI"], "held": [{"t": "MCI", "af": 0.82}, {"t": "MUN", "af": 0.82}, {"t": "BRE", "af": 0.86}, {"t": "ARS", "af": 0.93}], "field": 70.41}, {"gw": 5, "doubles": [], "blanks": [], "tc": 2.43, "tcfix": {"team": "MCI", "opp": "SUN", "home": 1, "gf": 2.43}, "bb": 0.0, "fh": 0.705, "clashes": ["BRE v CHE", "BHA v ARS"], "held": [{"t": "BHA", "af": 0.63}, {"t": "ARS", "af": 0.87}, {"t": "CHE", "af": 0.88}, {"t": "LIV", "af": 0.95}], "field": 70.67}, {"gw": 6, "doubles": [], "blanks": [], "tc": 2.18, "tcfix": {"team": "CHE", "opp": "BOU", "home": 1, "gf": 2.18}, "bb": 0.0, "fh": 0.478, "clashes": ["LIV v MCI"], "held": [{"t": "MCI", "af": 0.77}, {"t": "LIV", "af": 0.92}, {"t": "BRE", "af": 0.93}, {"t": "NEW", "af": 0.95}], "field": 68.27}, {"gw": 7, "doubles": [], "blanks": [], "tc": 2.9, "tcfix": {"team": "MCI", "opp": "IPS", "home": 1, "gf": 2.9}, "bb": 0.0, "fh": 0.315, "clashes": ["EVE v CHE"], "held": [{"t": "LIV", "af": 0.89}, {"t": "ARS", "af": 0.93}, {"t": "MUN", "af": 0.94}, {"t": "CHE", "af": 0.96}], "field": 71.61}, {"gw": 8, "doubles": [], "blanks": [], "tc": 2.19, "tcfix": {"team": "ARS", "opp": "EVE", "home": 1, "gf": 2.19}, "bb": 0.0, "fh": 0.789, "clashes": ["ARS v EVE", "LIV v BHA"], "held": [{"t": "EVE", "af": 0.53}, {"t": "BHA", "af": 0.77}, {"t": "MCI", "af": 0.92}, {"t": "CHE", "af": 0.99}], "field": 68.99}, {"gw": 9, "doubles": [], "blanks": [], "tc": 2.24, "tcfix": {"team": "MCI", "opp": "BHA", "home": 1, "gf": 2.24}, "bb": 0.0, "fh": 1.064, "clashes": ["CHE v MUN", "MCI v BHA", "LIV v ARS"], "held": [{"t": "LIV", "af": 0.63}, {"t": "BHA", "af": 0.76}, {"t": "ARS", "af": 0.76}, {"t": "MUN", "af": 0.8}], "field": 66.52}, {"gw": 10, "doubles": [], "blanks": [], "tc": 2.32, "tcfix": {"team": "ARS", "opp": "HUL", "home": 1, "gf": 2.32}, "bb": 0.0, "fh": 0.22, "clashes": ["BHA v BRE"], "held": [{"t": "BRE", "af": 0.89}, {"t": "MCI", "af": 0.94}, {"t": "CHE", "af": 0.95}], "field": 71.67}, {"gw": 11, "doubles": [], "blanks": [], "tc": 2.74, "tcfix": {"team": "MCI", "opp": "FUL", "home": 1, "gf": 2.74}, "bb": 0.0, "fh": 0.753, "clashes": ["LIV v MUN", "NEW v ARS"], "held": [{"t": "NEW", "af": 0.63}, {"t": "MUN", "af": 0.78}, {"t": "ARS", "af": 0.85}, {"t": "LIV", "af": 0.99}], "field": 70.45}, {"gw": 12, "doubles": [], "blanks": [], "tc": 1.95, "tcfix": {"team": "MUN", "opp": "BRE", "home": 1, "gf": 1.95}, "bb": 0.0, "fh": 0.853, "clashes": ["ARS v MCI", "BHA v NEW", "EVE v LIV"], "held": [{"t": "MCI", "af": 0.52}, {"t": "NEW", "af": 0.89}, {"t": "ARS", "af": 0.9}, {"t": "CHE", "af": 0.94}], "field": 68.51}, {"gw": 13, "doubles": [], "blanks": [], "tc": 2.38, "tcfix": {"team": "MCI", "opp": "LEE", "home": 1, "gf": 2.38}, "bb": 0.0, "fh": 0.384, "clashes": ["NEW v MUN"], "held": [{"t": "MUN", "af": 0.86}, {"t": "ARS", "af": 0.87}, {"t": "EVE", "af": 0.93}, {"t": "BHA", "af": 0.95}], "field": 68.81}];
 const FHBEST = [{"gw": 4, "total": 70.41, "cap": "Palmer"}, {"gw": 5, "total": 70.67, "cap": "Haaland"}, {"gw": 6, "total": 68.27, "cap": "B.Fernandes"}, {"gw": 7, "total": 71.61, "cap": "Haaland"}, {"gw": 8, "total": 68.99, "cap": "B.Fernandes"}, {"gw": 9, "total": 66.52, "cap": "Haaland"}, {"gw": 10, "total": 71.67, "cap": "B.Fernandes"}, {"gw": 11, "total": 70.45, "cap": "Haaland"}, {"gw": 12, "total": 68.51, "cap": "B.Fernandes"}, {"gw": 13, "total": 68.81, "cap": "Haaland"}];
 const CHIPEV = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
-const PNEWS = {};
+const PNEWS = {"Palmer|CHE": [{"t": "3pm team news: Pedro, Palmer + Rogers start as expected", "s": "fantasyfootballscout.co.uk", "w": "12 Sep 13:46", "g": "lineup"}], "Rogers|CHE": [{"t": "How Rogers inspired incredible Chelsea comeback to answer Alonso call", "s": "London Evening Standard", "w": "10 Sep 14:36", "g": "return"}, {"t": "'What a start!' - Morgan Rogers joins Drogba, Hazard & Chelsea legends in elite Premier League group after goal against ", "s": "Goal.com", "w": "12 Sep 15:23", "g": "lineup"}], "Isak|LIV": [{"t": "Will Alexander Isak Start For Liverpool vs Fulham Live? Streaming Options, TV Channels, Kick Off Timings- Premier League", "s": "Sportsdunia", "w": "12 Sep 14:19", "g": "lineup"}], "Thiaw|NEW": [{"t": "Thiaw And Elanga To Start | 4-2-3-1 Newcastle United Predicted Lineup Vs Leeds United", "s": "The 4th Official", "w": "11 Sep 19:45", "g": "lineup"}], "Hall|NEW": [{"t": "Lewis Hall’s contract extension is the perfect boost for Matthias Jaissle and Newcastle", "s": "squawka.com", "w": "11 Sep 15:06", "g": "return"}, {"t": "Newcastle United extend Lewis Hall contract after impressive season start", "s": "AfricaSoccer.com", "w": "11 Sep 09:59", "g": "lineup"}], "Barry|EVE": [{"t": "Friday’s Everton News: Barry honored, Garner’s return", "s": "Royal Blue Mersey", "w": "11 Sep 06:00", "g": "return"}], "Woltemade|NEW": [{"t": "Sandro Tonali's four-word response to Nick Woltemade's Newcastle United transfer exit", "s": "Chronicle Live", "w": "12 Sep 11:05", "g": "transfer"}, {"t": "Nick Woltemade could face January sale talks as Newcastle United assess 2027 transfer swoop", "s": "Chronicle Live", "w": "12 Sep 09:00", "g": "transfer"}]};
 const GWL = [4, 5, 6, 7];
 // tab routing (hash-based, default overview)
 const panes=[...document.querySelectorAll('.tabpane')];
@@ -1042,7 +1045,8 @@ function mySquad(){
    `<div class="tot">${tot}</div></div>`;
   const money = `${r.t} · ${r.p} · £${(r.c||0).toFixed(1)}m`;
   const news=(PNEWS[r.n+'|'+r.t]||[]).map(x=>
-    `<div class="nw"><span>${esc(x.t)}</span><em>${esc(x.s)} · ${esc(x.w)}</em></div>`).join('');
+    `<div class="nw"><span><b class="tag">${esc(x.g||'news')}</b> ${esc(x.t)}</span>`+
+    `<em>${esc(x.s)} · ${esc(x.w)}</em></div>`).join('');
   if(lv){
    const rows=(lv.detail||[])
      // a stat worth nothing on a player who never came on is noise

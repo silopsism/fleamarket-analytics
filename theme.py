@@ -450,6 +450,9 @@ th.gwsel:hover{color:var(--accent)}
 .sqpop .nw{padding:7px 12px;border-top:1px solid var(--grid);background:var(--bg)}
 .sqpop .nw span{display:block;font-size:11.5px;line-height:1.35;color:var(--ink)}
 .sqpop .nw em{display:block;margin-top:2px;font-style:normal;font-size:10px;color:var(--muted)}
+.sqpop .nw .tag{display:inline-block;font:700 9px/1.5 Archivo;letter-spacing:.08em;
+ text-transform:uppercase;background:var(--warn);color:#25190a;border-radius:3px;
+ padding:0 4px;margin-right:4px;vertical-align:1px}
 .sqpop .cap{color:var(--accent);font-weight:700}
 .tip b{font-size:13.5px}
 .tip .r{color:var(--ink2)}

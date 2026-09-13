@@ -715,7 +715,8 @@ function mySquad(){
    `<div class="tot">${tot}</div></div>`;
   const money = `${r.t} · ${r.p} · £${(r.c||0).toFixed(1)}m`;
   const news=(PNEWS[r.n+'|'+r.t]||[]).map(x=>
-    `<div class="nw"><span>${esc(x.t)}</span><em>${esc(x.s)} · ${esc(x.w)}</em></div>`).join('');
+    `<div class="nw"><span><b class="tag">${esc(x.g||'news')}</b> ${esc(x.t)}</span>`+
+    `<em>${esc(x.s)} · ${esc(x.w)}</em></div>`).join('');
   if(lv){
    const rows=(lv.detail||[])
      // a stat worth nothing on a player who never came on is noise
@@ -1443,8 +1444,12 @@ def recent_news(days=6, per_player=2):
     nor a selection matter.
     """
     import time as _t
-    keep = {'out', 'doubt', 'return', 'injury', 'suspend', 'start', 'bench',
-            'rotation', 'fit', 'news'}
+    # Only the tags that bear on whether he plays. An untagged headline is a
+    # match report or gossip - 40 of the 54 cached items were things like
+    # "goes viral for one awkward moment" - and none of that belongs beside a
+    # projection. Requiring a tag is the difference between team news and noise.
+    keep = {'out', 'doubt', 'return', 'injury', 'suspend', 'lineup', 'rotation',
+            'bench', 'transfer', 'fit'}
     cutoff = _t.time() - days * 86400
     out = {}
     try:
@@ -1456,10 +1461,11 @@ def recent_news(days=6, per_player=2):
         for it in items:
             if (it.get('ts') or 0) < cutoff:
                 continue
-            if it.get('tags') and not (set(it['tags']) & keep):
+            if not (set(it.get('tags') or ()) & keep):
                 continue
             picked.append({'t': it.get('title', '')[:120],
-                           's': it.get('source', ''), 'w': it.get('when', '')})
+                           's': it.get('source', ''), 'w': it.get('when', ''),
+                           'g': sorted(set(it['tags']) & keep)[0]})
             if len(picked) >= per_player:
                 break
         if picked:
