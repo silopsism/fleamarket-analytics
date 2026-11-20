@@ -1024,8 +1024,13 @@ def health():
             ('bootstrap.json', 'fixtures.json', 'dashboard.html', 'odds_cache.json')}
     stale = [fn for fn, a in data.items()
              if a is None or a['age_minutes'] > 180]
+    # Whether the squad-aware features are armed, without exposing the id.
+    # Configuration that cannot be checked from outside is configuration nobody
+    # knows is missing - FPL_TEAM_ID sat unset for a whole session.
+    tid = my_team_id()
     return {'status': 'stale' if stale else 'ok',
             'stale': stale,
+            'squad_linked': bool(tid),
             'build': version.info(),
             'now': datetime.now(timezone.utc).isoformat(timespec='seconds'),
             'data': data}
