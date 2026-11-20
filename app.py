@@ -187,7 +187,9 @@ def _refresh_forever():
             boot = json.load(open('bootstrap.json', encoding='utf-8'))
             els = {e['id']: e for e in boot['elements']}
             tms = {t['id']: t['short_name'] for t in boot['teams']}
-            print('notify:', notify.maybe_notify(els, tms, news_payload()))
+            print('notify:', notify.maybe_notify(
+                els, tms, news_payload(), owned=my_squad_keys(),
+                events=boot.get('events')))
         except StopIteration:
             pass
         except Exception as exc:  # noqa: BLE001
@@ -1042,6 +1044,8 @@ def api_notify(key: str = '', force: str = '1'):
         els = {e['id']: e for e in boot['elements']}
         tms = {t['id']: t['short_name'] for t in boot['teams']}
         return {'result': notify.maybe_notify(els, tms, news_payload(),
+                                              owned=my_squad_keys(),
+                                              events=m['events'],
                                               force=(force == '1'))}
     except Exception as exc:  # noqa: BLE001
         return {'error': str(exc)[:120]}
@@ -1437,6 +1441,41 @@ def news_payload():
         return None
 
 
+def my_team_id():
+    """The reader's own entry, from the environment or a gitignored file."""
+    tid = os.environ.get('FPL_TEAM_ID')
+    if not tid and os.path.exists('my_team.json'):
+        try:
+            tid = str(json.load(open('my_team.json', encoding='utf-8')).get('team_id') or '')
+        except Exception:  # noqa: BLE001
+            tid = ''
+    return (tid or '').strip() or None
+
+
+def my_squad_keys():
+    """"Name|CLUB" for every player in the reader's latest locked squad."""
+    tid = my_team_id()
+    if not tid:
+        return set()
+    try:
+        m = model_data()
+        gw = locked_gw(m)
+        if not gw:
+            return set()
+        picks, _ = fetch_picks(tid, gw)
+        if not picks:
+            return set()
+        out = set()
+        for pk in picks.get('picks', []):
+            el = m['elements'].get(pk['element'])
+            if el:
+                out.add(f"{el['web_name']}|{m['teams'][el['team']]}")
+        return out
+    except Exception as exc:  # noqa: BLE001 - a missed sweep is not fatal
+        print('squad keys unavailable:', exc)
+        return set()
+
+
 def run_news_sweep():
     """Background news sweep (~1 min). Skipped if the cache is fresh."""
     if not _news_lock.acquire(blocking=False):
@@ -1448,7 +1487,8 @@ def run_news_sweep():
         exec(compile(src, 'model.py', 'exec'), ns)
         boot = json.load(open('bootstrap.json', encoding='utf-8'))
         els = {e['id']: e for e in boot['elements']}
-        news_mod.sweep(ns['players'], els, ns['teams'], out=NEWS_CACHE)
+        news_mod.sweep(ns['players'], els, ns['teams'], out=NEWS_CACHE,
+                       always=my_squad_keys())
         print('news sweep ok')
     except Exception as exc:  # noqa: BLE001
         print('news sweep failed:', exc)

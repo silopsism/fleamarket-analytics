@@ -173,11 +173,18 @@ def build_proposals(name_club, items, xmins, has_override=False):
     return []
 
 
-def sweep(players, elements, teams, limit=45, days=3, pace=0.7, out='news_cache.json'):
+def sweep(players, elements, teams, limit=45, days=3, pace=0.7, out='news_cache.json',
+          always=()):
     """Sweep the most relevant players: highest projected, plus anyone with a
-    curated minutes override (those are the assumptions most worth policing)."""
+    curated minutes override (those are the assumptions most worth policing),
+    plus `always` - the reader's own squad.
+
+    A player you own matters whatever the model thinks of him. Ranking by
+    projection means a cheap defender sitting in your fifteen can fall outside
+    the top 45 and never be swept, so his injury is never seen.
+    """
     import os
-    over = set()
+    over = set(always or ())
     if os.path.exists('xmins_overrides.json'):
         for k in json.load(open('xmins_overrides.json', encoding='utf-8')):
             if not k.startswith('_'):

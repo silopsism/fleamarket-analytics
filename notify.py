@@ -16,19 +16,21 @@ from datetime import datetime, timedelta, timezone
 
 STATE = os.path.join(os.environ.get('FPL_DATA_DIR', 'data'), 'notified.json')
 QUIET_FROM, QUIET_TO = 23, 6          # UK local hours, inclusive-exclusive
-MOVE_THRESHOLD = 0.2                  # percentage points of ownership
 # Net transfers only mean something at scale. Once a gameweek is live, 599 of
 # 600 players have a non-zero transfers_in_event, so treating "non-zero" as
 # newsworthy pushed every player to the phone - one qualified on a net of 105
 # transfers out of nine million managers. This is a share of the playerbase.
 NET_SHARE = 0.0025                    # 0.25% of managers, ~23k at 9.3m
 NET_FLOOR = 15000                     # ...but never less than this
-# A player already reported has to move another full point before being
-# reported again. The old key embedded live ownership, so a 0.1pp drift minted a
-# fresh key every hour and the dedupe never bit: five keys for Joao Pedro alone.
-RENOTIFY_PP = 1.0
-MIN_GAP_HOURS = 5                     # hard floor between digests, whoever asks
-MAX_ITEMS = 6
+
+# One scheduled post a week, in the first hour it falls inside a day of the
+# deadline. Three or four a day was noise; the decision only gets made once.
+DIGEST_LEAD_HOURS = 24
+
+# The exception. An injury to someone you own is worth a same-day push, and
+# waiting for FPL to raise a flag can take days - the press knows first. These
+# are the sweep's tags for "will not play" and "might not play".
+URGENT_TAGS = {'out', 'doubt', 'rotation'}
 
 
 def creds():
@@ -93,118 +95,171 @@ def net_bar(total_players):
     return max(int((total_players or 0) * NET_SHARE), NET_FLOOR)
 
 
-def build_digest(risers, fallers, news, seen, levels=None, total_players=None):
-    """Compose a digest of items not already sent.
+def _esc(t):
+    return (str(t).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'))
 
-    Returns (text, keys, new_levels). `levels` is the ownership at which each
-    player was last reported; a player is only reported again once he has moved
-    RENOTIFY_PP beyond that, which is what stops the same drift being pushed
-    every hour.
+
+def urgent_squad_alerts(cache, owned, seen):
+    """Same-day warnings about players the reader actually owns.
+
+    Driven by the news sweep, not by FPL's status field: a club confirms a
+    muscle injury on Tuesday and the flag often does not appear until the press
+    conference on Friday. The sweep sees the Tuesday story.
+
+    Only players in the squad, only tags that bear on whether he plays, and one
+    alert per headline ever.
     """
-    lines, keys = [], []
-    levels = dict(levels or {})
-    bar = net_bar(total_players)
-
-    def esc(s):
-        return (str(s).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'))
-
-    def qualifies(r):
-        # absolute move, a big relative move on a lightly-owned player, or net
-        # transfers at a scale that actually means something
-        return bool(abs(r['d_sel']) >= MOVE_THRESHOLD
-                    or r.get('rel', 0) >= 0.08
-                    or abs(r.get('d_net') or 0) >= bar)
-
-    def is_new(r):
-        """First time, or moved another full point since we last said so."""
-        prev = levels.get(r['player'])
-        return prev is None or abs(r['sel'] - prev) >= RENOTIFY_PP
-
-    def own_note(r):
-        n = r.get('d_own')
-        if n is None or abs(n) < 500:
-            return ''
-        return f" ({n:+,} owners)".replace(',', ' ')
-
-    moves = []
-    for arrow, group in (('▲', risers), ('▼', fallers)):
-        for r in group:
-            if not qualifies(r) or not is_new(r):
-                continue
-            moves.append(f"{arrow} <b>{esc(r['player'].split('|')[0])}</b> "
-                         f"{esc(r['player'].split('|')[1])} {r['d_sel']:+.2f}pp → "
-                         f"{r['sel']:.1f}%{own_note(r)}")
-            levels[r['player']] = r['sel']
-
-    stories = []
-    for s in news:
-        k = 'nw:' + str(abs(hash(s['player'] + s['headline'][:60])))
-        if k in seen:
+    out, keys = [], []
+    for key, items in (cache.get('players') or {}).items():
+        if key not in owned:
             continue
-        icon = {'reduce': '⚠️', 'raise': '🔼', 'watch': '👀'}.get(s.get('kind'), '📰')
-        stories.append(f"{icon} <b>{esc(s['player'].split('|')[0])}</b> "
-                       f"{esc(s['player'].split('|')[1])} — {esc(s['headline'][:110])}"
-                       f"\n<i>{esc(s.get('source', ''))}</i>")
-        keys.append(k)
+        who, club = key.split('|')
+        for it in items:
+            tags = set(it.get('tags') or ()) & URGENT_TAGS
+            if not tags:
+                continue
+            k = 'urg:' + str(abs(hash(key + it.get('title', '')[:70])))
+            if k in seen:
+                continue
+            icon = '🚑' if 'out' in tags else ('⚠️' if 'doubt' in tags else '🔄')
+            out.append(icon + ' <b>' + _esc(who) + '</b> ' + _esc(club) + ' — '
+                       + _esc(it.get('title', '')[:130]) + '\n'
+                       + '<i>' + _esc(it.get('source', '')) + ' · '
+                       + _esc(it.get('when', '')) + '</i>')
+            keys.append(k)
+    return out, keys
 
-    if not moves and not stories:
-        return None, [], levels
-    lines.append(f"<b>Fleamarket</b> · {_uk_now().strftime('%a %H:%M')}")
-    if moves:
-        lines.append('\n<b>Ownership movers</b>\n' + '\n'.join(moves[:MAX_ITEMS]))
-    if stories:
-        lines.append('\n<b>News</b>\n' + '\n\n'.join(stories[:4]))
-    lines.append('\nhttp://fpl.salwood.co.za')
-    return '\n'.join(lines), keys, levels
+
+def deadline_window(events):
+    """(event, hours_to_deadline) for the next deadline, or (None, None)."""
+    now = datetime.now(timezone.utc)
+    for ev in events or []:
+        try:
+            dl = datetime.strptime(ev['deadline_time'], '%Y-%m-%dT%H:%M:%SZ').replace(
+                tzinfo=timezone.utc)
+        except Exception:  # noqa: BLE001
+            continue
+        if dl > now:
+            return ev, (dl - now).total_seconds() / 3600
+    return None, None
 
 
-def maybe_notify(elements, teams, news_payload, hours=6, force=False):
-    """Send a digest if there is anything new and we're outside quiet hours."""
+def weekly_digest(elements, teams, event, hours_left, owned, total_players):
+    """The one scheduled post: what moved this gameweek, before the deadline.
+
+    Built from the gameweek's own transfer counters rather than snapshot deltas.
+    transfers_in_event resets at each deadline, so it IS the week's movement -
+    no history to keep, and nothing lost when a container restarts.
+    """
+    import re as _re
+    bar = net_bar(total_players)
+    rows = sorted(((e['transfers_in_event'] - e['transfers_out_event'], e)
+                   for e in elements.values()), key=lambda r: -r[0])
+
+    def k(n):
+        return ('%+.0fk' % (n / 1000)) if abs(n) < 1e6 else ('%+.1fm' % (n / 1e6))
+
+    def line(n, e, arrow, reason=False):
+        why = ''
+        if reason and e.get('news'):
+            why = ' · ' + _esc(_re.sub(r' - .*', '', e['news'])[:40])
+        return (arrow + ' <b>' + _esc(e['web_name']) + '</b> '
+                + _esc(teams[e['team']]) + ' ' + k(n) + ' → '
+                + str(e['selected_by_percent']) + '%' + why)
+
+    dl = datetime.strptime(event['deadline_time'], '%Y-%m-%dT%H:%M:%SZ')
+    L = ['<b>Fleamarket · GW%d</b>' % event['id'],
+         'Deadline %s UK · %.0fh to go' % (dl.strftime('%a %d %b, %H:%M'), hours_left)]
+
+    if owned:
+        mine = [e for e in elements.values()
+                if (e['web_name'] + '|' + teams[e['team']]) in owned and e['status'] != 'a']
+        L.append('\n<b>Your squad</b>')
+        L.append('\n'.join(
+            '⚠️ <b>' + _esc(e['web_name']) + '</b> ' + _esc(teams[e['team']])
+            + ' — ' + _esc((e['news'] or 'flagged')[:60]) for e in mine)
+            if mine else 'Nothing flagged.')
+
+    ins = [(n, e) for n, e in rows if n >= bar][:5]
+    outs = [(n, e) for n, e in rows[::-1] if n <= -bar][:5]
+    if ins:
+        L.append('\n<b>Moving in</b>')
+        L.append('\n'.join(line(n, e, '▲') for n, e in ins))
+    if outs:
+        L.append('\n<b>Moving out</b>')
+        L.append('\n'.join(line(n, e, '▼', reason=True) for n, e in outs))
+
+    rise = [e for e in elements.values()
+            if e['cost_change_event'] > 0 and float(e['selected_by_percent']) >= 5]
+    fall = [e for e in elements.values()
+            if e['cost_change_event'] < 0 and float(e['selected_by_percent']) >= 5]
+    if rise or fall:
+        L.append('\n<b>Price moves this week</b> <i>(5%+ owned)</i>')
+        if rise:
+            L.append('↑ ' + ', '.join('%s £%.1f' % (_esc(e['web_name']), e['now_cost'] / 10)
+                                       for e in rise[:6]))
+        if fall:
+            L.append('↓ ' + ', '.join('%s £%.1f' % (_esc(e['web_name']), e['now_cost'] / 10)
+                                       for e in fall[:6]))
+    L.append('\nhttp://fpl.salwood.co.za')
+    return '\n'.join(L)
+
+
+def maybe_notify(elements, teams, news_payload, hours=6, force=False, owned=None,
+                 events=None):
+    """Two things get pushed, and nothing else.
+
+    An injury or rotation risk to a player the reader OWNS goes out the same day,
+    because that is the only news that cannot wait for Friday. Everything else
+    waits for one post a week, a day before the deadline, which is when the
+    decision actually gets made.
+    """
     tok, chat = creds()
     if not tok or not chat:
         return 'unconfigured'
     hour = _uk_now().hour
     if not force and (hour >= QUIET_FROM or hour < QUIET_TO):
         return 'quiet hours'
-    st_pre = _state()
-    if not force and st_pre.get('last'):
-        try:
-            gap = (_uk_now() - datetime.fromisoformat(st_pre['last'])).total_seconds() / 3600
-            if gap < MIN_GAP_HOURS:
-                return f'too soon ({gap:.1f}h of {MIN_GAP_HOURS}h)'
-        except Exception:
-            pass
-    try:
-        import momentum
-        risers, fallers, _meta = momentum.recent_moves(elements, teams, hours=hours, top=4)
-    except Exception:
-        risers, fallers = [], []
-    news = []
-    if news_payload:
-        news = [p for p in (news_payload.get('proposals') or [])
-                if p.get('kind') in ('reduce', 'raise', 'watch')]
-        news += [{'player': d['player'], 'headline': d['items'][0]['title'],
-                  'source': d['items'][0]['source'], 'kind': 'watch'}
-                 for d in (news_payload.get('discoveries') or [])[:3]
-                 if d.get('items') and d.get('score', 0) >= 8]
     st = _state()
     seen = set(st.get('sent', []))
-    tp = None
-    try:
-        tp = json.load(open('bootstrap.json', encoding='utf-8')).get('total_players')
-    except Exception:
-        pass
-    text, keys, levels = build_digest(risers, fallers, news, seen,
-                                      levels=st.get('levels'), total_players=tp)
-    if not text:
-        return 'nothing new'
-    if send(text):
-        st['sent'] = list(st.get('sent', [])) + keys
-        st['levels'] = levels
+    owned = set(owned or ())
+    did = []
+
+    # --- the exception: your own players, same day --------------------------
+    if owned and news_payload:
+        alerts, akeys = urgent_squad_alerts(news_payload, owned, seen)
+        if alerts:
+            body = '<b>Fleamarket</b> · your squad\n\n' + '\n\n'.join(alerts[:4])
+            if send(body):
+                st['sent'] = list(st.get('sent', [])) + akeys
+                seen |= set(akeys)
+                did.append('%d squad alert(s)' % len(alerts[:4]))
+
+    # --- the weekly post ----------------------------------------------------
+    ev, left = deadline_window(events)
+    if ev and left is not None:
+        # First cycle that falls inside the lead time sends, and the gameweek
+        # stamp stops it repeating. If cycles were missed it goes out whenever
+        # the loop next runs - late is still better than never, since the team
+        # can be changed right up to the deadline.
+        inside = 0 < left <= DIGEST_LEAD_HOURS
+        if force or (inside and st.get('digest_gw') != ev['id']):
+            tp = None
+            try:
+                tp = json.load(open('bootstrap.json', encoding='utf-8')).get('total_players')
+            except Exception:  # noqa: BLE001
+                pass
+            text = weekly_digest(elements, teams, ev, left, owned, tp)
+            if text and send(text):
+                st['digest_gw'] = ev['id']
+                did.append('GW%d digest' % ev['id'])
+
+    if did:
+        st['sent'] = list(st.get('sent', []))[-400:]
         st['last'] = _uk_now().isoformat(timespec='minutes')
         _save_state(st)
-        return f'sent ({len(keys)} news, {len(levels)} tracked)'
-    return 'send failed'
+        return 'sent: ' + ', '.join(did)
+    return 'nothing due'
 
 
 if __name__ == '__main__':
