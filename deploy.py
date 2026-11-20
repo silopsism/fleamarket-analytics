@@ -30,7 +30,11 @@ UA = {'User-Agent': 'fleamarket-deploy'}
 def sh(*args, check=True):
     r = subprocess.run(args, capture_output=True, text=True)
     if check and r.returncode:
-        sys.exit(f'{" ".join(args)} failed:\n{r.stderr.strip()}')
+        # report BOTH streams: deploy_trigger prints its HTTP error to stdout,
+        # so reporting stderr alone turned "HTTP 401: Unauthenticated" into a
+        # blank line and made a dead token look like an unexplained failure
+        detail = chr(10).join(x for x in (r.stdout.strip(), r.stderr.strip()) if x)
+        sys.exit(" ".join(args) + " failed:" + chr(10) + (detail or "(no output)"))
     return r.stdout.strip()
 
 
